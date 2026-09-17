@@ -1,1 +1,780 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">01 · ANALYSIS</div><h1>Correspondence <span class="gradient">Lab</span></h1><p class="lead">Upload two observations. LunarMatch will extract features, match descriptors, verify geometry and preserve available metadata.</p></div><form id="analyzeForm"><div class="uploadgrid"><label class="card drop">IMAGE A<input required type="file" name="image_a" accept="image/*"><span class="muted">Choose a lunar image</span></label><label class="card drop">IMAGE B<input required type="file" name="image_b" accept="image/*"><span class="muted">Choose a comparison image</span></label></div><br><button class="btn primary" type="submit">RUN CORRESPONDENCE ANALYSIS</button><p id="analysisMsg" class="status"></p></form><br><div class="card"><h3>Pipeline</h3><p class="muted">Acquire → Preprocess → SIFT Features → Lowe Ratio Test → Reciprocal Matching → RANSAC → Reliability → Metadata Validation</p></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Analysis Control Center
+{% endblock %}
+
+{% block content %}
+
+<section class="analysis-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="pagehead analysis-hero-head">
+
+        <div class="eyebrow">
+            01 · MISSION CONTROL · IMAGE ACQUISITION
+        </div>
+
+        <h1>
+            Lunar Image
+            <span class="gradient">Analysis.</span>
+        </h1>
+
+        <p class="lead">
+            Compare two lunar observations, extract measurable
+            visual correspondences, verify their geometry and
+            evaluate available mission metadata.
+        </p>
+
+        <div class="analysis-integrity">
+
+            <span>
+                <i class="status-dot"></i>
+                PROCESSING ENGINE ONLINE
+            </span>
+
+            <span>
+                SIFT FEATURE EXTRACTION
+            </span>
+
+            <span>
+                RANSAC VERIFICATION
+            </span>
+
+            <span>
+                METADATA-AWARE VALIDATION
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ACQUISITION CONSOLE
+    ====================================================== -->
+
+    <section class="analysis-console card">
+
+        <div class="console-top">
+
+            <div>
+
+                <div class="eyebrow">
+                    IMAGE ACQUISITION
+                </div>
+
+                <h2>
+                    Two observations.
+                    <span class="gradient">
+                        One correspondence test.
+                    </span>
+                </h2>
+
+            </div>
+
+            <div class="console-code">
+                INPUT / 02
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             IMAGE INPUTS
+        ================================================== -->
+
+        <div class="uploadgrid analysis-upload-grid">
+
+            <!-- IMAGE A -->
+
+            <div class="image-input">
+
+                <div class="input-label-new">
+
+                    <span class="input-letter">
+                        A
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            SOURCE OBSERVATION
+                        </strong>
+
+                        <small>
+                            PRIMARY IMAGE
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <label
+                    class="drop-new"
+                    id="dropA"
+                    for="imageAInput"
+                >
+
+                    <div
+                        class="drop-content"
+                        id="dropContentA"
+                    >
+
+                        <div class="upload-symbol">
+                            +
+                        </div>
+
+                        <strong>
+                            SELECT IMAGE A
+                        </strong>
+
+                        <span>
+                            Click to browse or drop
+                            lunar imagery
+                        </span>
+
+                        <small>
+                            JPG · JPEG · PNG · TIFF · WEBP
+                        </small>
+
+                    </div>
+
+
+                    <img
+                        id="previewA"
+                        class="image-preview"
+                        alt="Source image preview"
+                    >
+
+                    <div class="preview-overlay">
+
+                        <span>
+                            SOURCE IMAGE
+                        </span>
+
+                        <small id="previewNameA">
+                            —
+                        </small>
+
+                    </div>
+
+                </label>
+
+
+                <input
+                    id="imageAInput"
+                    name="image_a"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                >
+
+
+                <div
+                    class="file-info"
+                    id="fileInfoA"
+                >
+
+                    <span>
+                        READY
+                    </span>
+
+                    <small>
+                        No image selected
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- IMAGE B -->
+
+            <div class="image-input">
+
+                <div class="input-label-new">
+
+                    <span class="input-letter reference">
+                        B
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            REFERENCE OBSERVATION
+                        </strong>
+
+                        <small>
+                            COMPARISON IMAGE
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <label
+                    class="drop-new"
+                    id="dropB"
+                    for="imageBInput"
+                >
+
+                    <div
+                        class="drop-content"
+                        id="dropContentB"
+                    >
+
+                        <div class="upload-symbol">
+                            +
+                        </div>
+
+                        <strong>
+                            SELECT IMAGE B
+                        </strong>
+
+                        <span>
+                            Click to browse or drop
+                            lunar imagery
+                        </span>
+
+                        <small>
+                            JPG · JPEG · PNG · TIFF · WEBP
+                        </small>
+
+                    </div>
+
+
+                    <img
+                        id="previewB"
+                        class="image-preview"
+                        alt="Reference image preview"
+                    >
+
+                    <div class="preview-overlay">
+
+                        <span>
+                            REFERENCE IMAGE
+                        </span>
+
+                        <small id="previewNameB">
+                            —
+                        </small>
+
+                    </div>
+
+                </label>
+
+
+                <input
+                    id="imageBInput"
+                    name="image_b"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                >
+
+
+                <div
+                    class="file-info"
+                    id="fileInfoB"
+                >
+
+                    <span>
+                        READY
+                    </span>
+
+                    <small>
+                        No image selected
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ANALYSIS OPTIONS
+        ================================================== -->
+
+        <div class="analysis-options">
+
+            <div class="option-card">
+
+                <span class="option-icon">
+                    ◈
+                </span>
+
+                <div>
+
+                    <strong>
+                        COMPUTER VISION
+                    </strong>
+
+                    <small>
+                        SIFT + descriptor correspondence
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="option-card">
+
+                <span class="option-icon">
+                    ⌁
+                </span>
+
+                <div>
+
+                    <strong>
+                        GEOMETRIC VERIFICATION
+                    </strong>
+
+                    <small>
+                        Reciprocal matching + RANSAC
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="option-card">
+
+                <span class="option-icon">
+                    ◎
+                </span>
+
+                <div>
+
+                    <strong>
+                        SCIENTIFIC VALIDATION
+                    </strong>
+
+                    <small>
+                        OHRC · TMC · IIRS · metadata
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             LAUNCH
+        ================================================== -->
+
+        <button
+            id="compareBtn"
+            class="launch-btn"
+            type="button"
+        >
+
+            <span>
+                RUN CORRESPONDENCE ENGINE
+            </span>
+
+            <b>
+                →
+            </b>
+
+        </button>
+
+
+        <div
+            id="analysisMsg"
+            class="analysis-message"
+            aria-live="polite"
+        ></div>
+
+
+        <!-- =================================================
+             INTEGRITY FOOTER
+        ================================================== -->
+
+        <div class="console-footer-new">
+
+            <span>
+                ● SECURE PROCESSING
+            </span>
+
+            <span>
+                ● 25 MB MAX INPUT
+            </span>
+
+            <span>
+                ● NO COORDINATE FABRICATION
+            </span>
+
+            <span>
+                ● EVIDENCE-BASED OUTPUT
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         LIVE PIPELINE
+    ====================================================== -->
+
+    <section class="pipeline-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    COMPUTATIONAL PIPELINE
+                </div>
+
+                <h2>
+                    Analysis
+                    <span class="gradient">
+                        stages.
+                    </span>
+                </h2>
+
+            </div>
+
+            <span class="pipeline-status">
+                STANDBY
+            </span>
+
+        </div>
+
+
+        <div class="pipeline-new">
+
+            <div
+                class="pipeline-step-new"
+                id="stageAcquire"
+            >
+
+                <span>01</span>
+
+                <strong>
+                    ACQUIRE
+                </strong>
+
+                <small>
+                    INPUT
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stagePreprocess"
+            >
+
+                <span>02</span>
+
+                <strong>
+                    PREPROCESS
+                </strong>
+
+                <small>
+                    CLAHE
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stageExtract"
+            >
+
+                <span>03</span>
+
+                <strong>
+                    EXTRACT
+                </strong>
+
+                <small>
+                    SIFT
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stageMatch"
+            >
+
+                <span>04</span>
+
+                <strong>
+                    MATCH
+                </strong>
+
+                <small>
+                    BF / L2
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stageVerify"
+            >
+
+                <span>05</span>
+
+                <strong>
+                    VERIFY
+                </strong>
+
+                <small>
+                    RANSAC
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stageScore"
+            >
+
+                <span>06</span>
+
+                <strong>
+                    SCORE
+                </strong>
+
+                <small>
+                    EVIDENCE
+                </small>
+
+            </div>
+
+
+            <div class="pipeline-arrow-new">
+                →
+            </div>
+
+
+            <div
+                class="pipeline-step-new"
+                id="stageReport"
+            >
+
+                <span>07</span>
+
+                <strong>
+                    REPORT
+                </strong>
+
+                <small>
+                    OUTPUT
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SCIENTIFIC VALIDATION PREVIEW
+    ====================================================== -->
+
+    <section class="validation-preview-section">
+
+        <div class="validation-preview card">
+
+            <div>
+
+                <div class="eyebrow">
+                    SCIENTIFIC VALIDATION
+                </div>
+
+                <h2>
+                    Mission data is separate
+                    from <span class="gradient">visual evidence.</span>
+                </h2>
+
+                <p class="muted">
+                    LunarMatch reports available mission metadata
+                    and reference evidence independently from its
+                    computer-vision correspondence score.
+                </p>
+
+            </div>
+
+
+            <div class="instrument-strip">
+
+                <div class="instrument-card">
+
+                    <strong>
+                        OHRC
+                    </strong>
+
+                    <span>
+                        Orbiter High Resolution Camera
+                    </span>
+
+                    <small>
+                        IDENTITY: EVIDENCE REQUIRED
+                    </small>
+
+                </div>
+
+
+                <div class="instrument-card">
+
+                    <strong>
+                        TMC
+                    </strong>
+
+                    <span>
+                        Terrain Mapping Camera
+                    </span>
+
+                    <small>
+                        IDENTITY: EVIDENCE REQUIRED
+                    </small>
+
+                </div>
+
+
+                <div class="instrument-card">
+
+                    <strong>
+                        IIRS
+                    </strong>
+
+                    <span>
+                        Imaging Infrared Spectrometer
+                    </span>
+
+                    <small>
+                        IDENTITY: EVIDENCE REQUIRED
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <a
+                href="/validation"
+                class="btn"
+            >
+                OPEN VALIDATION CENTER →
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ANALYSIS PRINCIPLE
+    ====================================================== -->
+
+    <section class="analysis-principle">
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                01
+            </span>
+
+            <h3>
+                CORRESPONDENCE
+            </h3>
+
+            <p>
+                Detect distinctive visual structures and identify
+                candidate feature relationships between the two
+                observations.
+            </p>
+
+        </div>
+
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                02
+            </span>
+
+            <h3>
+                VERIFICATION
+            </h3>
+
+            <p>
+                Reciprocal filtering and robust geometric
+                estimation reduce unsupported feature matches.
+            </p>
+
+        </div>
+
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                03
+            </span>
+
+            <h3>
+                VALIDATION
+            </h3>
+
+            <p>
+                Mission metadata, coordinates and reference
+                information are presented only when supported
+                by available evidence.
+            </p>
+
+        </div>
+
+    </section>
+
+</section>
+
+{% endblock %}
