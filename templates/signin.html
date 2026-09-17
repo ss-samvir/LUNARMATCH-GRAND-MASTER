@@ -1,240 +1,126 @@
+```html
 {% extends "base.html" %}
 
-{% block title %}
-LUNARMATCH V2 | Sign In
-{% endblock %}
+{% block title %}Sign In | LUNARMATCH{% endblock %}
 
 {% block content %}
 
-<section class="auth-page">
+<section class="section auth-page">
+    <div class="container">
 
-    <!-- =========================================================
-         LEFT — BRAND / MISSION
-    ========================================================== -->
+        <div class="auth-panel reveal">
 
-    <div class="auth-visual">
+            <div class="auth-header">
+                <span class="section-eyebrow">LUNARMATCH ACCOUNT</span>
 
-        <div class="auth-visual-grid"></div>
+                <h1>
+                    Welcome
+                    <span class="gradient">back.</span>
+                </h1>
 
-        <div class="auth-orbit orbit-one"></div>
-        <div class="auth-orbit orbit-two"></div>
-        <div class="auth-orbit orbit-three"></div>
-
-        <div class="auth-moon">
-
-            <span class="auth-crater crater-one"></span>
-            <span class="auth-crater crater-two"></span>
-            <span class="auth-crater crater-three"></span>
-            <span class="auth-crater crater-four"></span>
-
-        </div>
-
-        <div class="auth-coordinate">
-
-            <span>
-                LUNARMATCH V2
-            </span>
-
-            <strong>
-                RESEARCH ACCESS
-            </strong>
-
-            <small>
-                CORRESPONDENCE · VALIDATION · EVIDENCE
-            </small>
-
-        </div>
-
-    </div>
-
-
-    <!-- =========================================================
-         RIGHT — SIGN IN
-    ========================================================== -->
-
-    <div class="auth-panel">
-
-        <div class="auth-panel-inner">
-
-            <div class="eyebrow">
-                PLATFORM ACCESS
+                <p>
+                    Sign in to access your research workspace, analysis
+                    history, saved results and detailed reports.
+                </p>
             </div>
 
-            <h1>
-                Welcome
-                <span class="gradient">back.</span>
-            </h1>
 
-            <p class="lead">
-                Sign in to access your LunarMatch analysis workspace.
-            </p>
+            <form id="signinForm" class="auth-form">
 
-
-            <!-- =================================================
-                 LOGIN FORM
-            ================================================== -->
-
-            <form
-                id="signinForm"
-                data-auth="/api/login"
-                class="auth-form">
-
-                <label>
-
-                    <span>
-                        EMAIL
-                    </span>
+                <div class="form-group">
+                    <label for="signinIdentifier">
+                        Email or Username
+                    </label>
 
                     <input
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autocomplete="email"
+                        type="text"
+                        id="signinIdentifier"
+                        name="identifier"
+                        class="form-control"
+                        placeholder="Enter your email or username"
+                        autocomplete="username"
+                        maxlength="160"
                         required
                     >
+                </div>
 
-                </label>
 
-
-                <label>
-
-                    <div class="password-label">
-
-                        <span>
-                            PASSWORD
-                        </span>
-
-                        <button
-                            type="button"
-                            id="togglePassword"
-                            class="password-toggle">
-
-                            SHOW
-
-                        </button>
-
-                    </div>
+                <div class="form-group">
+                    <label for="signinPassword">
+                        Password
+                    </label>
 
                     <input
-                        id="signinPassword"
                         type="password"
+                        id="signinPassword"
                         name="password"
+                        class="form-control"
                         placeholder="Enter your password"
                         autocomplete="current-password"
                         required
                     >
+                </div>
 
-                </label>
+
+                <div
+                    id="signinMessage"
+                    class="form-message"
+                    role="status"
+                    aria-live="polite"
+                ></div>
 
 
                 <button
-                    class="btn primary auth-submit"
-                    type="submit">
-
-                    SIGN IN →
-
+                    type="submit"
+                    id="signinBtn"
+                    class="btn btn-primary btn-large"
+                >
+                    <span>Sign In</span>
+                    <span class="btn-arrow">→</span>
                 </button>
-
-
-                <p
-                    id="msg"
-                    class="auth-message"
-                    aria-live="polite">
-                </p>
 
             </form>
 
 
-            <!-- =================================================
-                 SECURITY
-            ================================================== -->
-
-            <div class="auth-security">
-
-                <div class="security-icon">
-                    ✓
-                </div>
-
-                <div>
-
-                    <strong>
-                        SECURE ACCESS
-                    </strong>
-
-                    <p>
-                        Your authentication request is processed
-                        through the LunarMatch backend.
-                    </p>
-
-                </div>
-
+            <div class="auth-divider">
+                <span>OR</span>
             </div>
 
 
-            <!-- =================================================
-                 REGISTER
-            ================================================== -->
+            <div class="auth-secondary">
 
-            <div class="auth-switch">
+                <p>
+                    Don't have a LUNARMATCH account?
+                </p>
 
-                <span>
-                    NEW TO LUNARMATCH?
-                </span>
-
-                <a href="/contact">
-                    CREATE ACCOUNT →
+                <a
+                    href="{{ url_for('signup_page') }}"
+                    class="btn btn-secondary"
+                >
+                    Create Account
                 </a>
 
             </div>
 
 
-            <!-- =================================================
-                 RETURN
-            ================================================== -->
+            <div class="auth-note">
 
-            <a
-                href="/"
-                class="auth-back">
+                <span class="badge badge-info">
+                    NO ACCOUNT REQUIRED FOR BASIC ANALYSIS
+                </span>
 
-                ← RETURN TO MISSION CONTROL
+                <p>
+                    You can run a basic image correspondence analysis
+                    without registering. An account is useful when you want
+                    access to research-oriented workspace features.
+                </p>
 
-            </a>
+            </div>
 
         </div>
 
     </div>
-
 </section>
 
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const toggle = document.getElementById("togglePassword");
-    const password = document.getElementById("signinPassword");
-
-    if (toggle && password) {
-
-        toggle.addEventListener("click", function () {
-
-            if (password.type === "password") {
-
-                password.type = "text";
-                toggle.textContent = "HIDE";
-
-            } else {
-
-                password.type = "password";
-                toggle.textContent = "SHOW";
-
-            }
-
-        });
-
-    }
-
-});
-
-</script>
-
 {% endblock %}
+```
