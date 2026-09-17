@@ -1,3378 +1,2178 @@
-/* ================================================================
-   LUNARMATCH V2 — GLOBAL APPLICATION ENGINE
-   ---------------------------------------------------------------
-   Responsibilities:
-   - Authentication forms
-   - Image selection + previews
-   - Drag & drop
-   - Analysis API
-   - Pipeline animation
-   - Results rendering
-   - Validation rendering
-   - Stress-lab frontend hooks
-   - Safe HTML rendering
-   - Session persistence
-   ================================================================ */
+```javascript
+/* =========================================================
+   LUNARMATCH V3 — MAIN APPLICATION JAVASCRIPT
+   Research-grade lunar image correspondence interface
+   Backend: Flask /api/*
+   ========================================================= */
 
-"use strict";
+(() => {
+    "use strict";
 
+    /* ---------------------------------------------------------
+       GLOBAL STATE
+    --------------------------------------------------------- */
 
-/* ================================================================
-   GLOBAL HELPERS
-   ================================================================ */
-
-const LM = {
-
-    /**
-     * Safely escape text before inserting backend/user data
-     * into HTML.
-     */
-    escape(value) {
-
-        if (value === null || value === undefined) {
-            return "—";
+    const state = {
+        user: null,
+        latestResult: null,
+        analysisRunning: false,
+        selectedFiles: {
+            a: null,
+            b: null
         }
-
-        return String(value)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    },
-
-
-    /**
-     * Convert an arbitrary value into a readable display string.
-     */
-    display(value, fallback = "Not available") {
-
-        if (
-            value === null ||
-            value === undefined ||
-            value === "" ||
-            value === "null"
-        ) {
-            return fallback;
-        }
-
-        return LM.escape(value);
-    },
-
-
-    /**
-     * POST JSON helper.
-     */
-    async postJSON(url, data) {
-
-        const response = await fetch(url, {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify(data)
-
-        });
-
-        let result = {};
-
-        try {
-            result = await response.json();
-        } catch (error) {
-            throw new Error(
-                "The server returned an invalid response."
-            );
-        }
-
-        if (!response.ok) {
-
-            throw new Error(
-                result.error ||
-                result.message ||
-                "Request failed."
-            );
-
-        }
-
-        return result;
-    },
-
-
-    /**
-     * POST multipart/form-data.
-     */
-    async postForm(url, formData) {
-
-        const response = await fetch(url, {
-
-            method: "POST",
-            body: formData
-
-        });
-
-        let result = {};
-
-        try {
-            result = await response.json();
-        } catch (error) {
-
-            throw new Error(
-                "The server returned an invalid response."
-            );
-
-        }
-
-        if (!response.ok) {
-
-            throw new Error(
-                result.error ||
-                result.message ||
-                "Request failed."
-            );
-
-        }
-
-        return result;
-    },
-
-
-    /**
-     * Safely parse stored analysis data.
-     */
-    getStoredResult() {
-
-        try {
-
-            const raw =
-                sessionStorage.getItem("lm_result");
-
-            if (!raw) {
-                return null;
-            }
-
-            return JSON.parse(raw);
-
-        } catch (error) {
-
-            console.warn(
-                "LunarMatch: stored result could not be read.",
-                error
-            );
-
-            sessionStorage.removeItem("lm_result");
-
-            return null;
-        }
-    },
-
-
-    /**
-     * Store latest analysis.
-     */
-    saveResult(result) {
-
-        try {
-
-            sessionStorage.setItem(
-                "lm_result",
-                JSON.stringify(result)
-            );
-
-        } catch (error) {
-
-            console.warn(
-                "LunarMatch: could not store analysis.",
-                error
-            );
-
-        }
-
-    },
-
-
-    /**
-     * Format numbers without destroying scientific meaning.
-     */
-    number(value, decimals = 2) {
-
-        if (
-            value === null ||
-            value === undefined ||
-            value === "" ||
-            Number.isNaN(Number(value))
-        ) {
-            return "—";
-        }
-
-        return Number(value).toFixed(decimals);
-    },
-
-
-    /**
-     * Format a percentage.
-     */
-    percentage(value) {
-
-        if (
-            value === null ||
-            value === undefined ||
-            value === ""
-        ) {
-            return "—";
-        }
-
-        return `${LM.number(value, 1)}%`;
-    },
-
-
-    /**
-     * Return a CSS-safe status class.
-     */
-    statusClass(status) {
-
-        const value =
-            String(status || "")
-                .toLowerCase();
-
-        if (
-            value.includes("pass") ||
-            value.includes("verified") ||
-            value.includes("available") ||
-            value.includes("established") ||
-            value.includes("success") ||
-            value.includes("stable")
-        ) {
-            return "status-good";
-        }
-
-        if (
-            value.includes("warning") ||
-            value.includes("partial") ||
-            value.includes("limited") ||
-            value.includes("unknown") ||
-            value.includes("not established")
-        ) {
-            return "status-warn";
-        }
-
-        if (
-            value.includes("fail") ||
-            value.includes("error") ||
-            value.includes("unavailable")
-        ) {
-            return "status-bad";
-        }
-
-        return "status-neutral";
-    },
-
-
-    /**
-     * Change text safely.
-     */
-    setText(selector, value, fallback = "—") {
-
-        const element =
-            document.querySelector(selector);
-
-        if (!element) {
-            return;
-        }
-
-        element.textContent =
-            value === null ||
-            value === undefined ||
-            value === ""
-                ? fallback
-                : String(value);
-    },
-
-
-    /**
-     * Small delay used for visual pipeline sequencing.
-     */
-    sleep(milliseconds) {
-
-        return new Promise(resolve =>
-            setTimeout(resolve, milliseconds)
-        );
-
-    }
-
-};
-
-
-/* ================================================================
-   AUTHENTICATION
-   ================================================================ */
-
-function wireAuthForms() {
-
-    const forms =
-        document.querySelectorAll(
-            "[data-auth]"
-        );
-
-    if (!forms.length) {
-        return;
-    }
-
-
-    forms.forEach(form => {
-
-        /*
-         * Avoid attaching the global handler twice.
-         */
-        if (form.dataset.authWired === "true") {
-            return;
-        }
-
-        form.dataset.authWired = "true";
-
-
-        form.addEventListener(
-            "submit",
-            async function (event) {
-
-                event.preventDefault();
-
-
-                const endpoint =
-                    form.dataset.auth;
-
-                const message =
-                    form.querySelector(
-                        "#msg"
-                    ) ||
-                    document.querySelector(
-                        "#msg"
-                    );
-
-                const button =
-                    form.querySelector(
-                        "button[type='submit']"
-                    );
-
-
-                if (message) {
-
-                    message.textContent = "";
-                    message.className =
-                        "auth-message";
-
-                }
-
-
-                if (button) {
-
-                    button.disabled = true;
-
-                    if (
-                        endpoint.includes("login")
-                    ) {
-
-                        button.textContent =
-                            "AUTHENTICATING…";
-
-                    } else {
-
-                        button.textContent =
-                            "CREATING ACCOUNT…";
-
-                    }
-
-                }
-
-
-                try {
-
-                    const formData =
-                        new FormData(form);
-
-                    const payload = {};
-
-
-                    formData.forEach(
-                        (value, key) => {
-
-                            /*
-                             * Do not send files through
-                             * authentication forms.
-                             */
-                            if (
-                                typeof value === "string"
-                            ) {
-
-                                payload[key] =
-                                    value;
-
-                            }
-
-                        }
-                    );
-
-
-                    /*
-                     * Password confirmation is a frontend-only
-                     * check. The backend only receives the actual
-                     * password.
-                     */
-                    if (
-                        payload.confirm_password !==
-                        undefined
-                    ) {
-
-                        if (
-                            payload.password !==
-                            payload.confirm_password
-                        ) {
-
-                            throw new Error(
-                                "Passwords do not match."
-                            );
-
-                        }
-
-                        delete payload.confirm_password;
-
-                    }
-
-
-                    const result =
-                        await LM.postJSON(
-                            endpoint,
-                            payload
-                        );
-
-
-                    if (message) {
-
-                        message.textContent =
-                            result.message ||
-                            "Operation completed successfully.";
-
-                        message.classList.add(
-                            "success"
-                        );
-
-                    }
-
-
-                    /*
-                     * Login and registration both lead to
-                     * the analysis workspace.
-                     */
-                    setTimeout(() => {
-
-                        window.location.href =
-                            result.redirect ||
-                            "/analyze";
-
-                    }, 500);
-
-
-                } catch (error) {
-
-                    console.error(
-                        "Authentication error:",
-                        error
-                    );
-
-
-                    if (message) {
-
-                        message.textContent =
-                            error.message ||
-                            "Authentication failed.";
-
-                        message.classList.add(
-                            "error"
-                        );
-
-                    }
-
-
-                    if (button) {
-
-                        button.disabled = false;
-
-                        if (
-                            endpoint.includes("login")
-                        ) {
-
-                            button.textContent =
-                                "SIGN IN →";
-
-                        } else {
-
-                            button.textContent =
-                                "CREATE ACCOUNT →";
-
-                        }
-
-                    }
-
-                }
-
-            }
-        );
-
-    });
-
-}
-
-
-/* ================================================================
-   IMAGE PREVIEW SYSTEM
-   ================================================================ */
-
-function setupImageInput({
-
-    inputId,
-    dropId,
-    previewId,
-    contentId,
-    nameId,
-    infoId
-
-}) {
-
-    const input =
-        document.getElementById(inputId);
-
-    const drop =
-        document.getElementById(dropId);
-
-    const preview =
-        document.getElementById(previewId);
-
-    const content =
-        document.getElementById(contentId);
-
-    const nameElement =
-        document.getElementById(nameId);
-
-    const info =
-        document.getElementById(infoId);
-
-
-    if (!input || !drop) {
-        return;
-    }
-
-
-    function showFile(file) {
-
-        if (!file) {
-            return;
-        }
-
-
-        if (!file.type.startsWith("image/")) {
-
-            if (info) {
-
-                info.innerHTML =
-                    "<span>ERROR</span>" +
-                    "<small>Please select an image file.</small>";
-
-            }
-
-            return;
-        }
-
-
-        /*
-         * Backend limit is 25 MB.
-         */
-        const maxSize =
-            25 * 1024 * 1024;
-
-        if (file.size > maxSize) {
-
-            if (info) {
-
-                info.innerHTML =
-                    "<span>FILE TOO LARGE</span>" +
-                    "<small>Maximum input size is 25 MB.</small>";
-
-            }
-
-            return;
-        }
-
-
-        /*
-         * Put the file into the actual input.
-         */
-        try {
-
-            const dataTransfer =
-                new DataTransfer();
-
-            dataTransfer.items.add(file);
-
-            input.files =
-                dataTransfer.files;
-
-        } catch (error) {
-
-            /*
-             * Some browsers may restrict programmatic
-             * file assignment. The preview still works.
-             */
-            console.warn(
-                "Could not assign dropped file:",
-                error
-            );
-
-        }
-
-
-        if (nameElement) {
-
-            nameElement.textContent =
-                file.name;
-
-        }
-
-
-        if (info) {
-
-            const sizeMB =
-                file.size /
-                (1024 * 1024);
-
-            info.innerHTML =
-                `<span>READY</span>
-                 <small>${LM.escape(file.name)} · ${sizeMB.toFixed(2)} MB</small>`;
-
-        }
-
-
-        if (content) {
-            content.style.display =
-                "none";
-        }
-
-
-        if (preview) {
-
-            const objectURL =
-                URL.createObjectURL(file);
-
-            preview.src =
-                objectURL;
-
-            preview.style.display =
-                "block";
-
-            preview.onload = function () {
-
-                URL.revokeObjectURL(
-                    objectURL
-                );
-
-            };
-
-        }
-
-
-        drop.classList.add(
-            "has-image"
-        );
-
-    }
-
-
-    input.addEventListener(
-        "change",
-        function () {
-
-            if (
-                input.files &&
-                input.files.length
-            ) {
-
-                showFile(
-                    input.files[0]
-                );
-
-            }
-
-        }
-    );
-
-
-    [
-        "dragenter",
-        "dragover"
-    ].forEach(eventName => {
-
-        drop.addEventListener(
-            eventName,
-            function (event) {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                drop.classList.add(
-                    "drag-active"
-                );
-
-            }
-        );
-
-    });
-
-
-    [
-        "dragleave",
-        "drop"
-    ].forEach(eventName => {
-
-        drop.addEventListener(
-            eventName,
-            function (event) {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                drop.classList.remove(
-                    "drag-active"
-                );
-
-            }
-        );
-
-    });
-
-
-    drop.addEventListener(
-        "drop",
-        function (event) {
-
-            const files =
-                event.dataTransfer.files;
-
-            if (
-                files &&
-                files.length
-            ) {
-
-                showFile(
-                    files[0]
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* ================================================================
-   ANALYSIS INPUTS
-   ================================================================ */
-
-function wireAnalysisInputs() {
-
-    setupImageInput({
-
-        inputId: "imageAInput",
-        dropId: "dropA",
-        previewId: "previewA",
-        contentId: "dropContentA",
-        nameId: "previewNameA",
-        infoId: "fileInfoA"
-
-    });
-
-
-    setupImageInput({
-
-        inputId: "imageBInput",
-        dropId: "dropB",
-        previewId: "previewB",
-        contentId: "dropContentB",
-        nameId: "previewNameB",
-        infoId: "fileInfoB"
-
-    });
-
-}
-
-
-/* ================================================================
-   PIPELINE ANIMATION
-   ================================================================ */
-
-const PIPELINE_STAGES = [
-
-    "stageAcquire",
-    "stagePreprocess",
-    "stageExtract",
-    "stageMatch",
-    "stageVerify",
-    "stageScore",
-    "stageReport"
-
-];
-
-
-function resetPipeline() {
-
-    PIPELINE_STAGES.forEach(id => {
-
-        const stage =
-            document.getElementById(id);
-
-        if (!stage) {
-            return;
-        }
-
-        stage.classList.remove(
-            "active",
-            "complete"
-        );
-
-    });
-
-
-    const status =
-        document.querySelector(
-            ".pipeline-status"
-        );
-
-    if (status) {
-        status.textContent =
-            "STANDBY";
-    }
-
-}
-
-
-async function animatePipeline() {
-
-    const status =
-        document.querySelector(
-            ".pipeline-status"
-        );
-
-
-    resetPipeline();
-
-
-    for (
-        let index = 0;
-        index < PIPELINE_STAGES.length;
-        index++
-    ) {
-
-        const current =
-            document.getElementById(
-                PIPELINE_STAGES[index]
-            );
-
-        if (!current) {
-            continue;
-        }
-
-
-        current.classList.add(
-            "active"
-        );
-
-
-        if (status) {
-
-            const labels = [
-                "ACQUIRING",
-                "PREPROCESSING",
-                "EXTRACTING",
-                "MATCHING",
-                "VERIFYING",
-                "SCORING",
-                "REPORTING"
-            ];
-
-            status.textContent =
-                labels[index] ||
-                "PROCESSING";
-
-        }
-
-
-        await LM.sleep(
-            index === 0
-                ? 250
-                : 350
-        );
-
-
-        current.classList.remove(
-            "active"
-        );
-
-        current.classList.add(
-            "complete"
-        );
-
-    }
-
-}
-
-
-/* ================================================================
-   ANALYSIS ENGINE
-   ================================================================ */
-
-function wireAnalyze() {
-
-    const button =
-        document.getElementById(
-            "compareBtn"
-        );
-
-    if (!button) {
-        return;
-    }
-
-
-    const imageA =
-        document.getElementById(
-            "imageAInput"
-        );
-
-    const imageB =
-        document.getElementById(
-            "imageBInput"
-        );
-
-    const message =
-        document.getElementById(
-            "analysisMsg"
-        );
-
-
-    button.addEventListener(
-        "click",
-        async function () {
-
-            if (
-                !imageA ||
-                !imageB
-            ) {
-                return;
-            }
-
-
-            if (
-                !imageA.files ||
-                !imageA.files.length
-            ) {
-
-                showAnalysisMessage(
-                    "Please select Image A first.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            if (
-                !imageB.files ||
-                !imageB.files.length
-            ) {
-
-                showAnalysisMessage(
-                    "Please select Image B first.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            const formData =
-                new FormData();
-
-            formData.append(
-                "image_a",
-                imageA.files[0]
-            );
-
-            formData.append(
-                "image_b",
-                imageB.files[0]
-            );
-
-
-            button.disabled = true;
-            button.classList.add(
-                "processing"
-            );
-
-            button.innerHTML =
-                "<span>RUNNING CORRESPONDENCE ENGINE…</span><b>◌</b>";
-
-
-            if (message) {
-
-                message.textContent =
-                    "Initializing scientific image correspondence analysis…";
-
-                message.className =
-                    "analysis-message active";
-
-            }
-
-
-            /*
-             * Run visual animation alongside the actual
-             * backend computation.
-             */
-            animatePipeline();
-
-
-            try {
-
-                const result =
-                    await LM.postForm(
-                        "/api/analyze",
-                        formData
-                    );
-
-
-                LM.saveResult(
-                    result
-                );
-
-
-                /*
-                 * Mark pipeline complete.
-                 */
-                PIPELINE_STAGES.forEach(
-                    id => {
-
-                        const stage =
-                            document.getElementById(
-                                id
-                            );
-
-                        if (stage) {
-
-                            stage.classList.remove(
-                                "active"
-                            );
-
-                            stage.classList.add(
-                                "complete"
-                            );
-
-                        }
-
-                    }
-                );
-
-
-                const status =
-                    document.querySelector(
-                        ".pipeline-status"
-                    );
-
-                if (status) {
-                    status.textContent =
-                        "COMPLETE";
-                }
-
-
-                if (message) {
-
-                    message.textContent =
-                        "Analysis complete. Opening evidence dashboard…";
-
-                    message.className =
-                        "analysis-message success";
-
-                }
-
-
-                await LM.sleep(450);
-
-                window.location.href =
-                    "/results";
-
-
-            } catch (error) {
-
-                console.error(
-                    "Analysis error:",
-                    error
-                );
-
-
-                resetPipeline();
-
-
-                if (message) {
-
-                    message.textContent =
-                        error.message ||
-                        "Analysis failed.";
-
-                    message.className =
-                        "analysis-message error";
-
-                }
-
-
-                button.disabled = false;
-                button.classList.remove(
-                    "processing"
-                );
-
-                button.innerHTML =
-                    "<span>RUN CORRESPONDENCE ENGINE</span><b>→</b>";
-
-            }
-
-        }
-    );
-
-}
-
-
-function showAnalysisMessage(
-    text,
-    type = ""
-) {
-
-    const message =
-        document.getElementById(
-            "analysisMsg"
-        );
-
-    if (!message) {
-        return;
-    }
-
-    message.textContent =
-        text;
-
-    message.className =
-        "analysis-message " +
-        type;
-
-}
-
-
-/* ================================================================
-   RESULT DATA HELPERS
-   ================================================================ */
-
-function getImageResult(result, key) {
-
-    if (!result) {
-        return {};
-    }
-
-    return result[key] || {};
-
-}
-
-
-function getMetadata(imageResult) {
-
-    if (
-        !imageResult ||
-        typeof imageResult !== "object"
-    ) {
-        return {};
-    }
-
-    return imageResult.metadata || {};
-
-}
-
-
-function metadataTable(metadata) {
-
-    const rows = [
-
-        [
-            "Latitude",
-            LM.display(
-                metadata.latitude
-            )
-        ],
-
-        [
-            "Longitude",
-            LM.display(
-                metadata.longitude
-            )
-        ],
-
-        [
-            "Altitude",
-            LM.display(
-                metadata.altitude
-            )
-        ],
-
-        [
-            "Acquisition Time",
-            LM.display(
-                metadata.acquisition_time
-            )
-        ],
-
-        [
-            "Mission",
-            LM.display(
-                metadata.mission
-            )
-        ],
-
-        [
-            "Instrument",
-            LM.display(
-                metadata.camera
-            )
-        ],
-
-        [
-            "Image ID",
-            LM.display(
-                metadata.image_id
-            )
-        ],
-
-        [
-            "CRS",
-            LM.display(
-                metadata.crs
-            )
-        ],
-
-        [
-            "Projection",
-            LM.display(
-                metadata.projection
-            )
-        ],
-
-        [
-            "Datum",
-            LM.display(
-                metadata.datum
-            )
-        ],
-
-        [
-            "Reference Source",
-            LM.display(
-                metadata.reference_source
-            )
-        ]
-
-    ];
-
-
-    return `
-        <table class="table metadata-table">
-            <tbody>
-                ${rows.map(row => `
-                    <tr>
-                        <th>${LM.escape(row[0])}</th>
-                        <td>${row[1]}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-    `;
-
-}
-
-
-/* ================================================================
-   RESULTS DASHBOARD
-   ================================================================ */
-
-async function renderResults() {
-
-    const container =
-        document.getElementById(
-            "result"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    const loading =
-        document.getElementById(
-            "resultLoading"
-        );
-
-    const noResult =
-        document.getElementById(
-            "noResult"
-        );
-
-
-    let result =
-        LM.getStoredResult();
-
-
-    /*
-     * If sessionStorage is empty, attempt to retrieve the
-     * latest server-side result.
-     */
-    if (!result) {
-
-        try {
-
-            const response =
-                await fetch(
-                    "/api/results"
-                );
-
-
-            if (response.ok) {
-
-                const serverResult =
-                    await response.json();
-
-                if (serverResult) {
-
-                    result =
-                        serverResult;
-
-                    LM.saveResult(
-                        result
-                    );
-
-                }
-
-            }
-
-        } catch (error) {
-
-            console.warn(
-                "Could not retrieve server result:",
-                error
-            );
-
-        }
-
-    }
-
-
-    if (loading) {
-        loading.hidden = true;
-    }
-
-
-    if (!result) {
-
-        if (noResult) {
-            noResult.hidden = false;
-        }
-
-        return;
-    }
-
-
-    if (noResult) {
-        noResult.hidden = true;
-    }
-
-
-    container.innerHTML =
-        buildResultsHTML(
-            result
-        );
-
-}
-
-
-/* ================================================================
-   RESULTS HTML
-   ================================================================ */
-
-function buildResultsHTML(result) {
-
-    const imageA =
-        getImageResult(
-            result,
-            "image_a"
-        );
-
-    const imageB =
-        getImageResult(
-            result,
-            "image_b"
-        );
-
-
-    const metadataA =
-        getMetadata(imageA);
-
-    const metadataB =
-        getMetadata(imageB);
-
-
-    const reliability =
-        result.reliability ??
-        "Not established";
-
-
-    const score =
-        result.score;
-
-
-    const verified =
-        result.verified_matches;
-
-
-    const inlierRatio =
-        result.inlier_ratio;
-
-
-    const imageURL =
-        result.result_image ||
-        "";
-
-
-    const validationNote =
-        result.validation_note ||
-        "No additional validation note available.";
-
-
-    return `
-
-        <!-- =====================================================
-             TOP METRICS
-        ====================================================== -->
-
-        <section class="result-metrics">
-
-            <div class="card metric-card">
-
-                <span class="metric-label">
-                    RELIABILITY
-                </span>
-
-                <strong>
-                    ${LM.escape(reliability)}
-                </strong>
-
-                <small>
-                    Evidence classification
-                </small>
-
-            </div>
-
-
-            <div class="card metric-card">
-
-                <span class="metric-label">
-                    EVIDENCE SCORE
-                </span>
-
-                <strong>
-                    ${LM.percentage(score)}
-                </strong>
-
-                <small>
-                    Composite correspondence evidence
-                </small>
-
-            </div>
-
-
-            <div class="card metric-card">
-
-                <span class="metric-label">
-                    VERIFIED MATCHES
-                </span>
-
-                <strong>
-                    ${LM.display(verified)}
-                </strong>
-
-                <small>
-                    Geometrically consistent
-                </small>
-
-            </div>
-
-
-            <div class="card metric-card">
-
-                <span class="metric-label">
-                    INLIER RATIO
-                </span>
-
-                <strong>
-                    ${LM.percentage(inlierRatio)}
-                </strong>
-
-                <small>
-                    RANSAC-supported candidates
-                </small>
-
-            </div>
-
-        </section>
-
-
-        <!-- =====================================================
-             CORRESPONDENCE VISUAL
-        ====================================================== -->
-
-        <section class="card result-visual-card">
-
-            <div class="result-section-head">
-
-                <div>
-
-                    <div class="eyebrow">
-                        COMPUTATIONAL EVIDENCE
-                    </div>
-
-                    <h2>
-                        Correspondence
-                        <span class="gradient">
-                            map.
-                        </span>
-                    </h2>
-
-                </div>
-
-                <span class="result-badge">
-                    RANSAC VERIFIED
-                </span>
-
-            </div>
-
-
-            ${
-                imageURL
-                    ? `
-                        <div class="result-image-frame">
-
-                            <img
-                                class="imgresult"
-                                src="${LM.escape(imageURL)}"
-                                alt="LunarMatch correspondence visualization"
-                            >
-
-                        </div>
-                    `
-                    : `
-                        <div class="empty-visual">
-                            Correspondence visualization unavailable.
-                        </div>
-                    `
-            }
-
-
-            <p class="muted result-note">
-                ${LM.escape(validationNote)}
-            </p>
-
-        </section>
-
-
-        <!-- =====================================================
-             IMAGE METADATA
-        ====================================================== -->
-
-        <section class="result-two-column">
-
-            <div class="card">
-
-                <div class="eyebrow">
-                    SOURCE OBSERVATION
-                </div>
-
-                <h2>
-                    Image A
-                </h2>
-
-                <p class="muted result-filename">
-                    ${LM.display(
-                        imageA.filename,
-                        "Source image"
-                    )}
-                </p>
-
-                ${metadataTable(metadataA)}
-
-            </div>
-
-
-            <div class="card">
-
-                <div class="eyebrow">
-                    REFERENCE OBSERVATION
-                </div>
-
-                <h2>
-                    Image B
-                </h2>
-
-                <p class="muted result-filename">
-                    ${LM.display(
-                        imageB.filename,
-                        "Reference image"
-                    )}
-                </p>
-
-                ${metadataTable(metadataB)}
-
-            </div>
-
-        </section>
-
-
-        <!-- =====================================================
-             COMPUTATIONAL VERIFICATION
-        ====================================================== -->
-
-        <section class="card">
-
-            <div class="eyebrow">
-                GEOMETRIC VERIFICATION
-            </div>
-
-            <h2>
-                How the correspondence
-                <span class="gradient">
-                    was tested.
-                </span>
-            </h2>
-
-
-            <div class="verification-grid">
-
-                ${resultMetric(
-                    "Raw Matches",
-                    result.raw_matches
-                )}
-
-                ${resultMetric(
-                    "Candidate Matches",
-                    result.candidate_matches
-                )}
-
-                ${resultMetric(
-                    "Verified Matches",
-                    result.verified_matches
-                )}
-
-                ${resultMetric(
-                    "Inlier Ratio",
-                    LM.percentage(
-                        result.inlier_ratio
-                    )
-                )}
-
-                ${resultMetric(
-                    "Geometric Consistency",
-                    LM.percentage(
-                        result.geometric_consistency
-                    )
-                )}
-
-                ${resultMetric(
-                    "Feature Coverage",
-                    LM.percentage(
-                        result.feature_coverage
-                    )
-                )}
-
-                ${resultMetric(
-                    "Homography",
-                    result.homography_status
-                )}
-
-                ${resultMetric(
-                    "Processing Time",
-                    result.processing_time_ms !==
-                    undefined
-                        ? `${LM.number(
-                            result.processing_time_ms,
-                            1
-                        )} ms`
-                        : "Not available"
-                )}
-
-            </div>
-
-        </section>
-
-
-        <!-- =====================================================
-             SCIENTIFIC VALIDATION SUMMARY
-        ====================================================== -->
-
-        <section class="card">
-
-            <div class="eyebrow">
-                SCIENTIFIC VALIDATION
-            </div>
-
-            <h2>
-                Evidence
-                <span class="gradient">
-                    layers.
-                </span>
-            </h2>
-
-            ${buildValidationSummary(result)}
-
-        </section>
-
-
-        <!-- =====================================================
-             ACTIONS
-        ====================================================== -->
-
-        <section class="result-actions">
-
-            <a
-                href="/validation"
-                class="btn primary">
-
-                OPEN VALIDATION CENTER →
-
-            </a>
-
-
-            <a
-                href="/stress"
-                class="btn">
-
-                TEST ROBUSTNESS →
-
-            </a>
-
-
-            <a
-                href="/analyze"
-                class="btn">
-
-                NEW ANALYSIS
-
-            </a>
-
-        </section>
-
-    `;
-
-}
-
-
-function resultMetric(
-    label,
-    value
-) {
-
-    return `
-
-        <div class="verification-item">
-
-            <span>
-                ${LM.escape(label)}
-            </span>
-
-            <strong>
-                ${LM.display(value)}
-            </strong>
-
-        </div>
-
-    `;
-
-}
-
-
-/* ================================================================
-   VALIDATION SUMMARY
-   ================================================================ */
-
-function buildValidationSummary(result) {
-
-    const validation =
-        result.validation ||
-        {};
-
-
-    const instrument =
-        validation.instrument ||
-        {};
-
-
-    const coordinates =
-        validation.coordinate_validation ||
-        {};
-
-
-    const mission =
-        validation.mission_validation ||
-        {};
-
-
-    const projection =
-        validation.projection_validation ||
-        {};
-
-
-    const reference =
-        validation.reference_validation ||
-        {};
-
-
-    return `
-
-        <div class="validation-summary-grid">
-
-            ${validationSummaryCard(
-                "INSTRUMENT",
-                instrument.status ||
-                instrument.name ||
-                "Not established"
-            )}
-
-            ${validationSummaryCard(
-                "COORDINATES",
-                coordinates.status ||
-                "Not available"
-            )}
-
-            ${validationSummaryCard(
-                "MISSION",
-                mission.status ||
-                "Not established"
-            )}
-
-            ${validationSummaryCard(
-                "PROJECTION",
-                projection.status ||
-                "Not established"
-            )}
-
-            ${validationSummaryCard(
-                "REFERENCE",
-                reference.status ||
-                "Not established"
-            )}
-
-        </div>
-
-    `;
-
-}
-
-
-function validationSummaryCard(
-    label,
-    value
-) {
-
-    const className =
-        LM.statusClass(value);
-
-
-    return `
-
-        <div
-            class="validation-summary-item ${className}">
-
-            <span>
-                ${LM.escape(label)}
-            </span>
-
-            <strong>
-                ${LM.escape(value)}
-            </strong>
-
-        </div>
-
-    `;
-
-}
-
-
-/* ================================================================
-   VALIDATION CENTER
-   ================================================================ */
-
-function renderValidation() {
-
-    const page =
-        document.querySelector(
-            ".validation-page"
-        );
-
-    if (!page) {
-        return;
-    }
-
-
-    const result =
-        LM.getStoredResult();
-
-
-    if (!result) {
-
-        fillValidationEmptyState();
-
-        return;
-    }
-
-
-    const validation =
-        result.validation ||
-        {};
-
-
-    const instrument =
-        validation.instrument ||
-        {};
-
-
-    const coordinates =
-        validation.coordinate_validation ||
-        {};
-
-
-    const mission =
-        validation.mission_validation ||
-        {};
-
-
-    const projection =
-        validation.projection_validation ||
-        {};
-
-
-    const reference =
-        validation.reference_validation ||
-        {};
-
-
-    /*
-     * Instrument layer
-     */
-    updateInstrumentCard(
-        "ohrc",
-        instrument,
-        "OHRC"
-    );
-
-    updateInstrumentCard(
-        "tmc",
-        instrument,
-        "TMC"
-    );
-
-    updateInstrumentCard(
-        "iirs",
-        instrument,
-        "IIRS"
-    );
-
-
-    /*
-     * Coordinate layer
-     */
-    setValidationValue(
-        "locationStatus",
-        coordinates.status ||
-        "Not available"
-    );
-
-
-    const imageA =
-        getImageResult(
-            result,
-            "image_a"
-        );
-
-    const metadataA =
-        getMetadata(imageA);
-
-
-    setValidationValue(
-        "validationLatitude",
-        metadataA.latitude
-    );
-
-    setValidationValue(
-        "validationLongitude",
-        metadataA.longitude
-    );
-
-
-    setValidationValue(
-        "coordinateBasis",
-        coordinates.basis ||
-        coordinates.source ||
-        "Evidence source not established"
-    );
-
-
-    setValidationValue(
-        "validationCrs",
-        metadataA.crs
-    );
-
-    setValidationValue(
-        "validationProjection",
-        metadataA.projection
-    );
-
-    setValidationValue(
-        "validationDatum",
-        metadataA.datum
-    );
-
-    setValidationValue(
-        "validationImageId",
-        metadataA.image_id
-    );
-
-
-    /*
-     * Mission
-     */
-    setValidationValue(
-        "missionValidationStatus",
-        mission.status ||
-        "Not established"
-    );
-
-    setValidationValue(
-        "missionValidationText",
-        mission.text ||
-        mission.message ||
-        "No independent mission evidence was established."
-    );
-
-
-    /*
-     * Reference
-     */
-    setValidationValue(
-        "referenceValidationStatus",
-        reference.status ||
-        "Not established"
-    );
-
-    setValidationValue(
-        "referenceValidationText",
-        reference.text ||
-        reference.message ||
-        "No independent reference evidence was established."
-    );
-
-
-    /*
-     * Projection
-     */
-    setValidationValue(
-        "projectionValidationStatus",
-        projection.status ||
-        "Not established"
-    );
-
-    setValidationValue(
-        "projectionValidationText",
-        projection.text ||
-        projection.message ||
-        "No projection validation evidence was established."
-    );
-
-
-    /*
-     * Warnings
-     */
-    const warnings =
-        Array.isArray(
-            validation.warnings
-        )
-            ? validation.warnings
-            : [];
-
-
-    const warningCount =
-        document.getElementById(
-            "warningCount"
-        );
-
-
-    const warningBox =
-        document.getElementById(
-            "validationWarnings"
-        );
-
-
-    if (warningCount) {
-
-        warningCount.textContent =
-            String(
-                warnings.length
-            );
-
-    }
-
-
-    if (warningBox) {
-
-        if (!warnings.length) {
-
-            warningBox.innerHTML = `
-                <div class="validation-clear">
-                    <span>✓</span>
-                    No validation warnings were returned.
-                </div>
-            `;
-
-        } else {
-
-            warningBox.innerHTML = `
-
-                <ul class="warning-list">
-
-                    ${warnings.map(
-                        warning => `
-                            <li>
-                                ${LM.escape(
-                                    warning
-                                )}
-                            </li>
-                        `
-                    ).join("")}
-
-                </ul>
-
-            `;
-
-        }
-
-    }
-
-}
-
-
-function updateInstrumentCard(
-    prefix,
-    instrument,
-    instrumentName
-) {
-
-    const detected =
-        String(
-            instrument.detected ||
-            instrument.name ||
-            ""
-        ).toUpperCase();
-
-
-    const isDetected =
-        detected.includes(
-            instrumentName
-        );
-
-
-    setValidationValue(
-        `${prefix}Status`,
-        isDetected
-            ? "IDENTITY ESTABLISHED"
-            : "NOT ESTABLISHED"
-    );
-
-
-    setValidationValue(
-        `${prefix}A`,
-        isDetected
-            ? "Detected in available metadata"
-            : "No supporting metadata"
-    );
-
-
-    setValidationValue(
-        `${prefix}B`,
-        isDetected
-            ? "Evidence source available"
-            : "Independent evidence required"
-    );
-
-}
-
-
-function setValidationValue(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-    if (!element) {
-        return;
-    }
-
-    element.textContent =
-        value === null ||
-        value === undefined ||
-        value === ""
-            ? "Not available"
-            : String(value);
-
-}
-
-
-function fillValidationEmptyState() {
-
-    [
-        "locationStatus",
-        "validationLatitude",
-        "validationLongitude",
-        "coordinateBasis",
-        "validationCrs",
-        "validationProjection",
-        "validationDatum",
-        "validationImageId",
-        "missionValidationStatus",
-        "missionValidationText",
-        "referenceValidationStatus",
-        "referenceValidationText",
-        "projectionValidationStatus",
-        "projectionValidationText"
-    ].forEach(id => {
-
-        setValidationValue(
-            id,
-            "No analysis available"
-        );
-
-    });
-
-
-    [
-        "ohrcStatus",
-        "tmcStatus",
-        "iirsStatus"
-    ].forEach(id => {
-
-        setValidationValue(
-            id,
-            "NO ANALYSIS"
-        );
-
-    });
-
-
-    const warningBox =
-        document.getElementById(
-            "validationWarnings"
-        );
-
-    if (warningBox) {
-
-        warningBox.innerHTML = `
-            <div class="validation-clear">
-                Run an analysis first to populate the validation evidence.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* ================================================================
-   STRESS LAB
-   ================================================================ */
-
-function wireStressLab() {
-
-    const fileInput =
-        document.getElementById(
-            "stressImage"
-        );
-
-    const runButton =
-        document.getElementById(
-            "stressRunBtn"
-        );
-
-
-    /*
-     * The stress page has its own input IDs.
-     */
-    if (fileInput) {
-
-        setupImageInput({
-
-            inputId: "stressImage",
-            dropId: "stressDrop",
-            previewId: "stressPreview",
-            contentId: "stressDropContent",
-            nameId: "stressPreviewName",
-            infoId: "stressFileInfo"
-
-        });
-
-    }
-
-
-    const severity =
-        document.getElementById(
-            "stressSeverity"
-        );
-
-    const severityValue =
-        document.getElementById(
-            "stressSeverityValue"
-        );
-
-
-    if (severity && severityValue) {
-
-        function updateSeverity() {
-
-            severityValue.textContent =
-                severity.value;
-
-            updateStressDescription();
-
-        }
-
-
-        severity.addEventListener(
-            "input",
-            updateSeverity
-        );
-
-
-        updateSeverity();
-
-    }
-
-
-    const stressType =
-        document.getElementById(
-            "stressType"
-        );
-
-
-    if (stressType) {
-
-        stressType.addEventListener(
-            "change",
-            updateStressDescription
-        );
-
-    }
-
-
-    if (runButton) {
-
-        runButton.addEventListener(
-            "click",
-            runStressTest
-        );
-
-    }
-
-}
-
-
-function updateStressDescription() {
-
-    const type =
-        document.getElementById(
-            "stressType"
-        );
-
-    const severity =
-        document.getElementById(
-            "stressSeverity"
-        );
-
-    const description =
-        document.getElementById(
-            "stressDescription"
-        );
-
-
-    if (
-        !type ||
-        !severity ||
-        !description
-    ) {
-        return;
-    }
-
-
-    const descriptions = {
-
-        rotation:
-            "Tests correspondence stability when the observation is rotated.",
-
-        scale:
-            "Tests correspondence stability under controlled scale change.",
-
-        brightness:
-            "Tests resilience to illumination / brightness variation.",
-
-        contrast:
-            "Tests resilience to contrast variation.",
-
-        noise:
-            "Tests robustness against synthetic image noise.",
-
-        blur:
-            "Tests robustness when image detail is reduced by blur.",
-
-        crop:
-            "Tests correspondence under reduced spatial overlap."
-
     };
 
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) =>
+        Array.from(root.querySelectorAll(selector));
 
-    const selected =
-        descriptions[
-            type.value
-        ] ||
-        "Controlled synthetic robustness test.";
+    /* ---------------------------------------------------------
+       INITIALIZATION
+    --------------------------------------------------------- */
 
+    document.addEventListener("DOMContentLoaded", async () => {
+        initNavigation();
+        initMobileNavigation();
+        initRevealAnimations();
+        initTiltCards();
+        initSpaceCanvas();
+        initFileInputs();
+        initForms();
+        initAnalysis();
+        initFeedback();
+        initStressTesting();
+        initResultActions();
 
-    description.textContent =
-        selected +
-        ` Severity: ${severity.value}.`;
+        await loadCurrentUser();
+        loadStoredResult();
+        updateAuthenticatedUI();
+    });
 
-}
+    /* ---------------------------------------------------------
+       API HELPER
+    --------------------------------------------------------- */
 
+    async function api(url, options = {}) {
+        const config = {
+            credentials: "same-origin",
+            ...options
+        };
 
-async function runStressTest() {
-
-    const fileInput =
-        document.getElementById(
-            "stressImage"
-        );
-
-    const type =
-        document.getElementById(
-            "stressType"
-        );
-
-    const severity =
-        document.getElementById(
-            "stressSeverity"
-        );
-
-    const button =
-        document.getElementById(
-            "stressRunBtn"
-        );
-
-    const message =
-        document.getElementById(
-            "stressMessage"
-        );
-
-
-    if (
-        !fileInput ||
-        !fileInput.files ||
-        !fileInput.files.length
-    ) {
-
-        showStressMessage(
-            "Select an image before running the stress test.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (!type || !severity) {
-        return;
-    }
-
-
-    const formData =
-        new FormData();
-
-    formData.append(
-        "image",
-        fileInput.files[0]
-    );
-
-    formData.append(
-        "transform",
-        type.value
-    );
-
-    formData.append(
-        "severity",
-        severity.value
-    );
-
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.textContent =
-            "RUNNING STRESS TEST…";
-
-    }
-
-
-    showStressMessage(
-        "Generating controlled transformation and measuring correspondence stability…",
-        "active"
-    );
-
-
-    try {
-
-        /*
-         * This endpoint will be enabled when the stress
-         * backend is added.
-         */
-        const result =
-            await LM.postForm(
-                "/api/stress",
-                formData
-            );
-
-
-        renderStressResult(
-            result
-        );
-
-
-        showStressMessage(
-            "Stress test complete.",
-            "success"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Stress test error:",
-            error
-        );
-
-
-        showStressMessage(
-            error.message ||
-            "Stress test failed.",
-            "error"
-        );
-
-
-    } finally {
-
-        if (button) {
-
-            button.disabled = false;
-
-            button.textContent =
-                "RUN STRESS TEST →";
-
+        if (
+            config.body &&
+            typeof config.body === "object" &&
+            !(config.body instanceof FormData) &&
+            !(config.body instanceof Blob)
+        ) {
+            config.headers = {
+                "Content-Type": "application/json",
+                ...(config.headers || {})
+            };
+            config.body = JSON.stringify(config.body);
         }
 
+        let response;
+
+        try {
+            response = await fetch(url, config);
+        } catch (error) {
+            throw new Error(
+                "Unable to connect to LUNARMATCH. Please check your connection and try again."
+            );
+        }
+
+        let data = null;
+
+        const contentType = response.headers.get("content-type") || "";
+
+        if (contentType.includes("application/json")) {
+            try {
+                data = await response.json();
+            } catch (_) {
+                data = null;
+            }
+        } else {
+            try {
+                data = await response.text();
+            } catch (_) {
+                data = null;
+            }
+        }
+
+        if (!response.ok) {
+            const message =
+                data && typeof data === "object" && data.error
+                    ? data.error
+                    : `Request failed (${response.status})`;
+
+            throw new Error(message);
+        }
+
+        return data;
     }
 
-}
+    /* ---------------------------------------------------------
+       AUTHENTICATION
+    --------------------------------------------------------- */
 
+    async function loadCurrentUser() {
+        try {
+            const data = await api("/api/profile");
 
-function showStressMessage(
-    text,
-    type = ""
-) {
-
-    const message =
-        document.getElementById(
-            "stressMessage"
-        );
-
-    if (!message) {
-        return;
+            if (data && data.authenticated) {
+                state.user = data.user || null;
+            } else {
+                state.user = null;
+            }
+        } catch (_) {
+            state.user = null;
+        }
     }
 
-    message.textContent =
-        text;
+    function updateAuthenticatedUI() {
+        const authElements = $$("[data-auth-only]");
+        const guestElements = $$("[data-guest-only]");
+        const userNames = $$("[data-user-name]");
+        const userEmails = $$("[data-user-email]");
 
-    message.className =
-        "stress-message " +
-        type;
+        authElements.forEach(el => {
+            el.hidden = !state.user;
+        });
 
-}
+        guestElements.forEach(el => {
+            el.hidden = !!state.user;
+        });
 
+        if (state.user) {
+            userNames.forEach(el => {
+                el.textContent =
+                    state.user.name ||
+                    state.user.username ||
+                    "Researcher";
+            });
 
-function renderStressResult(result) {
-
-    const empty =
-        document.getElementById(
-            "stressResultEmpty"
-        );
-
-    const output =
-        document.getElementById(
-            "stressResult"
-        );
-
-
-    if (empty) {
-        empty.hidden = true;
+            userEmails.forEach(el => {
+                el.textContent = state.user.email || "";
+            });
+        }
     }
 
+    async function handleSignIn(form) {
+        const submitButton = getSubmitButton(form);
+        setButtonLoading(submitButton, true, "SIGNING IN...");
 
-    if (!output) {
-        return;
-    }
+        try {
+            const identity =
+                getFieldValue(form, [
+                    "identity",
+                    "username",
+                    "email"
+                ]) || "";
 
+            const password = getFieldValue(form, ["password"]) || "";
 
-    output.hidden = false;
+            if (!identity || !password) {
+                throw new Error("Enter your username/email and password.");
+            }
 
+            const data = await api("/api/signin", {
+                method: "POST",
+                body: {
+                    identity,
+                    password
+                }
+            });
 
-    setValidationValue(
-        "stressBaseScore",
-        result.base_score !==
-        undefined
-            ? LM.percentage(
-                result.base_score
-            )
-            : "Not available"
-    );
+            state.user = data.user || null;
 
-
-    setValidationValue(
-        "stressTestScore",
-        result.test_score !==
-        undefined
-            ? LM.percentage(
-                result.test_score
-            )
-            : "Not available"
-    );
-
-
-    setValidationValue(
-        "stressVerified",
-        result.verified_matches
-    );
-
-
-    setValidationValue(
-        "stressStability",
-        result.stability !==
-        undefined
-            ? LM.percentage(
-                result.stability
-            )
-            : "Not available"
-    );
-
-
-    setValidationValue(
-        "stressOutputType",
-        result.transform
-    );
-
-
-    setValidationValue(
-        "stressOutputSeverity",
-        result.severity
-    );
-
-
-    setValidationValue(
-        "stressOutputGeometry",
-        result.homography_status
-    );
-
-
-    setValidationValue(
-        "stressOutputInterpretation",
-        result.interpretation
-    );
-
-
-    const basePreview =
-        document.getElementById(
-            "stressBasePreview"
-        );
-
-    const transformedPreview =
-        document.getElementById(
-            "stressTransformedPreview"
-        );
-
-
-    if (
-        basePreview &&
-        result.base_image
-    ) {
-
-        basePreview.src =
-            result.base_image;
-
-    }
-
-
-    if (
-        transformedPreview &&
-        result.transformed_image
-    ) {
-
-        transformedPreview.src =
-            result.transformed_image;
-
-    }
-
-
-    const status =
-        document.getElementById(
-            "stressResultStatus"
-        );
-
-
-    if (status) {
-
-        status.textContent =
-            result.status ||
-            "TEST COMPLETE";
-
-        status.className =
-            "stress-result-status " +
-            LM.statusClass(
-                result.status
+            showToast(
+                "Welcome back to LUNARMATCH.",
+                "success"
             );
 
+            updateAuthenticatedUI();
+
+            const redirect =
+                form.dataset.redirect ||
+                "/workspace";
+
+            setTimeout(() => {
+                window.location.href = redirect;
+            }, 500);
+
+        } catch (error) {
+            showFormMessage(form, error.message, "error");
+        } finally {
+            setButtonLoading(submitButton, false);
+        }
     }
 
-}
+    async function handleSignUp(form) {
+        const submitButton = getSubmitButton(form);
+        setButtonLoading(submitButton, true, "CREATING ACCOUNT...");
 
+        try {
+            const data = collectFormData(form);
 
-/* ================================================================
-   GLOBAL ACTIVE NAVIGATION
-   ================================================================ */
+            if (!data.name) {
+                throw new Error("Please enter your name.");
+            }
 
-function updateActiveNavigation() {
+            if (!data.email) {
+                throw new Error("Please enter your email address.");
+            }
 
-    const currentPath =
-        window.location.pathname
-            .replace(/\/+$/, "") ||
-        "/";
+            if (!data.username) {
+                throw new Error("Please choose a username.");
+            }
 
+            if (!data.password || data.password.length < 8) {
+                throw new Error(
+                    "Password must contain at least 8 characters."
+                );
+            }
 
-    const links =
-        document.querySelectorAll(
-            ".links a"
-        );
+            if (!data.profession) {
+                throw new Error("Please select your profession/role.");
+            }
 
+            if (!data.institution) {
+                throw new Error(
+                    "Please enter your college, institution or organization."
+                );
+            }
 
-    links.forEach(link => {
+            const result = await api("/api/signup", {
+                method: "POST",
+                body: data
+            });
 
-        const href =
-            link.getAttribute(
-                "href"
+            if (result.email && result.email.sent) {
+                showToast(
+                    "Account created. Your LUNARMATCH welcome email was sent.",
+                    "success"
+                );
+            } else {
+                showToast(
+                    "Account created successfully.",
+                    "success"
+                );
+            }
+
+            showFormMessage(
+                form,
+                result.message ||
+                    "Your LUNARMATCH research account is ready.",
+                "success"
             );
 
+            setTimeout(() => {
+                window.location.href =
+                    form.dataset.redirect || "/signin";
+            }, 900);
 
-        if (!href) {
+        } catch (error) {
+            showFormMessage(form, error.message, "error");
+        } finally {
+            setButtonLoading(submitButton, false);
+        }
+    }
+
+    async function handleSignOut() {
+        try {
+            await api("/api/signout", {
+                method: "POST"
+            });
+        } catch (_) {
+            // Even if the network request fails, refresh the UI.
+        }
+
+        state.user = null;
+        updateAuthenticatedUI();
+
+        showToast("Signed out successfully.", "success");
+
+        setTimeout(() => {
+            window.location.href = "/";
+        }, 500);
+    }
+
+    /* ---------------------------------------------------------
+       FORM INITIALIZATION
+    --------------------------------------------------------- */
+
+    function initForms() {
+        $$("form[data-form='signin']").forEach(form => {
+            form.addEventListener("submit", event => {
+                event.preventDefault();
+                handleSignIn(form);
+            });
+        });
+
+        $$("form[data-form='signup']").forEach(form => {
+            form.addEventListener("submit", event => {
+                event.preventDefault();
+                handleSignUp(form);
+            });
+        });
+
+        $$("form[data-form='feedback']").forEach(form => {
+            form.addEventListener("submit", event => {
+                event.preventDefault();
+                handleFeedback(form);
+            });
+        });
+
+        $$("[data-signout]").forEach(button => {
+            button.addEventListener("click", event => {
+                event.preventDefault();
+                handleSignOut();
+            });
+        });
+
+        initPasswordToggles();
+        initConditionalFields();
+    }
+
+    function collectFormData(form) {
+        const data = {};
+        const formData = new FormData(form);
+
+        formData.forEach((value, key) => {
+            data[key] = typeof value === "string"
+                ? value.trim()
+                : value;
+        });
+
+        return data;
+    }
+
+    function getFieldValue(form, names) {
+        for (const name of names) {
+            const field = form.elements[name];
+
+            if (field && field.value !== undefined) {
+                return field.value.trim();
+            }
+        }
+
+        return "";
+    }
+
+    function getSubmitButton(form) {
+        return (
+            $("button[type='submit']", form) ||
+            $("input[type='submit']", form)
+        );
+    }
+
+    function setButtonLoading(button, loading, text) {
+        if (!button) return;
+
+        if (loading) {
+            button.dataset.originalText =
+                button.textContent || button.value || "";
+
+            button.disabled = true;
+
+            if ("value" in button && button.tagName === "INPUT") {
+                button.value = text;
+            } else {
+                button.textContent = text;
+            }
+
+            button.classList.add("is-loading");
+        } else {
+            button.disabled = false;
+
+            const original =
+                button.dataset.originalText || "";
+
+            if ("value" in button && button.tagName === "INPUT") {
+                button.value = original;
+            } else if (original) {
+                button.textContent = original;
+            }
+
+            button.classList.remove("is-loading");
+        }
+    }
+
+    function showFormMessage(form, message, type = "info") {
+        let box = $(".form-message", form);
+
+        if (!box) {
+            box = document.createElement("div");
+            box.className = "form-message";
+            form.prepend(box);
+        }
+
+        box.textContent = message;
+        box.dataset.type = type;
+        box.hidden = false;
+    }
+
+    /* ---------------------------------------------------------
+       CONDITIONAL SIGNUP FIELDS
+    --------------------------------------------------------- */
+
+    function initConditionalFields() {
+        const professionFields = $$(
+            "select[name='profession'], [data-profession-select]"
+        );
+
+        professionFields.forEach(select => {
+            const update = () => {
+                const value = select.value.toLowerCase();
+
+                const studentFields = $$(
+                    "[data-student-fields]"
+                );
+
+                const researchFields = $$(
+                    "[data-research-fields]"
+                );
+
+                const isStudent =
+                    value.includes("student") ||
+                    value.includes("undergraduate") ||
+                    value.includes("postgraduate");
+
+                const isResearcher =
+                    value.includes("research") ||
+                    value.includes("scientist") ||
+                    value.includes("professional");
+
+                studentFields.forEach(el => {
+                    el.hidden = !isStudent;
+                });
+
+                researchFields.forEach(el => {
+                    el.hidden = !isResearcher;
+                });
+            };
+
+            select.addEventListener("change", update);
+            update();
+        });
+    }
+
+    function initPasswordToggles() {
+        $$("[data-password-toggle]").forEach(button => {
+            button.addEventListener("click", () => {
+                const targetSelector =
+                    button.dataset.passwordToggle;
+
+                const input =
+                    $(targetSelector) ||
+                    button.closest(".password-field")?.querySelector("input");
+
+                if (!input) return;
+
+                input.type =
+                    input.type === "password"
+                        ? "text"
+                        : "password";
+
+                button.setAttribute(
+                    "aria-label",
+                    input.type === "password"
+                        ? "Show password"
+                        : "Hide password"
+                );
+            });
+        });
+    }
+
+    /* ---------------------------------------------------------
+       IMAGE ACQUISITION
+       --------------------------------------------------------- */
+
+    function initFileInputs() {
+        const zones = $$("[data-dropzone]");
+
+        zones.forEach(zone => {
+            const target =
+                zone.dataset.dropzone ||
+                zone.dataset.target ||
+                "";
+
+            const input =
+                target
+                    ? $(target)
+                    : zone.querySelector("input[type='file']");
+
+            if (!input) return;
+
+            zone.addEventListener("click", event => {
+                if (event.target.closest("button, a, input")) return;
+                input.click();
+            });
+
+            ["dragenter", "dragover"].forEach(type => {
+                zone.addEventListener(type, event => {
+                    event.preventDefault();
+                    zone.classList.add("drag-active");
+                });
+            });
+
+            ["dragleave", "drop"].forEach(type => {
+                zone.addEventListener(type, event => {
+                    event.preventDefault();
+                    zone.classList.remove("drag-active");
+                });
+            });
+
+            zone.addEventListener("drop", event => {
+                const files = event.dataTransfer.files;
+
+                if (!files || !files.length) return;
+
+                if (input.multiple) {
+                    input.files = files;
+                    input.dispatchEvent(new Event("change", {
+                        bubbles: true
+                    }));
+                } else {
+                    const file = files[0];
+
+                    try {
+                        const transfer = new DataTransfer();
+                        transfer.items.add(file);
+                        input.files = transfer.files;
+                        input.dispatchEvent(new Event("change", {
+                            bubbles: true
+                        }));
+                    } catch (_) {
+                        showToast(
+                            "Please select the image using the file picker.",
+                            "error"
+                        );
+                    }
+                }
+            });
+
+            input.addEventListener("change", () => {
+                handleImageSelection(input, zone);
+            });
+        });
+
+        /*
+         * Unified acquisition mode:
+         * An input can accept exactly two images with
+         * data-image-pair="true".
+         */
+        $$("input[data-image-pair='true']").forEach(input => {
+            input.addEventListener("change", () => {
+                const files = Array.from(input.files || []);
+
+                if (files.length > 2) {
+                    showToast(
+                        "Please select exactly two images.",
+                        "error"
+                    );
+
+                    input.value = "";
+                    return;
+                }
+
+                files.forEach((file, index) => {
+                    if (index === 0) {
+                        state.selectedFiles.a = file;
+                    }
+
+                    if (index === 1) {
+                        state.selectedFiles.b = file;
+                    }
+                });
+
+                updateUnifiedAcquisitionPreview();
+            });
+        });
+    }
+
+    function handleImageSelection(input, zone) {
+        const file = input.files?.[0];
+
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            showToast(
+                "Please select a valid image file.",
+                "error"
+            );
+
+            input.value = "";
             return;
         }
 
+        const maxBytes = 25 * 1024 * 1024;
 
-        let linkPath =
-            href
-                .replace(
-                    /\/+$/,
-                    ""
-                ) ||
-            "/";
-
-
-        if (
-            linkPath ===
-            currentPath
-        ) {
-
-            link.classList.add(
-                "active"
+        if (file.size > maxBytes) {
+            showToast(
+                "This image exceeds the 25 MB upload limit.",
+                "error"
             );
 
-        } else {
-
-            link.classList.remove(
-                "active"
-            );
-
+            input.value = "";
+            return;
         }
 
-    });
+        const target =
+            input.dataset.target ||
+            zone.dataset.preview ||
+            "";
 
-}
+        if (target) {
+            const preview = $(target);
 
+            if (preview) {
+                renderImagePreview(file, preview);
+            }
+        }
 
-/* ================================================================
-   MOBILE NAVIGATION
-   ================================================================ */
+        const filename =
+            zone.querySelector("[data-file-name]");
 
-function wireMobileNavigation() {
+        if (filename) {
+            filename.textContent = file.name;
+        }
 
-    const toggle =
-        document.getElementById(
-            "mobileMenuToggle"
-        );
+        zone.classList.add("has-file");
 
-    const menu =
-        document.getElementById(
-            "mobileMenu"
-        );
+        const slot = input.dataset.slot;
 
+        if (slot === "a") {
+            state.selectedFiles.a = file;
+        }
 
-    if (
-        !toggle ||
-        !menu
-    ) {
-        return;
+        if (slot === "b") {
+            state.selectedFiles.b = file;
+        }
+
+        updateUnifiedAcquisitionPreview();
     }
 
+    function renderImagePreview(file, element) {
+        if (!element) return;
 
-    toggle.addEventListener(
-        "click",
-        function () {
+        const url = URL.createObjectURL(file);
 
-            const isOpen =
-                menu.classList.toggle(
-                    "open"
+        if (element.tagName === "IMG") {
+            element.src = url;
+            element.alt = file.name;
+        } else {
+            element.style.backgroundImage =
+                `url("${url}")`;
+        }
+
+        element.classList.add("preview-ready");
+    }
+
+    function updateUnifiedAcquisitionPreview() {
+        const count = [
+            state.selectedFiles.a,
+            state.selectedFiles.b
+        ].filter(Boolean).length;
+
+        $$("[data-image-count]").forEach(el => {
+            el.textContent =
+                `${count} / 2 images selected`;
+        });
+
+        $$("[data-ready-state]").forEach(el => {
+            el.classList.toggle(
+                "ready",
+                count === 2
+            );
+        });
+
+        const previewA = $("[data-preview='a']");
+        const previewB = $("[data-preview='b']");
+
+        if (previewA && state.selectedFiles.a) {
+            renderImagePreview(
+                state.selectedFiles.a,
+                previewA
+            );
+        }
+
+        if (previewB && state.selectedFiles.b) {
+            renderImagePreview(
+                state.selectedFiles.b,
+                previewB
+            );
+        }
+    }
+
+    /* ---------------------------------------------------------
+       ANALYSIS
+       --------------------------------------------------------- */
+
+    function initAnalysis() {
+        $$("[data-analysis-form]").forEach(form => {
+            form.addEventListener("submit", event => {
+                event.preventDefault();
+                runAnalysis(form);
+            });
+        });
+
+        $$("[data-run-analysis]").forEach(button => {
+            button.addEventListener("click", event => {
+                event.preventDefault();
+
+                const form =
+                    button.closest("form") ||
+                    $("[data-analysis-form]");
+
+                if (form) {
+                    runAnalysis(form);
+                }
+            });
+        });
+    }
+
+    async function runAnalysis(form) {
+        if (state.analysisRunning) return;
+
+        const imageA =
+            state.selectedFiles.a ||
+            getImageFromInput(form, "a");
+
+        const imageB =
+            state.selectedFiles.b ||
+            getImageFromInput(form, "b");
+
+        if (!imageA || !imageB) {
+            showToast(
+                "Select two lunar images before running correspondence.",
+                "error"
+            );
+            return;
+        }
+
+        if (!isImage(imageA) || !isImage(imageB)) {
+            showToast(
+                "Both selected files must be valid images.",
+                "error"
+            );
+            return;
+        }
+
+        state.analysisRunning = true;
+
+        const button =
+            $("[data-run-analysis]", form) ||
+            getSubmitButton(form);
+
+        setButtonLoading(
+            button,
+            true,
+            "ANALYSING..."
+        );
+
+        showAnalysisProgress();
+
+        try {
+            const formData = new FormData();
+
+            formData.append("image_a", imageA);
+            formData.append("image_b", imageB);
+
+            /*
+             * If the page contains optional research parameters,
+             * include them without making them mandatory.
+             */
+            $$("[data-analysis-parameter]", form).forEach(field => {
+                if (field.name && field.value !== "") {
+                    formData.append(
+                        field.name,
+                        field.value
+                    );
+                }
+            });
+
+            const result = await api("/api/analyze", {
+                method: "POST",
+                body: formData
+            });
+
+            state.latestResult = result;
+
+            if (result.public_id) {
+                localStorage.setItem(
+                    "lunarmatch_latest_id",
+                    result.public_id
                 );
+            }
 
+            try {
+                localStorage.setItem(
+                    "lunarmatch_latest_result",
+                    JSON.stringify(result)
+                );
+            } catch (_) {
+                // Storage is optional.
+            }
 
-            toggle.classList.toggle(
-                "open",
-                isOpen
+            showAnalysisComplete(result);
+
+            /*
+             * If the backend returns a redirect, use it.
+             * Otherwise render the result on the current page.
+             */
+            if (result.redirect) {
+                setTimeout(() => {
+                    window.location.href =
+                        result.redirect;
+                }, 400);
+                return;
+            }
+
+            renderResult(result);
+
+        } catch (error) {
+            showToast(
+                error.message ||
+                    "Analysis failed. Please try again.",
+                "error"
             );
 
+            showAnalysisError(error.message);
+
+        } finally {
+            state.analysisRunning = false;
+
+            setButtonLoading(
+                button,
+                false
+            );
+        }
+    }
+
+    function getImageFromInput(form, slot) {
+        const selectors = [
+            `input[type='file'][data-slot='${slot}']`,
+            `input[type='file'][name='image_${slot}']`,
+            `input[type='file'][name='image${slot.toUpperCase()}']`
+        ];
+
+        for (const selector of selectors) {
+            const input = $(selector, form);
+
+            if (input?.files?.[0]) {
+                return input.files[0];
+            }
+        }
+
+        return null;
+    }
+
+    function isImage(file) {
+        return (
+            file &&
+            typeof file.type === "string" &&
+            file.type.startsWith("image/")
+        );
+    }
+
+    /* ---------------------------------------------------------
+       PROGRESS UI
+       --------------------------------------------------------- */
+
+    function showAnalysisProgress() {
+        $$("[data-analysis-progress]").forEach(el => {
+            el.hidden = false;
+            el.classList.add("active");
+        });
+
+        const stages = $$("[data-analysis-stage]");
+
+        stages.forEach((stage, index) => {
+            stage.classList.remove("active", "complete");
+
+            setTimeout(() => {
+                stage.classList.add("active");
+            }, index * 450);
+        });
+    }
+
+    function showAnalysisComplete() {
+        $$("[data-analysis-stage]").forEach(stage => {
+            stage.classList.remove("active");
+            stage.classList.add("complete");
+        });
+
+        $$("[data-analysis-progress]").forEach(el => {
+            el.classList.remove("active");
+        });
+    }
+
+    function showAnalysisError(message) {
+        $$("[data-analysis-progress]").forEach(el => {
+            el.classList.remove("active");
+        });
+
+        const errorBoxes =
+            $$("[data-analysis-error]");
+
+        errorBoxes.forEach(el => {
+            el.textContent =
+                message ||
+                "Analysis could not be completed.";
+
+            el.hidden = false;
+        });
+    }
+
+    /* ---------------------------------------------------------
+       RESULTS
+       --------------------------------------------------------- */
+
+    function initResultActions() {
+        $$("[data-load-result]").forEach(button => {
+            button.addEventListener("click", async () => {
+                const id =
+                    button.dataset.loadResult;
+
+                if (id) {
+                    await loadResult(id);
+                }
+            });
+        });
+
+        $$("[data-download-report]").forEach(button => {
+            button.addEventListener("click", async event => {
+                event.preventDefault();
+
+                const id =
+                    button.dataset.downloadReport ||
+                    state.latestResult?.public_id;
+
+                if (!id) {
+                    showToast(
+                        "No analysis report is available.",
+                        "error"
+                    );
+                    return;
+                }
+
+                await downloadReport(id);
+            });
+        });
+
+        $$("[data-share-result]").forEach(button => {
+            button.addEventListener("click", () => {
+                shareResult(
+                    button.dataset.shareResult ||
+                    state.latestResult?.public_id
+                );
+            });
+        });
+    }
+
+    async function loadResult(publicId) {
+        if (!publicId) return;
+
+        try {
+            const result = await api(
+                `/api/results?id=${encodeURIComponent(publicId)}`
+            );
+
+            state.latestResult = result;
+
+            try {
+                localStorage.setItem(
+                    "lunarmatch_latest_result",
+                    JSON.stringify(result)
+                );
+            } catch (_) {}
+
+            renderResult(result);
+
+        } catch (error) {
+            showToast(
+                error.message ||
+                    "Unable to load this analysis.",
+                "error"
+            );
+        }
+    }
+
+    function loadStoredResult() {
+        const raw =
+            localStorage.getItem(
+                "lunarmatch_latest_result"
+            );
+
+        if (!raw) return;
+
+        try {
+            state.latestResult = JSON.parse(raw);
+        } catch (_) {
+            localStorage.removeItem(
+                "lunarmatch_latest_result"
+            );
+        }
+    }
+
+    function renderResult(result) {
+        if (!result || typeof result !== "object") {
+            return;
+        }
+
+        const interpretation =
+            result.interpretation ||
+            result.result ||
+            {};
+
+        const validation =
+            result.validation ||
+            {};
+
+        const evidence =
+            result.evidence ||
+            {};
+
+        const score =
+            Number(
+                result.score ??
+                result.evidence_score ??
+                evidence.score ??
+                0
+            );
+
+        const verified =
+            Boolean(
+                result.verified ??
+                result.correspondence_verified ??
+                false
+            );
+
+        setText(
+            "[data-result-score]",
+            formatNumber(score, 1)
+        );
+
+        setText(
+            "[data-result-verdict]",
+            interpretation.label ||
+                (verified
+                    ? "CORRESPONDENCE VERIFIED"
+                    : "INCONCLUSIVE")
+        );
+
+        setText(
+            "[data-result-summary]",
+            interpretation.summary ||
+                result.summary ||
+                "Correspondence analysis completed."
+        );
+
+        setText(
+            "[data-public-id]",
+            result.public_id || "—"
+        );
+
+        setText(
+            "[data-result-a-name]",
+            result.image_a?.filename ||
+                result.image_a_name ||
+                result.image_a ||
+                "Observation A"
+        );
+
+        setText(
+            "[data-result-b-name]",
+            result.image_b?.filename ||
+                result.image_b_name ||
+                result.image_b ||
+                "Observation B"
+        );
+
+        setText(
+            "[data-inlier-count]",
+            result.inliers ??
+                result.inlier_count ??
+                evidence.inliers ??
+                "—"
+        );
+
+        setText(
+            "[data-inlier-ratio]",
+            formatPercentage(
+                result.inlier_ratio ??
+                evidence.inlier_ratio
+            )
+        );
+
+        setText(
+            "[data-match-count]",
+            result.good_matches ??
+                result.match_count ??
+                evidence.good_matches ??
+                "—"
+        );
+
+        setText(
+            "[data-result-confidence]",
+            evidence.interpretation ||
+                validation.overall ||
+                "Evidence-based assessment"
+        );
+
+        renderValidation(validation);
+        renderLocalization(
+            result.localization ||
+            validation.localization ||
+            {}
+        );
+
+        renderEvidence(evidence);
+
+        if (result.visualization_url) {
+            $$("[data-match-visualization]").forEach(img => {
+                img.src = result.visualization_url;
+                img.hidden = false;
+            });
+        }
+
+        $$("[data-result-container]").forEach(el => {
+            el.hidden = false;
+            el.classList.add("result-ready");
+        });
+
+        window.dispatchEvent(
+            new CustomEvent("lunarmatch:result", {
+                detail: result
+            })
+        );
+    }
+
+    function renderValidation(validation) {
+        if (!validation) return;
+
+        const items = [
+            ["coordinate", "coordinate"],
+            ["instrument", "instrument"],
+            ["mission", "mission"],
+            ["projection", "projection"],
+            ["reference", "reference"]
+        ];
+
+        items.forEach(([key, name]) => {
+            const item =
+                validation[name];
+
+            const target =
+                $(`[data-validation='${key}']`);
+
+            if (!target) return;
+
+            if (typeof item === "object") {
+                const status =
+                    item.status ||
+                    item.result ||
+                    item.message ||
+                    "NOT ESTABLISHED";
+
+                target.textContent = status;
+
+                target.dataset.status =
+                    normalizeStatus(status);
+            } else {
+                target.textContent =
+                    item || "NOT ESTABLISHED";
+            }
+        });
+
+        const warnings =
+            validation.warnings ||
+            [];
+
+        const warningContainer =
+            $("[data-validation-warnings]");
+
+        if (warningContainer) {
+            warningContainer.innerHTML = "";
+
+            if (!warnings.length) {
+                warningContainer.hidden = true;
+            } else {
+                warningContainer.hidden = false;
+
+                warnings.forEach(warning => {
+                    const item =
+                        document.createElement("li");
+
+                    item.textContent =
+                        typeof warning === "string"
+                            ? warning
+                            : JSON.stringify(warning);
+
+                    warningContainer.appendChild(item);
+                });
+            }
+        }
+    }
+
+    function renderLocalization(localization) {
+        if (!localization) return;
+
+        const lat =
+            localization.latitude ??
+            localization.lat;
+
+        const lon =
+            localization.longitude ??
+            localization.lon ??
+            localization.lng;
+
+        setText(
+            "[data-latitude]",
+            lat !== null &&
+            lat !== undefined
+                ? formatCoordinate(lat)
+                : "NOT AVAILABLE"
+        );
+
+        setText(
+            "[data-longitude]",
+            lon !== null &&
+            lon !== undefined
+                ? formatCoordinate(lon)
+                : "NOT AVAILABLE"
+        );
+
+        setText(
+            "[data-localization-status]",
+            localization.status ||
+                localization.message ||
+                (
+                    lat !== null &&
+                    lat !== undefined &&
+                    lon !== null &&
+                    lon !== undefined
+                        ? "Metadata-derived"
+                        : "NOT AVAILABLE"
+                )
+        );
+
+        const note =
+            $("[data-localization-note]");
+
+        if (note) {
+            note.textContent =
+                localization.note ||
+                "Coordinates are displayed only when supported by legitimate metadata or validated reference information.";
+        }
+    }
+
+    function renderEvidence(evidence) {
+        if (!evidence) return;
+
+        const fields = {
+            correspondence:
+                evidence.correspondence ??
+                evidence.correspondence_score,
+
+            geometric:
+                evidence.geometric ??
+                evidence.geometric_consistency,
+
+            inliers:
+                evidence.inlier_count ??
+                evidence.inliers,
+
+            quality:
+                evidence.image_quality ??
+                evidence.quality
+        };
+
+        Object.entries(fields).forEach(
+            ([key, value]) => {
+                if (
+                    value === null ||
+                    value === undefined
+                ) {
+                    return;
+                }
+
+                setText(
+                    `[data-evidence='${key}']`,
+                    formatNumber(value, 1)
+                );
+            }
+        );
+
+        const note =
+            $("[data-evidence-note]");
+
+        if (note) {
+            note.textContent =
+                "The evidence score is a transparent engineering score, not a statistical probability of correctness.";
+        }
+    }
+
+    /* ---------------------------------------------------------
+       REPORT DOWNLOAD
+       --------------------------------------------------------- */
+
+    async function downloadReport(publicId) {
+        if (!state.user) {
+            showToast(
+                "Sign in to download the full scientific report.",
+                "error"
+            );
+            return;
+        }
+
+        try {
+            showToast(
+                "Preparing your PDF report...",
+                "info"
+            );
+
+            const response = await fetch(
+                `/api/report/${encodeURIComponent(publicId)}`,
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+            if (!response.ok) {
+                let message =
+                    "The report could not be generated.";
+
+                try {
+                    const data =
+                        await response.json();
+
+                    if (data.error) {
+                        message = data.error;
+                    }
+                } catch (_) {}
+
+                throw new Error(message);
+            }
+
+            const blob =
+                await response.blob();
+
+            const url =
+                URL.createObjectURL(blob);
+
+            const anchor =
+                document.createElement("a");
+
+            anchor.href = url;
+            anchor.download =
+                `LUNARMATCH-${publicId}.pdf`;
+
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 1500);
+
+            showToast(
+                "PDF report generated.",
+                "success"
+            );
+
+        } catch (error) {
+            showToast(
+                error.message,
+                "error"
+            );
+        }
+    }
+
+    /* ---------------------------------------------------------
+       FEEDBACK
+       --------------------------------------------------------- */
+
+    function initFeedback() {
+        $$("[data-rating]").forEach(button => {
+            button.addEventListener("click", () => {
+                const rating =
+                    button.dataset.rating;
+
+                $$("[data-rating]").forEach(item => {
+                    item.classList.toggle(
+                        "selected",
+                        item.dataset.rating === rating
+                    );
+                });
+
+                const hidden =
+                    $(
+                        "input[name='rating']",
+                        button.closest("form") ||
+                        document
+                    );
+
+                if (hidden) {
+                    hidden.value = rating;
+                }
+            });
+        });
+    }
+
+    async function handleFeedback(form) {
+        const button = getSubmitButton(form);
+
+        setButtonLoading(
+            button,
+            true,
+            "SUBMITTING..."
+        );
+
+        try {
+            const data =
+                collectFormData(form);
+
+            if (!data.message) {
+                throw new Error(
+                    "Please enter your feedback."
+                );
+            }
+
+            const result =
+                await api("/api/feedback", {
+                    method: "POST",
+                    body: data
+                });
+
+            showFormMessage(
+                form,
+                result.message ||
+                    "Thank you for your feedback.",
+                "success"
+            );
+
+            form.reset();
+
+            $$("[data-rating]", form).forEach(
+                item => item.classList.remove("selected")
+            );
+
+        } catch (error) {
+            showFormMessage(
+                form,
+                error.message,
+                "error"
+            );
+        } finally {
+            setButtonLoading(
+                button,
+                false
+            );
+        }
+    }
+
+    /* ---------------------------------------------------------
+       STRESS TESTING
+       --------------------------------------------------------- */
+
+    function initStressTesting() {
+        $$("[data-stress-form]").forEach(form => {
+            form.addEventListener("submit", event => {
+                event.preventDefault();
+                runStressTest(form);
+            });
+        });
+    }
+
+    async function runStressTest(form) {
+        const imageInput =
+            $("input[type='file']", form);
+
+        const file =
+            imageInput?.files?.[0];
+
+        if (!file) {
+            showToast(
+                "Select a reference image for the stress test.",
+                "error"
+            );
+            return;
+        }
+
+        const button =
+            getSubmitButton(form);
+
+        setButtonLoading(
+            button,
+            true,
+            "TESTING..."
+        );
+
+        try {
+            const formData =
+                new FormData(form);
+
+            /*
+             * Ensure the backend receives the expected
+             * field name even if the HTML uses a custom one.
+             */
+            if (!formData.has("image")) {
+                formData.append("image", file);
+            }
+
+            const result =
+                await api("/api/stress", {
+                    method: "POST",
+                    body: formData
+                });
+
+            renderStressResult(result);
+
+            showToast(
+                "Stress test completed.",
+                "success"
+            );
+
+        } catch (error) {
+            showToast(
+                error.message ||
+                    "Stress testing failed.",
+                "error"
+            );
+        } finally {
+            setButtonLoading(
+                button,
+                false
+            );
+        }
+    }
+
+    function renderStressResult(result) {
+        const container =
+            $("[data-stress-results]");
+
+        if (!container) return;
+
+        container.hidden = false;
+
+        const rows =
+            result.tests ||
+            result.results ||
+            [];
+
+        const body =
+            $("[data-stress-table-body]", container);
+
+        if (body) {
+            body.innerHTML = "";
+
+            if (Array.isArray(rows)) {
+                rows.forEach(test => {
+                    const tr =
+                        document.createElement("tr");
+
+                    const name =
+                        document.createElement("td");
+
+                    const score =
+                        document.createElement("td");
+
+                    const status =
+                        document.createElement("td");
+
+                    name.textContent =
+                        test.name ||
+                        test.type ||
+                        "Test";
+
+                    score.textContent =
+                        test.score !== undefined
+                            ? formatNumber(test.score, 1)
+                            : "—";
+
+                    status.textContent =
+                        test.status ||
+                        test.interpretation ||
+                        "—";
+
+                    tr.append(
+                        name,
+                        score,
+                        status
+                    );
+
+                    body.appendChild(tr);
+                });
+            }
+        }
+
+        setText(
+            "[data-stress-summary]",
+            result.summary ||
+                result.message ||
+                "Stress test completed."
+        );
+    }
+
+    /* ---------------------------------------------------------
+       SHARE
+       --------------------------------------------------------- */
+
+    async function shareResult(publicId) {
+        if (!publicId) {
+            showToast(
+                "No analysis is available to share.",
+                "error"
+            );
+            return;
+        }
+
+        const url =
+            `${window.location.origin}/results?id=${encodeURIComponent(publicId)}`;
+
+        try {
+            if (
+                navigator.share &&
+                window.isSecureContext
+            ) {
+                await navigator.share({
+                    title: "LUNARMATCH Analysis",
+                    text:
+                        "LUNARMATCH lunar image correspondence analysis",
+                    url
+                });
+
+                return;
+            }
+
+            await navigator.clipboard.writeText(url);
+
+            showToast(
+                "Analysis link copied to clipboard.",
+                "success"
+            );
+
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            showToast(
+                "Unable to share the analysis link.",
+                "error"
+            );
+        }
+    }
+
+    /* ---------------------------------------------------------
+       NAVIGATION
+       --------------------------------------------------------- */
+
+    function initNavigation() {
+        const currentPath =
+            window.location.pathname;
+
+        $$("a[href]").forEach(link => {
+            const href =
+                link.getAttribute("href");
+
+            if (
+                !href ||
+                href.startsWith("#") ||
+                href.startsWith("http") ||
+                href.startsWith("mailto:")
+            ) {
+                return;
+            }
+
+            try {
+                const linkPath =
+                    new URL(
+                        href,
+                        window.location.origin
+                    ).pathname;
+
+                if (
+                    linkPath === currentPath ||
+                    (
+                        linkPath !== "/" &&
+                        currentPath.startsWith(linkPath)
+                    )
+                ) {
+                    link.classList.add("active");
+                    link.setAttribute(
+                        "aria-current",
+                        "page"
+                    );
+                }
+            } catch (_) {}
+        });
+    }
+
+    function initMobileNavigation() {
+        const toggle =
+            $("[data-mobile-menu-toggle]");
+
+        const menu =
+            $("[data-mobile-menu]");
+
+        if (!toggle || !menu) return;
+
+        toggle.addEventListener("click", () => {
+            const open =
+                menu.classList.toggle("open");
 
             toggle.setAttribute(
                 "aria-expanded",
-                String(isOpen)
+                String(open)
             );
 
-        }
-    );
+            document.body.classList.toggle(
+                "menu-open",
+                open
+            );
+        });
 
-
-    menu.querySelectorAll(
-        "a"
-    ).forEach(link => {
-
-        link.addEventListener(
-            "click",
-            function () {
-
-                menu.classList.remove(
-                    "open"
-                );
-
-                toggle.classList.remove(
-                    "open"
-                );
+        $$("a", menu).forEach(link => {
+            link.addEventListener("click", () => {
+                menu.classList.remove("open");
 
                 toggle.setAttribute(
                     "aria-expanded",
                     "false"
                 );
 
-            }
-        );
-
-    });
-
-}
-
-
-/* ================================================================
-   PAGE ENTRANCE EFFECTS
-   ================================================================ */
-
-function setupRevealEffects() {
-
-    const elements =
-        document.querySelectorAll(
-            ".card, .principle-card, .pipeline-step-new, .instrument-card"
-        );
-
-
-    if (!elements.length) {
-        return;
+                document.body.classList.remove(
+                    "menu-open"
+                );
+            });
+        });
     }
 
+    /* ---------------------------------------------------------
+       SCROLL REVEAL
+       --------------------------------------------------------- */
 
-    /*
-     * IntersectionObserver gives the interface a subtle
-     * research-console style reveal without requiring
-     * external libraries.
-     */
-    if (
-        "IntersectionObserver" in window
-    ) {
+    function initRevealAnimations() {
+        const elements =
+            $$("[data-reveal]");
+
+        if (!elements.length) return;
+
+        if (!("IntersectionObserver" in window)) {
+            elements.forEach(el => {
+                el.classList.add("revealed");
+            });
+
+            return;
+        }
 
         const observer =
             new IntersectionObserver(
                 entries => {
-
-                    entries.forEach(
-                        entry => {
-
-                            if (
-                                entry.isIntersecting
-                            ) {
-
-                                entry.target.classList.add(
-                                    "reveal-visible"
-                                );
-
-                                observer.unobserve(
-                                    entry.target
-                                );
-
-                            }
-
+                    entries.forEach(entry => {
+                        if (!entry.isIntersecting) {
+                            return;
                         }
-                    );
 
-                },
-                {
-                    threshold: 0.08
-                }
-            );
-
-
-        elements.forEach(
-            element => {
-
-                element.classList.add(
-                    "reveal-ready"
-                );
-
-                observer.observe(
-                    element
-                );
-
-            }
-        );
-
-    } else {
-
-        elements.forEach(
-            element =>
-                element.classList.add(
-                    "reveal-visible"
-                )
-        );
-
-    }
-
-}
-
-
-/* ================================================================
-   RESULT IMAGE LIGHTBOX
-   ================================================================ */
-
-function wireResultImage() {
-
-    const container =
-        document.getElementById(
-            "result"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.addEventListener(
-        "click",
-        function (event) {
-
-            const image =
-                event.target.closest(
-                    ".imgresult"
-                );
-
-
-            if (!image) {
-                return;
-            }
-
-
-            /*
-             * Do not open if image is broken.
-             */
-            if (
-                !image.src ||
-                image.naturalWidth === 0
-            ) {
-                return;
-            }
-
-
-            const overlay =
-                document.createElement(
-                    "div"
-                );
-
-            overlay.className =
-                "image-lightbox";
-
-
-            overlay.innerHTML = `
-
-                <button
-                    class="lightbox-close"
-                    type="button"
-                    aria-label="Close image">
-
-                    ×
-
-                </button>
-
-                <img
-                    src="${LM.escape(
-                        image.src
-                    )}"
-                    alt="${LM.escape(
-                        image.alt ||
-                        "Correspondence visualization"
-                    )}"
-                >
-
-            `;
-
-
-            document.body.appendChild(
-                overlay
-            );
-
-
-            requestAnimationFrame(
-                () => {
-
-                    overlay.classList.add(
-                        "open"
-                    );
-
-                }
-            );
-
-
-            function close() {
-
-                overlay.classList.remove(
-                    "open"
-                );
-
-                setTimeout(
-                    () => {
-
-                        overlay.remove();
-
-                    },
-                    200
-                );
-
-            }
-
-
-            overlay.addEventListener(
-                "click",
-                function (event) {
-
-                    if (
-                        event.target ===
-                        overlay ||
-                        event.target.closest(
-                            ".lightbox-close"
-                        )
-                    ) {
-
-                        close();
-
-                    }
-
-                }
-            );
-
-
-            document.addEventListener(
-                "keydown",
-                function escapeHandler(event) {
-
-                    if (
-                        event.key ===
-                        "Escape"
-                    ) {
-
-                        close();
-
-                        document.removeEventListener(
-                            "keydown",
-                            escapeHandler
+                        entry.target.classList.add(
+                            "revealed"
                         );
 
-                    }
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-/* ================================================================
-   HEALTH INDICATOR
-   ================================================================ */
-
-async function checkEngineHealth() {
-
-    const indicators =
-        document.querySelectorAll(
-            "[data-engine-status]"
-        );
-
-
-    if (!indicators.length) {
-        return;
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                "/health",
+                        observer.unobserve(
+                            entry.target
+                        );
+                    });
+                },
                 {
-                    cache: "no-store"
+                    threshold: 0.12,
+                    rootMargin: "0px 0px -50px 0px"
                 }
             );
 
+        elements.forEach(el =>
+            observer.observe(el)
+        );
+    }
 
-        if (!response.ok) {
-            throw new Error(
-                "Health endpoint unavailable."
+    /* ---------------------------------------------------------
+       3D CARD INTERACTION
+       --------------------------------------------------------- */
+
+    function initTiltCards() {
+        if (window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+        ).matches) {
+            return;
+        }
+
+        $$("[data-tilt]").forEach(card => {
+            card.addEventListener("pointermove", event => {
+                const rect =
+                    card.getBoundingClientRect();
+
+                const x =
+                    (event.clientX - rect.left) /
+                    rect.width;
+
+                const y =
+                    (event.clientY - rect.top) /
+                    rect.height;
+
+                const rotateX =
+                    (0.5 - y) * 7;
+
+                const rotateY =
+                    (x - 0.5) * 7;
+
+                card.style.transform =
+                    `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
+            });
+
+            card.addEventListener("pointerleave", () => {
+                card.style.transform = "";
+            });
+        });
+    }
+
+    /* ---------------------------------------------------------
+       SPACE CANVAS
+       --------------------------------------------------------- */
+
+    function initSpaceCanvas() {
+        const canvas =
+            $("#spaceCanvas");
+
+        if (!canvas) return;
+
+        const context =
+            canvas.getContext("2d");
+
+        if (!context) return;
+
+        const reducedMotion =
+            window.matchMedia(
+                "(prefers-reduced-motion: reduce)"
+            ).matches;
+
+        let width = 0;
+        let height = 0;
+        let stars = [];
+
+        function resize() {
+            const ratio =
+                Math.min(
+                    window.devicePixelRatio || 1,
+                    2
+                );
+
+            width =
+                canvas.clientWidth;
+
+            height =
+                canvas.clientHeight;
+
+            canvas.width =
+                Math.floor(width * ratio);
+
+            canvas.height =
+                Math.floor(height * ratio);
+
+            context.setTransform(
+                ratio,
+                0,
+                0,
+                ratio,
+                0,
+                0
+            );
+
+            createStars();
+        }
+
+        function createStars() {
+            const count =
+                Math.min(
+                    180,
+                    Math.max(
+                        70,
+                        Math.floor(
+                            (width * height) /
+                            12000
+                        )
+                    )
+                );
+
+            stars =
+                Array.from(
+                    { length: count },
+                    () => ({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        radius:
+                            Math.random() * 1.5 + 0.2,
+                        alpha:
+                            Math.random() * 0.7 + 0.15,
+                        speed:
+                            Math.random() * 0.18 + 0.03
+                    })
+                );
+        }
+
+        function draw(time = 0) {
+            context.clearRect(
+                0,
+                0,
+                width,
+                height
+            );
+
+            stars.forEach(star => {
+                if (!reducedMotion) {
+                    star.y += star.speed;
+
+                    if (star.y > height) {
+                        star.y = 0;
+                        star.x =
+                            Math.random() * width;
+                    }
+                }
+
+                const pulse =
+                    reducedMotion
+                        ? 1
+                        : 0.75 +
+                          Math.sin(
+                              time * 0.001 +
+                              star.x
+                          ) *
+                          0.2;
+
+                context.globalAlpha =
+                    Math.max(
+                        0.05,
+                        star.alpha * pulse
+                    );
+
+                context.beginPath();
+
+                context.arc(
+                    star.x,
+                    star.y,
+                    star.radius,
+                    0,
+                    Math.PI * 2
+                );
+
+                context.fill();
+            });
+
+            context.globalAlpha = 1;
+
+            if (!reducedMotion) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        resize();
+
+        window.addEventListener(
+            "resize",
+            resize
+        );
+
+        draw();
+    }
+
+    /* ---------------------------------------------------------
+       TOAST SYSTEM
+       --------------------------------------------------------- */
+
+    function showToast(message, type = "info") {
+        let container =
+            $("#toast-container");
+
+        if (!container) {
+            container =
+                document.createElement("div");
+
+            container.id =
+                "toast-container";
+
+            container.setAttribute(
+                "aria-live",
+                "polite"
+            );
+
+            document.body.appendChild(
+                container
             );
         }
 
+        const toast =
+            document.createElement("div");
 
-        const health =
-            await response.json();
+        toast.className =
+            `toast toast-${type}`;
 
-
-        indicators.forEach(
-            element => {
-
-                element.textContent =
-                    health.status ||
-                    "ONLINE";
-
-                element.classList.add(
-                    "online"
-                );
-
-            }
+        toast.setAttribute(
+            "role",
+            type === "error"
+                ? "alert"
+                : "status"
         );
 
+        toast.textContent = message;
 
-    } catch (error) {
+        container.appendChild(toast);
 
-        console.warn(
-            "LunarMatch engine health check failed:",
-            error
-        );
+        requestAnimationFrame(() => {
+            toast.classList.add("show");
+        });
 
+        setTimeout(() => {
+            toast.classList.remove("show");
 
-        indicators.forEach(
-            element => {
-
-                element.textContent =
-                    "OFFLINE";
-
-                element.classList.add(
-                    "offline"
-                );
-
-            }
-        );
-
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 4200);
     }
 
-}
+    /* ---------------------------------------------------------
+       UTILITY HELPERS
+       --------------------------------------------------------- */
 
+    function setText(selector, value) {
+        $$(selector).forEach(el => {
+            el.textContent =
+                value === null ||
+                value === undefined ||
+                value === ""
+                    ? "—"
+                    : String(value);
+        });
+    }
 
-/* ================================================================
-   GLOBAL KEYBOARD SHORTCUTS
-   ================================================================ */
+    function formatNumber(value, decimals = 1) {
+        const number =
+            Number(value);
 
-function wireKeyboardShortcuts() {
+        if (!Number.isFinite(number)) {
+            return "—";
+        }
+
+        return number.toFixed(decimals);
+    }
+
+    function formatPercentage(value) {
+        const number =
+            Number(value);
+
+        if (!Number.isFinite(number)) {
+            return "—";
+        }
+
+        /*
+         * Backend values may be 0.25 or 25.
+         * Convert fractional ratios to percentages.
+         */
+        const percentage =
+            number <= 1
+                ? number * 100
+                : number;
+
+        return `${percentage.toFixed(1)}%`;
+    }
+
+    function formatCoordinate(value) {
+        const number =
+            Number(value);
+
+        if (!Number.isFinite(number)) {
+            return "NOT AVAILABLE";
+        }
+
+        return number.toFixed(6);
+    }
+
+    function normalizeStatus(value) {
+        const text =
+            String(value || "").toLowerCase();
+
+        if (
+            text.includes("valid") ||
+            text.includes("confirmed") ||
+            text.includes("established") ||
+            text.includes("available")
+        ) {
+            return "positive";
+        }
+
+        if (
+            text.includes("warning") ||
+            text.includes("partial") ||
+            text.includes("limited")
+        ) {
+            return "warning";
+        }
+
+        return "neutral";
+    }
+
+    /* ---------------------------------------------------------
+       KEYBOARD / ACCESSIBILITY
+       --------------------------------------------------------- */
 
     document.addEventListener(
         "keydown",
-        function (event) {
+        event => {
+            if (event.key === "Escape") {
+                const menu =
+                    $("[data-mobile-menu]");
 
-            /*
-             * Ignore shortcuts while typing.
-             */
-            const tag =
-                document.activeElement
-                    ?.tagName
-                    ?.toLowerCase();
+                const toggle =
+                    $("[data-mobile-menu-toggle]");
 
+                if (menu) {
+                    menu.classList.remove("open");
+                }
 
-            if (
-                tag === "input" ||
-                tag === "textarea" ||
-                tag === "select"
-            ) {
-                return;
+                if (toggle) {
+                    toggle.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+
+                document.body.classList.remove(
+                    "menu-open"
+                );
             }
-
-
-            /*
-             * A → Analysis
-             */
-            if (
-                event.key.toLowerCase() ===
-                "a"
-            ) {
-
-                window.location.href =
-                    "/analyze";
-
-            }
-
-
-            /*
-             * V → Validation
-             */
-            if (
-                event.key.toLowerCase() ===
-                "v"
-            ) {
-
-                window.location.href =
-                    "/validation";
-
-            }
-
         }
     );
 
-}
+    /* ---------------------------------------------------------
+       GLOBAL EXPORT
+       Useful for HTML buttons and debugging.
+       --------------------------------------------------------- */
 
+    window.LUNARMATCH = {
+        state,
 
-/* ================================================================
-   INITIALIZATION
-   ================================================================ */
+        runAnalysis,
+        loadResult,
+        downloadReport,
+        shareResult,
+        showToast,
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+        getUser: () => state.user,
 
-        console.log(
-            "%cLUNARMATCH V2",
-            "font-size:18px;font-weight:bold;"
-        );
+        getLatestResult: () =>
+            state.latestResult
+    };
 
-        console.log(
-            "Evidence-first lunar image correspondence platform."
-        );
-
-
-        /*
-         * Authentication
-         */
-        wireAuthForms();
-
-
-        /*
-         * Analysis
-         */
-        wireAnalysisInputs();
-        wireAnalyze();
-
-
-        /*
-         * Results
-         */
-        renderResults();
-        wireResultImage();
-
-
-        /*
-         * Validation
-         */
-        renderValidation();
-
-
-        /*
-         * Stress laboratory
-         */
-        wireStressLab();
-
-
-        /*
-         * Navigation
-         */
-        updateActiveNavigation();
-        wireMobileNavigation();
-
-
-        /*
-         * Visual polish
-         */
-        setupRevealEffects();
-
-
-        /*
-         * Backend status
-         */
-        checkEngineHealth();
-
-
-        /*
-         * Keyboard shortcuts
-         */
-        wireKeyboardShortcuts();
-
-    }
-);
+})();
+```
