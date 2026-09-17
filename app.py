@@ -1,4 +1,3 @@
-```python
 import os
 import io
 import json
@@ -3268,4 +3267,3 @@ if __name__ == "__main__":
         ),
         debug=True,
     )
-```
