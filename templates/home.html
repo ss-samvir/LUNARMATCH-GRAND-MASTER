@@ -1,1 +1,670 @@
-{% extends 'base.html' %}{% block content %}<section class="hero"><div><div class="eyebrow">CHANDRAYAAN / PLANETARY VISION / VALIDATION</div><h1>COMPARE.<br><span class="gradient">CORRESPOND.</span><br>LOCALIZE.</h1><p class="lead">Lunar image correspondence rebuilt as a serious research platform: feature matching, geometric verification, metadata-aware localization, validation and stress testing in one workflow.</p><div class="actions"><a class="btn primary" href="/analyze">START ANALYSIS →</a><a class="btn" href="/validation">EXPLORE VALIDATION</a></div></div><div class="orbital"><div class="orbit"></div><div class="orbit"></div><div class="orbit"></div><div class="moon"></div></div></section><section><div class="eyebrow">V2 MISSION</div><h2>From hackathon prototype to validated platform.</h2><div class="grid"><div class="card"><h3>01 · CORRESPONDENCE</h3><p class="muted">Detect distinctive image features and find candidate correspondences between observations.</p></div><div class="card"><h3>02 · VERIFICATION</h3><p class="muted">Use reciprocal matching and RANSAC geometry to separate consistent correspondences from outliers.</p></div><div class="card"><h3>03 · VALIDATION</h3><p class="muted">Separate reliability indicators from true ground-truth accuracy and expose the evidence.</p></div></div></section>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH V2 — Lunar Image Correspondence{% endblock %}
+
+{% block content %}
+
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section class="hero hero-home">
+
+```
+<div class="hero-copy">
+
+    <div class="eyebrow">
+        CHANDRAYAAN · PLANETARY VISION · SCIENTIFIC VALIDATION
+    </div>
+
+    <h1>
+        COMPARE.<br>
+        <span class="gradient">CORRESPOND.</span><br>
+        LOCALIZE.
+    </h1>
+
+    <p class="lead">
+        LUNARMATCH is an evidence-first lunar image correspondence
+        platform designed to compare planetary observations,
+        verify geometric consistency, inspect mission metadata,
+        and localize an observation only when supporting evidence exists.
+    </p>
+
+    <div class="actions">
+        <a class="btn primary" href="/analyze">
+            START ANALYSIS →
+        </a>
+
+        <a class="btn" href="/validation">
+            EXPLORE VALIDATION
+        </a>
+    </div>
+
+    <div class="hero-note">
+        <span class="status-dot"></span>
+        COMPUTATIONAL CORRESPONDENCE + GEOMETRIC VERIFICATION
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     ORBITAL VISUAL
+====================================================== -->
+<div class="orbital" aria-hidden="true">
+
+    <div class="orbit orbit-one"></div>
+    <div class="orbit orbit-two"></div>
+    <div class="orbit orbit-three"></div>
+
+    <div class="moon">
+
+        <div class="moon-crater crater-one"></div>
+        <div class="moon-crater crater-two"></div>
+        <div class="moon-crater crater-three"></div>
+        <div class="moon-crater crater-four"></div>
+        <div class="moon-crater crater-five"></div>
+
+    </div>
+
+    <div class="orbital-scan"></div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     MISSION STRIP
+========================================================= -->
+
+<section class="section-tight">
+
+```
+<div class="mission-strip">
+
+    <div>
+        <span class="metric-label">ENGINE</span>
+        <strong>SIFT + BF/L2</strong>
+    </div>
+
+    <div>
+        <span class="metric-label">VERIFICATION</span>
+        <strong>RANSAC</strong>
+    </div>
+
+    <div>
+        <span class="metric-label">VALIDATION</span>
+        <strong>METADATA AWARE</strong>
+    </div>
+
+    <div>
+        <span class="metric-label">LOCALIZATION</span>
+        <strong>EVIDENCE BASED</strong>
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     V2 MISSION
+========================================================= -->
+
+<section>
+
+```
+<div class="section-head">
+
+    <div>
+        <div class="eyebrow">V2 MISSION</div>
+
+        <h2>
+            From image matching
+            to scientific evidence.
+        </h2>
+    </div>
+
+    <p class="section-intro">
+        A correspondence result is only one part of the story.
+        LUNARMATCH separates matching evidence, geometric verification,
+        metadata validation and localization so each claim can be
+        inspected independently.
+    </p>
+
+</div>
+
+
+<div class="grid grid-3">
+
+    <article class="card feature-card">
+
+        <div class="feature-number">01</div>
+
+        <h3>CORRESPONDENCE</h3>
+
+        <p class="muted">
+            Detect distinctive visual structures and identify
+            candidate correspondences between two lunar observations.
+        </p>
+
+        <div class="card-line"></div>
+
+        <span class="mini-tag">
+            SIFT FEATURES
+        </span>
+
+    </article>
+
+
+    <article class="card feature-card">
+
+        <div class="feature-number">02</div>
+
+        <h3>VERIFICATION</h3>
+
+        <p class="muted">
+            Reciprocal matching and RANSAC-based geometric verification
+            help distinguish consistent correspondences from accidental
+            feature matches.
+        </p>
+
+        <div class="card-line"></div>
+
+        <span class="mini-tag">
+            HOMOGRAPHY · RANSAC
+        </span>
+
+    </article>
+
+
+    <article class="card feature-card">
+
+        <div class="feature-number">03</div>
+
+        <h3>VALIDATION</h3>
+
+        <p class="muted">
+            Mission metadata, coordinate information, projection details
+            and instrument evidence are reported separately from the
+            computational matching score.
+        </p>
+
+        <div class="card-line"></div>
+
+        <span class="mini-tag">
+            OHRC · TMC · IIRS
+        </span>
+
+    </article>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     WHY LUNARMATCH
+========================================================= -->
+
+<section class="split-section">
+
+```
+<div class="split-copy">
+
+    <div class="eyebrow">
+        WHY LUNARMATCH
+    </div>
+
+    <h2>
+        A match is not automatically
+        a location.
+    </h2>
+
+    <p class="muted">
+        Conventional image matching can indicate that two images
+        contain visually corresponding structures. That does not,
+        by itself, prove where an observation was acquired.
+    </p>
+
+    <p class="muted">
+        LUNARMATCH therefore treats localization as an evidence
+        problem. Coordinates are displayed only when they are
+        genuinely supported by available metadata or reference
+        information.
+    </p>
+
+    <a class="text-link" href="/validation">
+        SEE THE VALIDATION MODEL →
+    </a>
+
+</div>
+
+
+<div class="evidence-card">
+
+    <div class="evidence-header">
+        <span>CLAIM</span>
+        <span>EVIDENCE</span>
+    </div>
+
+
+    <div class="evidence-row">
+
+        <div>
+            <strong>IMAGE CORRESPONDENCE</strong>
+            <small>Visual similarity</small>
+        </div>
+
+        <span class="evidence-state computational">
+            COMPUTATIONAL
+        </span>
+
+    </div>
+
+
+    <div class="evidence-row">
+
+        <div>
+            <strong>GEOMETRIC CONSISTENCY</strong>
+            <small>RANSAC inliers / transformation</small>
+        </div>
+
+        <span class="evidence-state verified">
+            VERIFIED
+        </span>
+
+    </div>
+
+
+    <div class="evidence-row">
+
+        <div>
+            <strong>MISSION IDENTITY</strong>
+            <small>Metadata / reference evidence</small>
+        </div>
+
+        <span class="evidence-state conditional">
+            CONDITIONAL
+        </span>
+
+    </div>
+
+
+    <div class="evidence-row">
+
+        <div>
+            <strong>LATITUDE / LONGITUDE</strong>
+            <small>Metadata / calibrated reference</small>
+        </div>
+
+        <span class="evidence-state conditional">
+            IF AVAILABLE
+        </span>
+
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     SCIENTIFIC PAYLOAD CONTEXT
+========================================================= -->
+
+<section>
+
+```
+<div class="section-head">
+
+    <div>
+        <div class="eyebrow">MISSION DATA CONTEXT</div>
+
+        <h2>
+            Designed around
+            planetary observation.
+        </h2>
+    </div>
+
+    <p class="section-intro">
+        LUNARMATCH can inspect available mission and image metadata
+        without assuming that every uploaded image belongs to a
+        particular Chandrayaan instrument.
+    </p>
+
+</div>
+
+
+<div class="grid grid-3">
+
+    <article class="card instrument-card">
+
+        <div class="instrument-code">
+            OHRC
+        </div>
+
+        <h3>
+            Orbiter High Resolution Camera
+        </h3>
+
+        <p class="muted">
+            High-resolution orbital imaging context. Instrument identity
+            is reported only when supported by metadata or reference data.
+        </p>
+
+        <div class="instrument-footer">
+            <span>INSTRUMENT</span>
+            <strong>OHRC</strong>
+        </div>
+
+    </article>
+
+
+    <article class="card instrument-card">
+
+        <div class="instrument-code">
+            TMC
+        </div>
+
+        <h3>
+            Terrain Mapping Camera
+        </h3>
+
+        <p class="muted">
+            Terrain and mapping imagery context that can provide
+            complementary spatial information when appropriate metadata
+            is available.
+        </p>
+
+        <div class="instrument-footer">
+            <span>INSTRUMENT</span>
+            <strong>TMC</strong>
+        </div>
+
+    </article>
+
+
+    <article class="card instrument-card">
+
+        <div class="instrument-code">
+            IIRS
+        </div>
+
+        <h3>
+            Imaging Infrared Spectrometer
+        </h3>
+
+        <p class="muted">
+            Spectral observation context. LUNARMATCH does not infer
+            instrument identity merely from visual appearance.
+        </p>
+
+        <div class="instrument-footer">
+            <span>INSTRUMENT</span>
+            <strong>IIRS</strong>
+        </div>
+
+    </article>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     PIPELINE
+========================================================= -->
+
+<section class="pipeline-section">
+
+```
+<div class="eyebrow">
+    ANALYSIS PIPELINE
+</div>
+
+<h2>
+    Seven stages.
+    One evidence chain.
+</h2>
+
+<p class="muted pipeline-lead">
+    Every analysis follows the same processing structure so that
+    the final result can be traced back to measurable intermediate
+    evidence.
+</p>
+
+
+<div class="pipeline-home">
+
+    <div class="pipeline-node">
+        <span>01</span>
+        <strong>ACQUIRE</strong>
+        <small>Images + metadata</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>02</span>
+        <strong>PREPROCESS</strong>
+        <small>CLAHE + smoothing</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>03</span>
+        <strong>EXTRACT</strong>
+        <small>SIFT features</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>04</span>
+        <strong>MATCH</strong>
+        <small>BF / Lowe ratio</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>05</span>
+        <strong>VERIFY</strong>
+        <small>RANSAC geometry</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>06</span>
+        <strong>SCORE</strong>
+        <small>Evidence metrics</small>
+    </div>
+
+    <div class="pipeline-arrow">→</div>
+
+    <div class="pipeline-node">
+        <span>07</span>
+        <strong>VALIDATE</strong>
+        <small>Mission evidence</small>
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     RESPONSIBLE LOCALIZATION
+========================================================= -->
+
+<section class="localization-banner">
+
+```
+<div>
+
+    <div class="eyebrow">
+        LOCALIZATION PRINCIPLE
+    </div>
+
+    <h2>
+        No fabricated coordinates.
+    </h2>
+
+    <p>
+        If latitude, longitude, CRS, projection, datum or image
+        identification data are unavailable, LUNARMATCH reports
+        that limitation instead of inventing a value.
+    </p>
+
+</div>
+
+<div class="localization-seal">
+
+    <div class="seal-ring"></div>
+
+    <strong>
+        EVIDENCE
+    </strong>
+
+    <span>
+        FIRST
+    </span>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     STRESS TESTING
+========================================================= -->
+
+<section>
+
+```
+<div class="section-head">
+
+    <div>
+
+        <div class="eyebrow">
+            ROBUSTNESS LAB
+        </div>
+
+        <h2>
+            Can the correspondence
+            survive controlled change?
+        </h2>
+
+    </div>
+
+    <p class="section-intro">
+        The Stress Lab is designed to test how the correspondence
+        pipeline behaves under controlled transformations such as
+        rotation, scaling, brightness changes, blur and cropping.
+    </p>
+
+</div>
+
+
+<div class="grid grid-2">
+
+    <article class="card">
+
+        <div class="card-kicker">
+            CONTROLLED TESTING
+        </div>
+
+        <h3>
+            Transformation-based robustness
+        </h3>
+
+        <p class="muted">
+            Start with an image, apply a controlled transformation,
+            and compare the resulting correspondence behaviour.
+        </p>
+
+        <a class="btn small" href="/stress">
+            OPEN STRESS LAB →
+        </a>
+
+    </article>
+
+
+    <article class="card">
+
+        <div class="card-kicker">
+            INTERPRETATION
+        </div>
+
+        <h3>
+            Robustness ≠ mission accuracy
+        </h3>
+
+        <p class="muted">
+            Synthetic stress tests measure pipeline stability under
+            known transformations. They do not substitute for
+            independent lunar ground truth.
+        </p>
+
+        <a class="btn small" href="/technology">
+            VIEW METHODOLOGY →
+        </a>
+
+    </article>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     FINAL CTA
+========================================================= -->
+
+<section class="final-cta">
+
+```
+<div class="final-cta-grid">
+
+    <div>
+
+        <div class="eyebrow">
+            LUNARMATCH V2
+        </div>
+
+        <h2>
+            Turn two images
+            into an evidence trail.
+        </h2>
+
+        <p class="muted">
+            Upload two observations and inspect correspondence,
+            geometric verification, metadata and validation evidence
+            through a single research workflow.
+        </p>
+
+    </div>
+
+
+    <div class="final-actions">
+
+        <a class="btn primary" href="/analyze">
+            BEGIN RESEARCH →
+        </a>
+
+        <a class="btn" href="/technology">
+            HOW IT WORKS
+        </a>
+
+    </div>
+
+</div>
+```
+
+</section>
+
+{% endblock %}
