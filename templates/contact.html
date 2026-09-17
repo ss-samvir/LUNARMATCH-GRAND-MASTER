@@ -1,643 +1,215 @@
-{% extends 'base.html' %}
+```html
+{% extends "base.html" %}
 
-{% block title %}Contact · LUNARMATCH V2{% endblock %}
+{% block title %}Contact | LUNARMATCH{% endblock %}
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HERO
-========================================================= -->
-
-<section class="page-head reveal">
-
-```
-<div>
-
-    <div class="eyebrow">
-        COMMUNICATION / RESEARCH CONTACT
+<section class="section page-hero">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-eyebrow">CONTACT LUNARMATCH</span>
+            <h1 class="section-title">
+                Let's talk about
+                <span class="gradient">lunar research.</span>
+            </h1>
+            <p class="section-description">
+                Have a question about the platform, a collaboration idea,
+                a technical discussion, or feedback about the project?
+                Reach out to the LUNARMATCH team.
+            </p>
+        </div>
     </div>
-
-    <h1>
-        Let's discuss
-        <span class="gradient">Lunar Vision.</span>
-    </h1>
-
-    <p class="lead">
-        LUNARMATCH is a student-built research prototype.
-        Questions, technical feedback, collaboration and scientific
-        review are welcome.
-    </p>
-
-</div>
-
-<div class="page-head-status">
-    <span class="status-dot"></span>
-    COMMUNICATION CHANNEL
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     CONTACT GRID
-========================================================= -->
 
-<section class="contact-layout reveal">
+<section class="section">
+    <div class="container">
 
-```
-<!-- LEFT -->
-<div class="contact-information">
+        <div class="contact-grid">
 
-    <div class="eyebrow">
-        PROJECT CONTACT
-    </div>
+            <div class="card contact-card reveal">
+                <span class="section-eyebrow">PROJECT</span>
+                <h2>LUNARMATCH</h2>
+                <p>
+                    Lunar Image Correspondence System
+                </p>
 
-    <h2>
-        Connect with the team.
-    </h2>
+                <div class="contact-item">
+                    <span class="contact-icon">✉</span>
+                    <div>
+                        <strong>Email</strong>
+                        <p>
+                            <a href="mailto:lunarmatch.project@gmail.com">
+                                lunarmatch.project@gmail.com
+                            </a>
+                        </p>
+                    </div>
+                </div>
 
-    <p class="muted">
-        Whether you want to discuss the computer-vision pipeline,
-        mission-data validation, geospatial references or the
-        future research direction, we would be glad to hear from you.
-    </p>
+                <div class="contact-item">
+                    <span class="contact-icon">⌂</span>
+                    <div>
+                        <strong>Institution</strong>
+                        <p>
+                            Narula Institute of Technology<br>
+                            Agarpara, West Bengal, India
+                        </p>
+                    </div>
+                </div>
 
+                <div class="contact-item">
+                    <span class="contact-icon">◉</span>
+                    <div>
+                        <strong>Project Area</strong>
+                        <p>
+                            Computer Vision · Lunar Imaging ·
+                            Planetary Science · Geospatial Validation
+                        </p>
+                    </div>
+                </div>
 
-    <div class="contact-cards">
-
-        <a
-            class="contact-card"
-            href="mailto:mrsouricksen2007@gmail.com"
-        >
-
-            <div class="contact-icon">
-                @
             </div>
+
+
+            <div class="card contact-card reveal">
+                <span class="section-eyebrow">PROJECT DISCUSSION</span>
+                <h2>What can you contact us about?</h2>
+
+                <div class="contact-topics">
+
+                    <div class="topic">
+                        <span>01</span>
+                        <div>
+                            <strong>Technical Questions</strong>
+                            <p>
+                                Questions about correspondence, feature matching,
+                                geometric verification or validation.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="topic">
+                        <span>02</span>
+                        <div>
+                            <strong>Research Collaboration</strong>
+                            <p>
+                                Ideas for extending the platform toward
+                                planetary-image research.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="topic">
+                        <span>03</span>
+                        <div>
+                            <strong>Project Feedback</strong>
+                            <p>
+                                Suggestions regarding usability, scientific
+                                clarity or future development.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="topic">
+                        <span>04</span>
+                        <div>
+                            <strong>Demonstration</strong>
+                            <p>
+                                Discussions about using LUNARMATCH for
+                                academic demonstrations or presentations.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section section-alt">
+    <div class="container">
+
+        <div class="card cta-panel reveal">
 
             <div>
-
-                <span>
-                    EMAIL
-                </span>
-
-                <strong>
-                    mrsouricksen2007@gmail.com
-                </strong>
-
-                <small>
-                    Project and technical communication
-                </small>
-
+                <span class="section-eyebrow">HAVE SOMETHING TO SHARE?</span>
+                <h2>Send us your feedback.</h2>
+                <p>
+                    Use the dedicated feedback form to report an issue,
+                    suggest an improvement, or tell us how the platform
+                    performed during your analysis.
+                </p>
             </div>
 
-            <b>
-                →
-            </b>
+            <div class="hero-actions">
+                <a href="{{ url_for('feedback_page') }}"
+                   class="btn btn-primary">
+                    Open Feedback Form
+                </a>
 
-        </a>
-
-
-        <a
-            class="contact-card"
-            href="https://github.com/ss-samvir"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-
-            <div class="contact-icon">
-                GH
+                <a href="{{ url_for('analyze_page') }}"
+                   class="btn btn-secondary">
+                    Start Analysis
+                </a>
             </div>
 
-            <div>
-
-                <span>
-                    GITHUB
-                </span>
-
-                <strong>
-                    ss-samvir
-                </strong>
-
-                <small>
-                    Source code and development work
-                </small>
-
-            </div>
-
-            <b>
-                ↗
-            </b>
-
-        </a>
-
-
-        <a
-            class="contact-card"
-            href="https://www.linkedin.com/in/sourick-sen-612a8b425/"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-
-            <div class="contact-icon">
-                IN
-            </div>
-
-            <div>
-
-                <span>
-                    LINKEDIN
-                </span>
-
-                <strong>
-                    Sourick Sen
-                </strong>
-
-                <small>
-                    Professional and academic profile
-                </small>
-
-            </div>
-
-            <b>
-                ↗
-            </b>
-
-        </a>
+        </div>
 
     </div>
-
-</div>
-
-
-<!-- RIGHT -->
-<div class="contact-form-card">
-
-    <div class="eyebrow">
-        SEND A MESSAGE
-    </div>
-
-    <h2>
-        Technical feedback.
-    </h2>
-
-    <p class="muted">
-        Use this form to prepare a message. Your browser's email
-        client will open when you submit it.
-    </p>
-
-
-    <form
-        id="contactForm"
-        class="contact-form"
-        novalidate
-    >
-
-        <label for="contactName">
-            NAME
-        </label>
-
-        <input
-            id="contactName"
-            name="name"
-            type="text"
-            placeholder="Your name"
-            autocomplete="name"
-            required
-        >
-
-
-        <label for="contactEmail">
-            EMAIL
-        </label>
-
-        <input
-            id="contactEmail"
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            autocomplete="email"
-            required
-        >
-
-
-        <label for="contactSubject">
-            SUBJECT
-        </label>
-
-        <select
-            id="contactSubject"
-            name="subject"
-        >
-
-            <option value="Technical feedback">
-                Technical feedback
-            </option>
-
-            <option value="Scientific validation">
-                Scientific validation
-            </option>
-
-            <option value="Research collaboration">
-                Research collaboration
-            </option>
-
-            <option value="Hackathon discussion">
-                Hackathon discussion
-            </option>
-
-            <option value="General enquiry">
-                General enquiry
-            </option>
-
-        </select>
-
-
-        <label for="contactMessage">
-            MESSAGE
-        </label>
-
-        <textarea
-            id="contactMessage"
-            name="message"
-            rows="6"
-            placeholder="Write your message..."
-            required
-        ></textarea>
-
-
-        <button
-            class="btn primary"
-            type="submit"
-        >
-            PREPARE EMAIL →
-        </button>
-
-
-        <div
-            id="contactMessageStatus"
-            class="form-status"
-            aria-live="polite"
-        ></div>
-
-    </form>
-
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     WHAT TO INCLUDE
-========================================================= -->
 
-<section class="reveal">
+<section class="section">
+    <div class="container">
 
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            FOR TECHNICAL REVIEW
+        <div class="section-header reveal">
+            <span class="section-eyebrow">IMPORTANT</span>
+            <h2 class="section-title">Scientific communication matters.</h2>
+            <p class="section-description">
+                LUNARMATCH is a research-oriented project and its computational
+                correspondence results should be interpreted together with the
+                available validation evidence and stated limitations.
+            </p>
         </div>
 
-        <h2>
-            Helpful information to include.
-        </h2>
+        <div class="feature-grid">
+
+            <article class="card feature-card reveal">
+                <div class="feature-icon">✓</div>
+                <h3>Evidence-Based</h3>
+                <p>
+                    Results should be interpreted from measurable correspondence
+                    and geometric evidence rather than unsupported assumptions.
+                </p>
+            </article>
+
+            <article class="card feature-card reveal">
+                <div class="feature-icon">◇</div>
+                <h3>Transparent</h3>
+                <p>
+                    The platform separates computational evidence from metadata
+                    and reference validation.
+                </p>
+            </article>
+
+            <article class="card feature-card reveal">
+                <div class="feature-icon">∞</div>
+                <h3>Open to Improvement</h3>
+                <p>
+                    Feedback and research discussion can help identify areas
+                    where the system should be tested or extended.
+                </p>
+            </article>
+
+        </div>
 
     </div>
-
-</div>
-
-
-<div class="grid grid-3">
-
-    <article class="card">
-
-        <div class="about-card-number">
-            01
-        </div>
-
-        <h3>
-            REPRODUCTION
-        </h3>
-
-        <p class="muted">
-            Mention the image pair, processing condition or
-            transformation under which an issue occurred.
-        </p>
-
-    </article>
-
-
-    <article class="card">
-
-        <div class="about-card-number">
-            02
-        </div>
-
-        <h3>
-            SCIENTIFIC CONTEXT
-        </h3>
-
-        <p class="muted">
-            If your feedback concerns OHRC, TMC, IIRS, coordinates,
-            CRS or reference data, include the relevant source
-            information where available.
-        </p>
-
-    </article>
-
-
-    <article class="card">
-
-        <div class="about-card-number">
-            03
-        </div>
-
-        <h3>
-            EXPECTED RESULT
-        </h3>
-
-        <p class="muted">
-            Describe what you expected the system to report and
-            what it reported instead.
-        </p>
-
-    </article>
-
-</div>
-```
-
 </section>
-
-<!-- =========================================================
-     PROJECT STATUS
-========================================================= -->
-
-<section class="contact-status-panel reveal">
-
-```
-<div>
-
-    <div class="eyebrow">
-        CURRENT STATUS
-    </div>
-
-    <h2>
-        LUNARMATCH V2
-    </h2>
-
-    <p class="muted">
-        Research and hackathon prototype focused on transparent
-        lunar image correspondence and validation.
-    </p>
-
-</div>
-
-
-<div class="status-list">
-
-    <div class="status-item">
-
-        <span class="status-dot"></span>
-
-        <div>
-
-            <strong>
-                CORRESPONDENCE ENGINE
-            </strong>
-
-            <small>
-                SIFT + BF/L2 + Lowe filtering
-            </small>
-
-        </div>
-
-    </div>
-
-
-    <div class="status-item">
-
-        <span class="status-dot"></span>
-
-        <div>
-
-            <strong>
-                GEOMETRIC VERIFICATION
-            </strong>
-
-            <small>
-                Homography + RANSAC
-            </small>
-
-        </div>
-
-    </div>
-
-
-    <div class="status-item">
-
-        <span class="status-dot"></span>
-
-        <div>
-
-            <strong>
-                SCIENTIFIC VALIDATION
-            </strong>
-
-            <small>
-                Metadata and reference evidence
-            </small>
-
-        </div>
-
-    </div>
-
-
-    <div class="status-item">
-
-        <span class="status-dot"></span>
-
-        <div>
-
-            <strong>
-                LOCALIZATION
-            </strong>
-
-            <small>
-                Only when supported by available evidence
-            </small>
-
-        </div>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     RESPONSIBLE CONTACT NOTE
-========================================================= -->
-
-<section class="notice-card reveal">
-
-```
-<div class="notice-icon">
-    i
-</div>
-
-<div>
-
-    <div class="eyebrow">
-        IMPORTANT
-    </div>
-
-    <h3>
-        Scientific review matters.
-    </h3>
-
-    <p class="muted">
-        LUNARMATCH V2 is not presented as an official ISRO or
-        government system. Mission names, instrument information,
-        coordinates and reference data are treated as evidence
-        that must be independently supported.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     NAVIGATION
-========================================================= -->
-
-<section class="page-navigation reveal">
-
-```
-<a
-    class="btn"
-    href="/about"
->
-    ← ABOUT
-</a>
-
-<div class="actions">
-
-    <a
-        class="btn"
-        href="/technology"
-    >
-        TECHNOLOGY
-    </a>
-
-    <a
-        class="btn primary"
-        href="/analyze"
-    >
-        OPEN ANALYZER →
-    </a>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     CONTACT FORM SCRIPT
-========================================================= -->
-
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const form = document.getElementById("contactForm");
-    const status = document.getElementById("contactMessageStatus");
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener("submit", function (event) {
-
-        event.preventDefault();
-
-
-        const name =
-            document.getElementById("contactName").value.trim();
-
-        const email =
-            document.getElementById("contactEmail").value.trim();
-
-        const subject =
-            document.getElementById("contactSubject").value.trim();
-
-        const message =
-            document.getElementById("contactMessage").value.trim();
-
-
-        if (!name || !email || !message) {
-
-            status.textContent =
-                "Please complete your name, email and message.";
-
-            status.className =
-                "form-status error";
-
-            return;
-        }
-
-
-        const emailPattern =
-            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-
-        if (!emailPattern.test(email)) {
-
-            status.textContent =
-                "Please enter a valid email address.";
-
-            status.className =
-                "form-status error";
-
-            return;
-        }
-
-
-        const body =
-            "Name: " + name +
-            "\nEmail: " + email +
-            "\n\n" +
-            message;
-
-
-        const mailto =
-            "mailto:mrsouricksen2007@gmail.com" +
-            "?subject=" +
-            encodeURIComponent(
-                "[LUNARMATCH] " + subject
-            ) +
-            "&body=" +
-            encodeURIComponent(body);
-
-
-        status.textContent =
-            "Opening your email client…";
-
-        status.className =
-            "form-status success";
-
-
-        window.location.href = mailto;
-
-    });
-
-});
-
-</script>
 
 {% endblock %}
+```
