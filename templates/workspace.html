@@ -1,0 +1,381 @@
+```html
+{% extends "base.html" %}
+
+{% block title %}Workspace | LUNARMATCH{% endblock %}
+
+{% block content %}
+
+<section class="section page-hero">
+    <div class="container">
+
+        <div class="section-header reveal">
+            <span class="section-eyebrow">RESEARCH WORKSPACE</span>
+
+            <h1 class="section-title">
+                Your LUNARMATCH
+                <span class="gradient">workspace.</span>
+            </h1>
+
+            <p class="section-description">
+                Manage your profile, review previous analyses and access
+                research-oriented results from one place.
+            </p>
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section">
+    <div class="container">
+
+        <!-- PROFILE SUMMARY -->
+        <div class="workspace-grid">
+
+            <div class="card workspace-profile reveal">
+
+                <span class="section-eyebrow">PROFILE</span>
+
+                <div class="profile-avatar" id="workspaceAvatar">
+                    L
+                </div>
+
+                <h2 id="workspaceName">
+                    Loading...
+                </h2>
+
+                <p id="workspaceRole" class="profile-role">
+                    LUNARMATCH User
+                </p>
+
+                <div class="profile-details">
+
+                    <div class="profile-detail">
+                        <span>Username</span>
+                        <strong id="workspaceUsername">—</strong>
+                    </div>
+
+                    <div class="profile-detail">
+                        <span>Email</span>
+                        <strong id="workspaceEmail">—</strong>
+                    </div>
+
+                    <div class="profile-detail">
+                        <span>Institution</span>
+                        <strong id="workspaceInstitution">—</strong>
+                    </div>
+
+                    <div class="profile-detail">
+                        <span>Research Area</span>
+                        <strong id="workspaceResearchArea">—</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- WORKSPACE STATS -->
+            <div class="card workspace-overview reveal">
+
+                <span class="section-eyebrow">OVERVIEW</span>
+
+                <h2>Your activity</h2>
+
+                <div class="metric-grid">
+
+                    <div class="metric">
+                        <span class="metric-label">
+                            Analyses
+                        </span>
+
+                        <strong
+                            id="workspaceAnalysisCount"
+                            class="metric-value"
+                        >
+                            0
+                        </strong>
+                    </div>
+
+
+                    <div class="metric">
+                        <span class="metric-label">
+                            Verified
+                        </span>
+
+                        <strong
+                            id="workspaceVerifiedCount"
+                            class="metric-value"
+                        >
+                            0
+                        </strong>
+                    </div>
+
+
+                    <div class="metric">
+                        <span class="metric-label">
+                            Workspace
+                        </span>
+
+                        <strong class="metric-value">
+                            ACTIVE
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="workspace-actions">
+
+                    <a
+                        href="{{ url_for('analyze_page') }}"
+                        class="btn btn-primary"
+                    >
+                        New Analysis
+                    </a>
+
+                    <a
+                        href="{{ url_for('validation_page') }}"
+                        class="btn btn-secondary"
+                    >
+                        Validation
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section section-alt">
+    <div class="container">
+
+        <div class="section-header reveal">
+
+            <span class="section-eyebrow">
+                ANALYSIS HISTORY
+            </span>
+
+            <h2 class="section-title">
+                Previous analyses.
+            </h2>
+
+            <p class="section-description">
+                Your completed analyses are listed below. Open a result
+                to inspect its correspondence evidence and validation data.
+            </p>
+
+        </div>
+
+
+        <div class="card history-card reveal">
+
+            <div class="history-header">
+
+                <div>
+                    <span class="section-eyebrow">
+                        SAVED ACTIVITY
+                    </span>
+
+                    <h3>Analysis records</h3>
+                </div>
+
+                <button
+                    type="button"
+                    id="refreshHistoryBtn"
+                    class="btn btn-secondary"
+                >
+                    Refresh
+                </button>
+
+            </div>
+
+
+            <div
+                id="workspaceHistoryLoading"
+                class="workspace-state"
+            >
+                Loading your analysis history...
+            </div>
+
+
+            <div
+                id="workspaceHistoryEmpty"
+                class="workspace-state"
+                hidden
+            >
+                <div class="empty-state-icon">◇</div>
+
+                <h3>No analyses yet</h3>
+
+                <p>
+                    Run your first analysis to create a record
+                    in your research workspace.
+                </p>
+
+                <a
+                    href="{{ url_for('analyze_page') }}"
+                    class="btn btn-primary"
+                >
+                    Start Analysis
+                </a>
+            </div>
+
+
+            <div
+                id="workspaceHistoryError"
+                class="workspace-state"
+                hidden
+            >
+                <div class="empty-state-icon">!</div>
+
+                <h3>Unable to load history</h3>
+
+                <p id="workspaceHistoryErrorText">
+                    Please try again.
+                </p>
+
+                <button
+                    type="button"
+                    id="retryHistoryBtn"
+                    class="btn btn-secondary"
+                >
+                    Try Again
+                </button>
+            </div>
+
+
+            <div
+                id="workspaceHistoryTable"
+                class="stress-table-wrap"
+                hidden
+            >
+
+                <table class="stress-table">
+
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Result ID</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="workspaceHistoryBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section">
+    <div class="container">
+
+        <div class="feature-grid">
+
+            <article class="card feature-card reveal">
+
+                <div class="feature-icon">▣</div>
+
+                <h3>Analysis History</h3>
+
+                <p>
+                    Keep a record of your previous correspondence analyses
+                    and return to their result pages.
+                </p>
+
+            </article>
+
+
+            <article class="card feature-card reveal">
+
+                <div class="feature-icon">↗</div>
+
+                <h3>Scientific Reports</h3>
+
+                <p>
+                    Registered users can access the detailed PDF report
+                    generated for eligible analysis results.
+                </p>
+
+            </article>
+
+
+            <article class="card feature-card reveal">
+
+                <div class="feature-icon">◎</div>
+
+                <h3>Validation Evidence</h3>
+
+                <p>
+                    Review the metadata and validation information associated
+                    with an analysis instead of relying only on a single score.
+                </p>
+
+            </article>
+
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section section-alt">
+    <div class="container">
+
+        <div class="card cta-panel reveal">
+
+            <div>
+
+                <span class="section-eyebrow">
+                    CONTINUE RESEARCH
+                </span>
+
+                <h2>Run another correspondence analysis.</h2>
+
+                <p>
+                    Start with two lunar observations and inspect the
+                    computational and validation evidence produced by
+                    LUNARMATCH.
+                </p>
+
+            </div>
+
+
+            <div class="hero-actions">
+
+                <a
+                    href="{{ url_for('analyze_page') }}"
+                    class="btn btn-primary"
+                >
+                    Start New Analysis
+                </a>
+
+                <a
+                    href="{{ url_for('science_page') }}"
+                    class="btn btn-secondary"
+                >
+                    View Methodology
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+```
