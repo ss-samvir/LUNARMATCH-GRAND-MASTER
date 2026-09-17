@@ -1,1 +1,343 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}LUNARMATCH V2{% endblock %}</title><link rel="stylesheet" href="/static/app.css"></head><body><header class="nav"><div class="navin"><a class="brand" href="/"><span class="brandmark"></span>LUNARMATCH</a><nav class="links"><a href="/">HOME</a><a href="/analyze">ANALYZE</a><a href="/results">RESULTS</a><a href="/validation">VALIDATION</a><a href="/stress">STRESS LAB</a><a href="/technology">TECHNOLOGY</a><a href="/about">ABOUT</a><a href="/contact">CONTACT</a></nav>{% if logged_in %}<span class="pill">{{user_name}}</span>{% else %}<a class="pill" href="/signin">SIGN IN</a>{% endif %}</div></header><main class="container">{% block content %}{% endblock %}</main><footer class="footer">LUNARMATCH V2 · Lunar Image Correspondence & Validation Platform · Research prototype · Coordinates are shown only when genuinely available.</footer><script src="/static/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta
+        name="description"
+        content="LUNARMATCH V2 — Lunar image correspondence, geometric verification, scientific validation and evidence-based localization."
+    >
+
+    <meta
+        name="theme-color"
+        content="#05070c"
+    >
+
+    <title>{% block title %}LUNARMATCH V2{% endblock %}</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='app.css') }}"
+    >
+</head>
+
+<body>
+
+<!-- ============================================================
+     NAVIGATION
+     ============================================================ -->
+
+<header class="nav">
+
+    <div class="navin">
+
+        <a
+            class="brand"
+            href="/"
+            aria-label="LunarMatch Mission Control"
+        >
+            <span class="brandmark"></span>
+            <span>LUNARMATCH</span>
+        </a>
+
+
+        <nav
+            class="links"
+            aria-label="Primary navigation"
+        >
+
+            <a href="/" data-nav="/">HOME</a>
+
+            <a href="/analyze" data-nav="/analyze">
+                ANALYZE
+            </a>
+
+            <a href="/results" data-nav="/results">
+                RESULTS
+            </a>
+
+            <a href="/validation" data-nav="/validation">
+                VALIDATION
+            </a>
+
+            <a href="/stress" data-nav="/stress">
+                STRESS LAB
+            </a>
+
+            <a href="/technology" data-nav="/technology">
+                TECHNOLOGY
+            </a>
+
+            <a href="/about" data-nav="/about">
+                ABOUT
+            </a>
+
+            <a href="/contact" data-nav="/contact">
+                CONTACT
+            </a>
+
+        </nav>
+
+
+        {% if logged_in %}
+
+            <a
+                class="pill"
+                href="/analyze"
+                title="Open analysis workspace"
+            >
+                {{ user_name or "RESEARCHER" }}
+            </a>
+
+        {% else %}
+
+            <a
+                class="pill"
+                href="/signin"
+            >
+                SIGN IN
+            </a>
+
+        {% endif %}
+
+
+        <!-- Mobile menu button -->
+
+        <button
+            id="mobileMenuToggle"
+            class="mobile-menu-toggle"
+            type="button"
+            aria-label="Open navigation menu"
+            aria-expanded="false"
+            aria-controls="mobileMenu"
+        >
+            <span></span>
+            <span></span>
+        </button>
+
+    </div>
+
+
+    <!-- ========================================================
+         MOBILE NAVIGATION
+         ======================================================== -->
+
+    <nav
+        id="mobileMenu"
+        class="mobile-menu"
+        aria-label="Mobile navigation"
+    >
+
+        <a href="/" data-mobile-nav="/">
+            HOME
+        </a>
+
+        <a href="/analyze" data-mobile-nav="/analyze">
+            ANALYZE
+        </a>
+
+        <a href="/results" data-mobile-nav="/results">
+            RESULTS
+        </a>
+
+        <a href="/validation" data-mobile-nav="/validation">
+            VALIDATION
+        </a>
+
+        <a href="/stress" data-mobile-nav="/stress">
+            STRESS LAB
+        </a>
+
+        <a href="/technology" data-mobile-nav="/technology">
+            TECHNOLOGY
+        </a>
+
+        <a href="/about" data-mobile-nav="/about">
+            ABOUT
+        </a>
+
+        <a href="/contact" data-mobile-nav="/contact">
+            CONTACT
+        </a>
+
+        {% if logged_in %}
+
+            <a href="/analyze">
+                RESEARCH WORKSPACE →
+            </a>
+
+        {% else %}
+
+            <a href="/signin">
+                SIGN IN →
+            </a>
+
+            <a href="/signup">
+                CREATE ACCOUNT →
+            </a>
+
+        {% endif %}
+
+    </nav>
+
+</header>
+
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+
+<main class="container">
+
+    {% block content %}{% endblock %}
+
+</main>
+
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+
+<footer class="footer">
+
+    <div
+        style="
+            max-width: 1000px;
+            margin: 0 auto;
+        "
+    >
+
+        <div
+            style="
+                color: var(--text-soft);
+                font-weight: 800;
+                letter-spacing: .12em;
+                margin-bottom: 6px;
+            "
+        >
+            LUNARMATCH V2
+        </div>
+
+        <div>
+            Lunar Image Correspondence · Geometric Verification ·
+            Scientific Validation
+        </div>
+
+        <div style="margin-top: 5px;">
+            Research & hackathon prototype · Evidence-first processing
+        </div>
+
+        <div style="margin-top: 9px;">
+            Coordinates and mission metadata are displayed only when
+            genuinely supported by available evidence.
+        </div>
+
+    </div>
+
+</footer>
+
+
+<!-- ============================================================
+     GLOBAL MOBILE NAVIGATION FALLBACK
+     ============================================================ -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const toggle =
+        document.getElementById("mobileMenuToggle");
+
+    const menu =
+        document.getElementById("mobileMenu");
+
+
+    if (!toggle || !menu) {
+        return;
+    }
+
+
+    toggle.addEventListener("click", function () {
+
+        const isOpen =
+            menu.classList.toggle("open");
+
+        toggle.classList.toggle(
+            "open",
+            isOpen
+        );
+
+        toggle.setAttribute(
+            "aria-expanded",
+            String(isOpen)
+        );
+
+        toggle.setAttribute(
+            "aria-label",
+            isOpen
+                ? "Close navigation menu"
+                : "Open navigation menu"
+        );
+
+    });
+
+
+    menu.querySelectorAll("a").forEach(function (link) {
+
+        link.addEventListener("click", function () {
+
+            menu.classList.remove("open");
+
+            toggle.classList.remove("open");
+
+            toggle.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+
+            toggle.setAttribute(
+                "aria-label",
+                "Open navigation menu"
+            );
+
+        });
+
+    });
+
+
+    document.addEventListener("click", function (event) {
+
+        if (
+            menu.classList.contains("open") &&
+            !menu.contains(event.target) &&
+            !toggle.contains(event.target)
+        ) {
+
+            menu.classList.remove("open");
+
+            toggle.classList.remove("open");
+
+            toggle.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+
+        }
+
+    });
+
+});
+</script>
+
+
+<!-- ============================================================
+     APPLICATION JAVASCRIPT
+     ============================================================ -->
+
+<script
+    src="{{ url_for('static', filename='app.js') }}"
+    defer
+></script>
+
+</body>
+</html>
