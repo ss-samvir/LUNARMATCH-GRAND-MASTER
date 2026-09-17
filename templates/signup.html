@@ -1,481 +1,454 @@
+```html
 {% extends "base.html" %}
 
-{% block title %}
-LUNARMATCH V2 | Create Account
-{% endblock %}
+{% block title %}Create Account | LUNARMATCH{% endblock %}
 
 {% block content %}
 
-<section class="auth-page signup-page">
+<section class="section auth-page">
+    <div class="container">
 
-    <!-- =========================================================
-         LEFT — MISSION VISUAL
-    ========================================================== -->
+        <div class="auth-panel auth-panel-wide reveal">
 
-    <div class="auth-visual">
+            <div class="auth-header">
+                <span class="section-eyebrow">JOIN LUNARMATCH</span>
 
-        <div class="auth-visual-grid"></div>
+                <h1>
+                    Create your
+                    <span class="gradient">research workspace.</span>
+                </h1>
 
-        <div class="auth-orbit orbit-one"></div>
-        <div class="auth-orbit orbit-two"></div>
-        <div class="auth-orbit orbit-three"></div>
-
-        <div class="auth-moon">
-
-            <span class="auth-crater crater-one"></span>
-            <span class="auth-crater crater-two"></span>
-            <span class="auth-crater crater-three"></span>
-            <span class="auth-crater crater-four"></span>
-
-        </div>
-
-        <div class="auth-coordinate">
-
-            <span>
-                LUNARMATCH V2
-            </span>
-
-            <strong>
-                NEW RESEARCHER
-            </strong>
-
-            <small>
-                CREATE · ANALYZE · VALIDATE
-            </small>
-
-        </div>
-
-    </div>
-
-
-    <!-- =========================================================
-         RIGHT — SIGN UP PANEL
-    ========================================================== -->
-
-    <div class="auth-panel">
-
-        <div class="auth-panel-inner">
-
-            <div class="eyebrow">
-                RESEARCHER REGISTRATION
+                <p>
+                    Register to save analyses, access your analysis history,
+                    generate detailed reports and maintain a personal
+                    research workspace.
+                </p>
             </div>
 
-            <h1>
-                Create your
-                <span class="gradient">account.</span>
-            </h1>
 
-            <p class="lead">
-                Create a LunarMatch workspace for correspondence
-                analysis, validation and research experiments.
-            </p>
+            <form id="signupForm" class="auth-form">
 
+                <!-- BASIC INFORMATION -->
+                <div class="form-section">
 
-            <!-- =================================================
-                 REGISTRATION FORM
-            ================================================== -->
-
-            <form
-                id="signupForm"
-                data-auth="/api/register"
-                class="auth-form">
-
-                <label>
-
-                    <span>
-                        FULL NAME
-                    </span>
-
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="Enter your name"
-                        autocomplete="name"
-                        minlength="2"
-                        required
-                    >
-
-                </label>
+                    <div class="form-section-header">
+                        <span class="section-eyebrow">01 · BASIC INFORMATION</span>
+                        <h2>Your details</h2>
+                    </div>
 
 
-                <label>
+                    <div class="form-grid">
 
-                    <span>
-                        EMAIL
-                    </span>
+                        <div class="form-group">
+                            <label for="signupName">
+                                Full Name
+                            </label>
 
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autocomplete="email"
-                        required
-                    >
+                            <input
+                                type="text"
+                                id="signupName"
+                                name="name"
+                                class="form-control"
+                                placeholder="Your full name"
+                                maxlength="120"
+                                autocomplete="name"
+                                required
+                            >
+                        </div>
 
-                </label>
+
+                        <div class="form-group">
+                            <label for="signupPhone">
+                                Phone Number
+                            </label>
+
+                            <input
+                                type="tel"
+                                id="signupPhone"
+                                name="phone"
+                                class="form-control"
+                                placeholder="Your phone number"
+                                maxlength="30"
+                                autocomplete="tel"
+                                required
+                            >
+                        </div>
 
 
-                <label>
+                        <div class="form-group">
+                            <label for="signupEmail">
+                                Email Address
+                            </label>
 
-                    <div class="password-label">
+                            <input
+                                type="email"
+                                id="signupEmail"
+                                name="email"
+                                class="form-control"
+                                placeholder="you@example.com"
+                                maxlength="160"
+                                autocomplete="email"
+                                required
+                            >
+                        </div>
 
-                        <span>
-                            PASSWORD
-                        </span>
 
-                        <button
-                            type="button"
-                            id="toggleSignupPassword"
-                            class="password-toggle">
+                        <div class="form-group">
+                            <label for="signupUsername">
+                                Username
+                            </label>
 
-                            SHOW
+                            <input
+                                type="text"
+                                id="signupUsername"
+                                name="username"
+                                class="form-control"
+                                placeholder="Choose a username"
+                                maxlength="50"
+                                autocomplete="username"
+                                required
+                            >
+                        </div>
 
-                        </button>
+
+                        <div class="form-group">
+                            <label for="signupPassword">
+                                Password
+                            </label>
+
+                            <input
+                                type="password"
+                                id="signupPassword"
+                                name="password"
+                                class="form-control"
+                                placeholder="Create a password"
+                                minlength="8"
+                                autocomplete="new-password"
+                                required
+                            >
+
+                            <small class="form-hint">
+                                Use at least 8 characters.
+                            </small>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="signupPasswordConfirm">
+                                Confirm Password
+                            </label>
+
+                            <input
+                                type="password"
+                                id="signupPasswordConfirm"
+                                name="password_confirm"
+                                class="form-control"
+                                placeholder="Repeat your password"
+                                minlength="8"
+                                autocomplete="new-password"
+                                required
+                            >
+                        </div>
 
                     </div>
 
-                    <input
-                        id="signupPassword"
-                        type="password"
-                        name="password"
-                        placeholder="Minimum 8 characters"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                    >
-
-                </label>
+                </div>
 
 
-                <label>
+                <!-- PROFESSIONAL INFORMATION -->
+                <div class="form-section">
 
-                    <div class="password-label">
+                    <div class="form-section-header">
+                        <span class="section-eyebrow">02 · PROFILE</span>
+                        <h2>Tell us about your work</h2>
+                    </div>
 
-                        <span>
-                            CONFIRM PASSWORD
-                        </span>
 
-                        <button
-                            type="button"
-                            id="toggleConfirmPassword"
-                            class="password-toggle">
+                    <div class="form-grid">
 
-                            SHOW
+                        <div class="form-group">
+                            <label for="signupProfession">
+                                Profession / Role
+                            </label>
 
-                        </button>
+                            <select
+                                id="signupProfession"
+                                name="profession"
+                                class="form-control"
+                                required
+                            >
+                                <option value="">
+                                    Select your role
+                                </option>
+
+                                <option value="student">
+                                    Student
+                                </option>
+
+                                <option value="researcher">
+                                    Researcher
+                                </option>
+
+                                <option value="faculty">
+                                    Faculty / Educator
+                                </option>
+
+                                <option value="engineer">
+                                    Engineer / Developer
+                                </option>
+
+                                <option value="scientist">
+                                    Scientist
+                                </option>
+
+                                <option value="professional">
+                                    Other Professional
+                                </option>
+
+                                <option value="enthusiast">
+                                    Space / Technology Enthusiast
+                                </option>
+
+                                <option value="other">
+                                    Other
+                                </option>
+                            </select>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="signupInstitution">
+                                College / Institution / Organization
+                            </label>
+
+                            <input
+                                type="text"
+                                id="signupInstitution"
+                                name="institution"
+                                class="form-control"
+                                placeholder="Institution or organization"
+                                maxlength="180"
+                                required
+                            >
+                        </div>
 
                     </div>
 
-                    <input
-                        id="confirmPassword"
-                        type="password"
-                        name="confirm_password"
-                        placeholder="Re-enter your password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                    >
-
-                </label>
+                </div>
 
 
+                <!-- STUDENT INFORMATION -->
+                <div
+                    id="studentFields"
+                    class="form-section conditional-section"
+                >
+
+                    <div class="form-section-header">
+                        <span class="section-eyebrow">03 · STUDENT PROFILE</span>
+                        <h2>Academic information</h2>
+
+                        <p>
+                            These fields are shown when your selected role
+                            is Student.
+                        </p>
+                    </div>
+
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label for="signupCourse">
+                                Course / Degree
+                            </label>
+
+                            <input
+                                type="text"
+                                id="signupCourse"
+                                name="course"
+                                class="form-control"
+                                placeholder="e.g. B.Tech CSE"
+                                maxlength="120"
+                            >
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="signupStudyYear">
+                                Year of Study
+                            </label>
+
+                            <select
+                                id="signupStudyYear"
+                                name="study_year"
+                                class="form-control"
+                            >
+                                <option value="">
+                                    Select year
+                                </option>
+
+                                <option value="1">
+                                    1st Year
+                                </option>
+
+                                <option value="2">
+                                    2nd Year
+                                </option>
+
+                                <option value="3">
+                                    3rd Year
+                                </option>
+
+                                <option value="4">
+                                    4th Year
+                                </option>
+
+                                <option value="5+">
+                                    5th Year or Higher
+                                </option>
+
+                                <option value="other">
+                                    Other
+                                </option>
+                            </select>
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="signupUsageReason">
+                            Why are you using LUNARMATCH?
+                        </label>
+
+                        <textarea
+                            id="signupUsageReason"
+                            name="usage_reason"
+                            class="form-control"
+                            rows="4"
+                            maxlength="1000"
+                            placeholder="For example: academic project, research exploration, computer-vision study..."
+                        ></textarea>
+                    </div>
+
+                </div>
+
+
+                <!-- RESEARCH INFORMATION -->
+                <div class="form-section">
+
+                    <div class="form-section-header">
+                        <span class="section-eyebrow">
+                            04 · RESEARCH INTEREST
+                        </span>
+
+                        <h2>Research context</h2>
+
+                        <p>
+                            Optional for users who want to describe their
+                            research or intended application.
+                        </p>
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="signupResearchArea">
+                            Research Area
+                        </label>
+
+                        <input
+                            type="text"
+                            id="signupResearchArea"
+                            name="research_area"
+                            class="form-control"
+                            placeholder="e.g. Computer Vision, Remote Sensing, Planetary Science"
+                            maxlength="180"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="signupIntendedUse">
+                            Intended Use
+                        </label>
+
+                        <textarea
+                            id="signupIntendedUse"
+                            name="intended_use"
+                            class="form-control"
+                            rows="4"
+                            maxlength="1000"
+                            placeholder="How do you intend to use the LUNARMATCH platform?"
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MESSAGE -->
+                <div
+                    id="signupMessage"
+                    class="form-message"
+                    role="status"
+                    aria-live="polite"
+                ></div>
+
+
+                <!-- SUBMIT -->
                 <button
-                    class="btn primary auth-submit"
-                    type="submit">
-
-                    CREATE ACCOUNT →
-
+                    type="submit"
+                    id="signupBtn"
+                    class="btn btn-primary btn-large"
+                >
+                    <span>Create LUNARMATCH Account</span>
+                    <span class="btn-arrow">→</span>
                 </button>
-
-
-                <p
-                    id="msg"
-                    class="auth-message"
-                    aria-live="polite">
-                </p>
 
             </form>
 
 
-            <!-- =================================================
-                 ACCOUNT NOTE
-            ================================================== -->
-
-            <div class="auth-security">
-
-                <div class="security-icon">
-                    +
-                </div>
-
-                <div>
-
-                    <strong>
-                        EVIDENCE-FIRST PLATFORM
-                    </strong>
-
-                    <p>
-                        Account creation does not alter scientific
-                        evidence. Coordinates and mission metadata
-                        are displayed only when supported.
-                    </p>
-
-                </div>
-
+            <div class="auth-divider">
+                <span>ALREADY REGISTERED?</span>
             </div>
 
 
-            <!-- =================================================
-                 EXISTING ACCOUNT
-            ================================================== -->
+            <div class="auth-secondary">
 
-            <div class="auth-switch">
+                <p>
+                    Already have a LUNARMATCH account?
+                </p>
 
-                <span>
-                    ALREADY REGISTERED?
-                </span>
-
-                <a href="/signin">
-                    SIGN IN →
-
+                <a
+                    href="{{ url_for('signin_page') }}"
+                    class="btn btn-secondary"
+                >
+                    Sign In
                 </a>
 
             </div>
 
 
-            <a
-                href="/"
-                class="auth-back">
+            <div class="auth-note">
 
-                ← RETURN TO MISSION CONTROL
+                <span class="badge badge-info">
+                    BASIC ANALYSIS REMAINS AVAILABLE WITHOUT REGISTRATION
+                </span>
 
-            </a>
+                <p>
+                    Registration is intended for users who want persistent
+                    workspace features such as analysis history, saved
+                    results and detailed report generation.
+                </p>
+
+            </div>
 
         </div>
 
     </div>
-
 </section>
 
-
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const form = document.getElementById("signupForm");
-
-    const password =
-        document.getElementById("signupPassword");
-
-    const confirmPassword =
-        document.getElementById("confirmPassword");
-
-    const togglePassword =
-        document.getElementById("toggleSignupPassword");
-
-    const toggleConfirm =
-        document.getElementById("toggleConfirmPassword");
-
-    const message =
-        document.getElementById("msg");
-
-
-    /* =========================================================
-       PASSWORD VISIBILITY
-    ========================================================== */
-
-    if (togglePassword && password) {
-
-        togglePassword.addEventListener("click", function () {
-
-            if (password.type === "password") {
-
-                password.type = "text";
-                togglePassword.textContent = "HIDE";
-
-            } else {
-
-                password.type = "password";
-                togglePassword.textContent = "SHOW";
-
-            }
-
-        });
-
-    }
-
-
-    if (toggleConfirm && confirmPassword) {
-
-        toggleConfirm.addEventListener("click", function () {
-
-            if (confirmPassword.type === "password") {
-
-                confirmPassword.type = "text";
-                toggleConfirm.textContent = "HIDE";
-
-            } else {
-
-                confirmPassword.type = "password";
-                toggleConfirm.textContent = "SHOW";
-
-            }
-
-        });
-
-    }
-
-
-    /* =========================================================
-       PASSWORD MATCH VALIDATION
-    ========================================================== */
-
-    if (form) {
-
-        form.addEventListener("submit", async function (event) {
-
-            event.preventDefault();
-
-            message.textContent = "";
-            message.className = "auth-message";
-
-
-            if (password.value.length < 8) {
-
-                message.textContent =
-                    "Password must contain at least 8 characters.";
-
-                message.classList.add("error");
-
-                return;
-
-            }
-
-
-            if (password.value !== confirmPassword.value) {
-
-                message.textContent =
-                    "Passwords do not match.";
-
-                message.classList.add("error");
-
-                return;
-
-            }
-
-
-            const submitButton =
-                form.querySelector("button[type='submit']");
-
-            submitButton.disabled = true;
-            submitButton.textContent = "CREATING ACCOUNT…";
-
-
-            try {
-
-                const formData =
-                    new FormData(form);
-
-                /*
-                 * Send only the fields expected by the backend.
-                 * confirm_password is intentionally not sent.
-                 */
-
-                const payload = {
-
-                    name:
-                        formData.get("name"),
-
-                    email:
-                        formData.get("email"),
-
-                    password:
-                        formData.get("password")
-
-                };
-
-
-                const response =
-                    await fetch(
-                        form.dataset.auth,
-                        {
-                            method: "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify(payload)
-                        }
-                    );
-
-
-                let result = {};
-
-                try {
-
-                    result =
-                        await response.json();
-
-                } catch (jsonError) {
-
-                    throw new Error(
-                        "The server returned an invalid response."
-                    );
-
-                }
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        result.error ||
-                        "Account creation failed."
-                    );
-
-                }
-
-
-                message.textContent =
-                    result.message ||
-                    "Account created successfully.";
-
-                message.classList.add("success");
-
-
-                /*
-                 * Give the user a moment to see the success
-                 * message before moving to the workspace.
-                 */
-
-                setTimeout(function () {
-
-                    window.location.href = "/analyze";
-
-                }, 700);
-
-
-            } catch (error) {
-
-                message.textContent =
-                    error.message ||
-                    "Unable to create the account.";
-
-                message.classList.add("error");
-
-                submitButton.disabled = false;
-                submitButton.textContent =
-                    "CREATE ACCOUNT →";
-
-            }
-
-        });
-
-    }
-
-});
-
-</script>
-
 {% endblock %}
+```
