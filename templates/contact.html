@@ -1,1 +1,447 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">07 · CONTACT</div><h1>Connect with the <span class="gradient">project.</span></h1></div><div class="card"><h3>Project contact</h3><p class="muted">Contact details can be added here once the final public-facing details are confirmed.</p><p class="muted">GitHub · LinkedIn · Project email · Institution</p></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Contact & Registration
+{% endblock %}
+
+{% block content %}
+
+<section class="contact-page">
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <div class="pagehead contact-head">
+
+        <div class="eyebrow">
+            07 · CONTACT · PLATFORM ACCESS
+        </div>
+
+        <h1>
+            Connect with
+            <span class="gradient">LunarMatch.</span>
+        </h1>
+
+        <p class="lead">
+            Explore the platform, discuss the research direction,
+            or connect with the development team.
+        </p>
+
+        <div class="contact-integrity">
+
+            <span>
+                <i class="status-dot"></i>
+                PLATFORM ONLINE
+            </span>
+
+            <span>
+                RESEARCH PROTOTYPE
+            </span>
+
+            <span>
+                ROUND 2 DEVELOPMENT
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CONTACT GRID
+    ========================================================== -->
+
+    <section class="contact-grid">
+
+        <!-- =====================================================
+             PROJECT CONTACT
+        ====================================================== -->
+
+        <div class="contact-main card">
+
+            <div class="eyebrow">
+                PROJECT CONTACT
+            </div>
+
+            <h2>
+                Let's build the next
+                <span class="gradient">layer.</span>
+            </h2>
+
+            <p class="muted">
+                For project discussions, technical feedback,
+                collaboration or research-related communication,
+                use the contact channels below.
+            </p>
+
+
+            <div class="contact-channel">
+
+                <span class="contact-channel-icon">
+                    @
+                </span>
+
+                <div>
+
+                    <small>
+                        EMAIL
+                    </small>
+
+                    <strong>
+                        mrsouricksen2007@gmail.com
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="contact-channel">
+
+                <span class="contact-channel-icon">
+                    GH
+                </span>
+
+                <div>
+
+                    <small>
+                        SOURCE CODE
+                    </small>
+
+                    <a href="https://github.com/ss-samvir"
+                       target="_blank"
+                       rel="noopener noreferrer">
+
+                        github.com/ss-samvir
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="contact-channel">
+
+                <span class="contact-channel-icon">
+                    IN
+                </span>
+
+                <div>
+
+                    <small>
+                        PROFESSIONAL PROFILE
+                    </small>
+
+                    <a href="https://www.linkedin.com/in/sourick-sen-612a8b425/"
+                       target="_blank"
+                       rel="noopener noreferrer">
+
+                        LinkedIn · Sourick Sen
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             REGISTRATION
+        ====================================================== -->
+
+        <div class="registration-card card">
+
+            <div class="eyebrow">
+                PLATFORM ACCESS
+            </div>
+
+            <h2>
+                Create an
+                <span class="gradient">account.</span>
+            </h2>
+
+            <p class="muted">
+                Register to access the analysis workspace and
+                maintain your analysis history.
+            </p>
+
+
+            <form id="contactRegisterForm"
+                  data-auth="/api/register"
+                  class="auth-form">
+
+                <label>
+
+                    <span>
+                        NAME
+                    </span>
+
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Your name"
+                        autocomplete="name"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <span>
+                        EMAIL
+                    </span>
+
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <span>
+                        PASSWORD
+                    </span>
+
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Create a password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    >
+
+                </label>
+
+
+                <button
+                    class="btn primary auth-submit"
+                    type="submit">
+
+                    CREATE ACCOUNT →
+
+                </button>
+
+
+                <p id="msg"
+                   class="auth-message"
+                   aria-live="polite">
+                </p>
+
+            </form>
+
+
+            <div class="auth-note">
+
+                <span>
+                    SECURITY
+                </span>
+
+                <p>
+                    Email verification and OTP functionality will
+                    only be shown when a genuine verification service
+                    is connected. LunarMatch does not claim to have
+                    sent an OTP when it has not.
+                </p>
+
+            </div>
+
+
+            <div class="auth-switch">
+
+                <span>
+                    ALREADY REGISTERED?
+                </span>
+
+                <a href="/signin">
+                    SIGN IN →
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         COMMUNICATION PURPOSES
+    ========================================================== -->
+
+    <section class="communication-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    COMMUNICATION CHANNELS
+                </div>
+
+                <h2>
+                    What can you
+                    <span class="gradient">reach us about?</span>
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="communication-grid">
+
+            <article class="communication-card">
+
+                <span>
+                    01
+                </span>
+
+                <h3>
+                    TECHNICAL
+                </h3>
+
+                <p>
+                    Computer vision, feature matching,
+                    geometric verification and platform architecture.
+                </p>
+
+            </article>
+
+
+            <article class="communication-card">
+
+                <span>
+                    02
+                </span>
+
+                <h3>
+                    SCIENTIFIC
+                </h3>
+
+                <p>
+                    Mission data, instrument validation,
+                    geospatial metadata and reference datasets.
+                </p>
+
+            </article>
+
+
+            <article class="communication-card">
+
+                <span>
+                    03
+                </span>
+
+                <h3>
+                    COLLABORATION
+                </h3>
+
+                <p>
+                    Research extensions, datasets, testing and
+                    future planetary-imaging applications.
+                </p>
+
+            </article>
+
+
+            <article class="communication-card">
+
+                <span>
+                    04
+                </span>
+
+                <h3>
+                    FEEDBACK
+                </h3>
+
+                <p>
+                    Suggestions for improving the transparency,
+                    usability and scientific reliability of the platform.
+                </p>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         PROJECT IDENTITY
+    ========================================================== -->
+
+    <section class="contact-identity card">
+
+        <div class="identity-mark">
+            LM
+        </div>
+
+        <div>
+
+            <div class="eyebrow">
+                LUNARMATCH V2
+            </div>
+
+            <h2>
+                COMPARE.
+                CORRESPOND.
+                VERIFY.
+                <span class="gradient">
+                    LOCALIZE.
+                </span>
+            </h2>
+
+            <p class="muted">
+                A research-oriented planetary imagery prototype
+                focused on transparent evidence rather than
+                unsupported conclusions.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ACTIONS
+    ========================================================== -->
+
+    <section class="validation-actions">
+
+        <a href="/analyze"
+           class="btn primary">
+            OPEN ANALYSIS CENTER →
+        </a>
+
+        <a href="/validation"
+           class="btn">
+            SCIENTIFIC VALIDATION
+        </a>
+
+        <a href="/technology"
+           class="btn">
+            TECHNOLOGY
+        </a>
+
+        <a href="/about"
+           class="btn">
+            ABOUT THE PROJECT
+        </a>
+
+    </section>
+
+</section>
+
+{% endblock %}
