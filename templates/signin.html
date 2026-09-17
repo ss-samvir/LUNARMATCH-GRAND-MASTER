@@ -1,1 +1,240 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">ACCOUNT</div><h1>Sign <span class="gradient">In</span></h1></div><form class="form card" data-auth="/api/signin"><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" required><button class="btn primary">SIGN IN</button><p id="msg" class="muted"></p><p class="muted">New researcher? <a href="/signup">Create an account.</a></p></form>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Sign In
+{% endblock %}
+
+{% block content %}
+
+<section class="auth-page">
+
+    <!-- =========================================================
+         LEFT — BRAND / MISSION
+    ========================================================== -->
+
+    <div class="auth-visual">
+
+        <div class="auth-visual-grid"></div>
+
+        <div class="auth-orbit orbit-one"></div>
+        <div class="auth-orbit orbit-two"></div>
+        <div class="auth-orbit orbit-three"></div>
+
+        <div class="auth-moon">
+
+            <span class="auth-crater crater-one"></span>
+            <span class="auth-crater crater-two"></span>
+            <span class="auth-crater crater-three"></span>
+            <span class="auth-crater crater-four"></span>
+
+        </div>
+
+        <div class="auth-coordinate">
+
+            <span>
+                LUNARMATCH V2
+            </span>
+
+            <strong>
+                RESEARCH ACCESS
+            </strong>
+
+            <small>
+                CORRESPONDENCE · VALIDATION · EVIDENCE
+            </small>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         RIGHT — SIGN IN
+    ========================================================== -->
+
+    <div class="auth-panel">
+
+        <div class="auth-panel-inner">
+
+            <div class="eyebrow">
+                PLATFORM ACCESS
+            </div>
+
+            <h1>
+                Welcome
+                <span class="gradient">back.</span>
+            </h1>
+
+            <p class="lead">
+                Sign in to access your LunarMatch analysis workspace.
+            </p>
+
+
+            <!-- =================================================
+                 LOGIN FORM
+            ================================================== -->
+
+            <form
+                id="signinForm"
+                data-auth="/api/login"
+                class="auth-form">
+
+                <label>
+
+                    <span>
+                        EMAIL
+                    </span>
+
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <div class="password-label">
+
+                        <span>
+                            PASSWORD
+                        </span>
+
+                        <button
+                            type="button"
+                            id="togglePassword"
+                            class="password-toggle">
+
+                            SHOW
+
+                        </button>
+
+                    </div>
+
+                    <input
+                        id="signinPassword"
+                        type="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </label>
+
+
+                <button
+                    class="btn primary auth-submit"
+                    type="submit">
+
+                    SIGN IN →
+
+                </button>
+
+
+                <p
+                    id="msg"
+                    class="auth-message"
+                    aria-live="polite">
+                </p>
+
+            </form>
+
+
+            <!-- =================================================
+                 SECURITY
+            ================================================== -->
+
+            <div class="auth-security">
+
+                <div class="security-icon">
+                    ✓
+                </div>
+
+                <div>
+
+                    <strong>
+                        SECURE ACCESS
+                    </strong>
+
+                    <p>
+                        Your authentication request is processed
+                        through the LunarMatch backend.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 REGISTER
+            ================================================== -->
+
+            <div class="auth-switch">
+
+                <span>
+                    NEW TO LUNARMATCH?
+                </span>
+
+                <a href="/contact">
+                    CREATE ACCOUNT →
+                </a>
+
+            </div>
+
+
+            <!-- =================================================
+                 RETURN
+            ================================================== -->
+
+            <a
+                href="/"
+                class="auth-back">
+
+                ← RETURN TO MISSION CONTROL
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const toggle = document.getElementById("togglePassword");
+    const password = document.getElementById("signinPassword");
+
+    if (toggle && password) {
+
+        toggle.addEventListener("click", function () {
+
+            if (password.type === "password") {
+
+                password.type = "text";
+                toggle.textContent = "HIDE";
+
+            } else {
+
+                password.type = "password";
+                toggle.textContent = "SHOW";
+
+            }
+
+        });
+
+    }
+
+});
+
+</script>
+
+{% endblock %}
