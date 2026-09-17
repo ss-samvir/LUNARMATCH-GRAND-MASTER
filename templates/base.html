@@ -1,343 +1,443 @@
-<!doctype html>
+```html
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
 
     <meta
-        name="description"
-        content="LUNARMATCH V2 — Lunar image correspondence, geometric verification, scientific validation and evidence-based localization."
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
     >
 
     <meta
         name="theme-color"
-        content="#05070c"
+        content="#050816"
     >
 
-    <title>{% block title %}LUNARMATCH V2{% endblock %}</title>
+    <meta
+        name="description"
+        content="LUNARMATCH — A research-oriented lunar image correspondence and validation platform."
+    >
+
+    <title>
+        {% block title %}LUNARMATCH — Lunar Image Correspondence{% endblock %}
+    </title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    >
 
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='app.css') }}"
     >
+
+    {% block head %}{% endblock %}
 </head>
 
 <body>
 
-<!-- ============================================================
-     NAVIGATION
-     ============================================================ -->
+    <!-- =====================================================
+         CINEMATIC SPACE BACKGROUND
+         ===================================================== -->
 
-<header class="nav">
-
-    <div class="navin">
-
-        <a
-            class="brand"
-            href="/"
-            aria-label="LunarMatch Mission Control"
-        >
-            <span class="brandmark"></span>
-            <span>LUNARMATCH</span>
-        </a>
+    <canvas
+        id="spaceCanvas"
+        aria-hidden="true"
+    ></canvas>
 
 
-        <nav
-            class="links"
-            aria-label="Primary navigation"
-        >
+    <!-- =====================================================
+         SITE HEADER
+         ===================================================== -->
 
-            <a href="/" data-nav="/">HOME</a>
+    <header class="site-header">
 
-            <a href="/analyze" data-nav="/analyze">
-                ANALYZE
-            </a>
+        <div class="container">
 
-            <a href="/results" data-nav="/results">
-                RESULTS
-            </a>
-
-            <a href="/validation" data-nav="/validation">
-                VALIDATION
-            </a>
-
-            <a href="/stress" data-nav="/stress">
-                STRESS LAB
-            </a>
-
-            <a href="/technology" data-nav="/technology">
-                TECHNOLOGY
-            </a>
-
-            <a href="/about" data-nav="/about">
-                ABOUT
-            </a>
-
-            <a href="/contact" data-nav="/contact">
-                CONTACT
-            </a>
-
-        </nav>
-
-
-        {% if logged_in %}
-
-            <a
-                class="pill"
-                href="/analyze"
-                title="Open analysis workspace"
+            <nav
+                class="navbar"
+                aria-label="Primary navigation"
             >
-                {{ user_name or "RESEARCHER" }}
-            </a>
 
-        {% else %}
+                <!-- BRAND -->
 
-            <a
-                class="pill"
-                href="/signin"
-            >
-                SIGN IN
-            </a>
+                <a
+                    href="{{ url_for('home') }}"
+                    class="brand"
+                    aria-label="LUNARMATCH home"
+                >
 
-        {% endif %}
+                    <span
+                        class="brand-mark"
+                        aria-hidden="true"
+                    ></span>
 
+                    <span>
+                        <span class="brand-name">
+                            LUNARMATCH
+                        </span>
 
-        <!-- Mobile menu button -->
+                        <span class="brand-subtitle">
+                            Lunar Image Correspondence
+                        </span>
+                    </span>
 
-        <button
-            id="mobileMenuToggle"
-            class="mobile-menu-toggle"
-            type="button"
-            aria-label="Open navigation menu"
-            aria-expanded="false"
-            aria-controls="mobileMenu"
-        >
-            <span></span>
-            <span></span>
-        </button>
-
-    </div>
+                </a>
 
 
-    <!-- ========================================================
-         MOBILE NAVIGATION
-         ======================================================== -->
+                <!-- DESKTOP NAVIGATION -->
 
-    <nav
-        id="mobileMenu"
-        class="mobile-menu"
-        aria-label="Mobile navigation"
-    >
+                <div class="nav-links">
 
-        <a href="/" data-mobile-nav="/">
-            HOME
-        </a>
+                    <a href="{{ url_for('home') }}">
+                        Home
+                    </a>
 
-        <a href="/analyze" data-mobile-nav="/analyze">
-            ANALYZE
-        </a>
+                    <a href="{{ url_for('analyze_page') }}">
+                        Analyze
+                    </a>
 
-        <a href="/results" data-mobile-nav="/results">
-            RESULTS
-        </a>
+                    <a href="{{ url_for('validation_page') }}">
+                        Validation
+                    </a>
 
-        <a href="/validation" data-mobile-nav="/validation">
-            VALIDATION
-        </a>
+                    <a href="{{ url_for('stress_page') }}">
+                        Stress Lab
+                    </a>
 
-        <a href="/stress" data-mobile-nav="/stress">
-            STRESS LAB
-        </a>
+                    <a href="{{ url_for('science_page') }}">
+                        Science
+                    </a>
 
-        <a href="/technology" data-mobile-nav="/technology">
-            TECHNOLOGY
-        </a>
+                    <a href="{{ url_for('about_page') }}">
+                        About
+                    </a>
 
-        <a href="/about" data-mobile-nav="/about">
-            ABOUT
-        </a>
-
-        <a href="/contact" data-mobile-nav="/contact">
-            CONTACT
-        </a>
-
-        {% if logged_in %}
-
-            <a href="/analyze">
-                RESEARCH WORKSPACE →
-            </a>
-
-        {% else %}
-
-            <a href="/signin">
-                SIGN IN →
-            </a>
-
-            <a href="/signup">
-                CREATE ACCOUNT →
-            </a>
-
-        {% endif %}
-
-    </nav>
-
-</header>
+                </div>
 
 
-<!-- ============================================================
-     MAIN CONTENT
-     ============================================================ -->
+                <!-- DESKTOP ACTIONS -->
 
-<main class="container">
+                <div class="nav-actions">
 
-    {% block content %}{% endblock %}
+                    {% if session.get('user_id') %}
 
-</main>
+                        <a
+                            href="{{ url_for('workspace_page') }}"
+                            class="btn btn-secondary"
+                        >
+                            Workspace
+                        </a>
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-signout
+                        >
+                            Sign Out
+                        </button>
+
+                    {% else %}
+
+                        <a
+                            href="{{ url_for('signin_page') }}"
+                            class="btn btn-ghost"
+                        >
+                            Sign In
+                        </a>
+
+                        <a
+                            href="{{ url_for('signup_page') }}"
+                            class="btn btn-primary"
+                        >
+                            Create Account
+                        </a>
+
+                    {% endif %}
+
+                </div>
 
 
-<!-- ============================================================
-     FOOTER
-     ============================================================ -->
+                <!-- MOBILE MENU BUTTON -->
 
-<footer class="footer">
+                <button
+                    type="button"
+                    class="mobile-menu-toggle"
+                    data-mobile-menu-toggle
+                    aria-label="Open navigation menu"
+                    aria-expanded="false"
+                    aria-controls="mobileNavigation"
+                >
+                    ☰
+                </button>
 
-    <div
-        style="
-            max-width: 1000px;
-            margin: 0 auto;
-        "
-    >
+            </nav>
+
+        </div>
+
+
+        <!-- =================================================
+             MOBILE NAVIGATION
+             ================================================= -->
 
         <div
-            style="
-                color: var(--text-soft);
-                font-weight: 800;
-                letter-spacing: .12em;
-                margin-bottom: 6px;
-            "
+            id="mobileNavigation"
+            class="mobile-menu"
+            data-mobile-menu
         >
-            LUNARMATCH V2
+
+            <a href="{{ url_for('home') }}">
+                Home
+            </a>
+
+            <a href="{{ url_for('analyze_page') }}">
+                Analyze
+            </a>
+
+            <a href="{{ url_for('validation_page') }}">
+                Validation
+            </a>
+
+            <a href="{{ url_for('stress_page') }}">
+                Stress Lab
+            </a>
+
+            <a href="{{ url_for('science_page') }}">
+                Science
+            </a>
+
+            <a href="{{ url_for('about_page') }}">
+                About
+            </a>
+
+            <a href="{{ url_for('contact_page') }}">
+                Contact
+            </a>
+
+            <a href="{{ url_for('feedback_page') }}">
+                Feedback
+            </a>
+
+            {% if session.get('user_id') %}
+
+                <a href="{{ url_for('workspace_page') }}">
+                    Workspace
+                </a>
+
+                <a
+                    href="#"
+                    data-signout
+                >
+                    Sign Out
+                </a>
+
+            {% else %}
+
+                <a href="{{ url_for('signin_page') }}">
+                    Sign In
+                </a>
+
+                <a href="{{ url_for('signup_page') }}">
+                    Create Account
+                </a>
+
+            {% endif %}
+
         </div>
 
-        <div>
-            Lunar Image Correspondence · Geometric Verification ·
-            Scientific Validation
+    </header>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+
+    <main>
+
+        {% block content %}{% endblock %}
+
+    </main>
+
+
+    <!-- =====================================================
+         FOOTER
+         ===================================================== -->
+
+    <footer class="site-footer">
+
+        <div class="container">
+
+            <div class="footer-main">
+
+                <!-- BRAND COLUMN -->
+
+                <div class="footer-brand">
+
+                    <a
+                        href="{{ url_for('home') }}"
+                        class="brand"
+                    >
+
+                        <span
+                            class="brand-mark"
+                            aria-hidden="true"
+                        ></span>
+
+                        <span>
+                            <span class="brand-name">
+                                LUNARMATCH
+                            </span>
+
+                            <span class="brand-subtitle">
+                                Research Platform
+                            </span>
+                        </span>
+
+                    </a>
+
+                    <p>
+                        A research-oriented platform for
+                        computational lunar image correspondence,
+                        geometric verification and metadata-aware
+                        validation.
+                    </p>
+
+                </div>
+
+
+                <!-- PLATFORM -->
+
+                <div class="footer-column">
+
+                    <h4>Platform</h4>
+
+                    <a href="{{ url_for('analyze_page') }}">
+                        Analyze Images
+                    </a>
+
+                    <a href="{{ url_for('validation_page') }}">
+                        Validation
+                    </a>
+
+                    <a href="{{ url_for('stress_page') }}">
+                        Stress Lab
+                    </a>
+
+                    <a href="{{ url_for('science_page') }}">
+                        Science & Technology
+                    </a>
+
+                </div>
+
+
+                <!-- RESEARCH -->
+
+                <div class="footer-column">
+
+                    <h4>Research</h4>
+
+                    <a href="{{ url_for('about_page') }}">
+                        About LunarMatch
+                    </a>
+
+                    <a href="{{ url_for('contact_page') }}">
+                        Contact
+                    </a>
+
+                    <a href="{{ url_for('feedback_page') }}">
+                        Feedback
+                    </a>
+
+                    {% if session.get('user_id') %}
+                        <a href="{{ url_for('workspace_page') }}">
+                            Research Workspace
+                        </a>
+                    {% endif %}
+
+                </div>
+
+
+                <!-- ACCOUNT -->
+
+                <div class="footer-column">
+
+                    <h4>Account</h4>
+
+                    {% if session.get('user_id') %}
+
+                        <a href="{{ url_for('workspace_page') }}">
+                            My Workspace
+                        </a>
+
+                        <a
+                            href="#"
+                            data-signout
+                        >
+                            Sign Out
+                        </a>
+
+                    {% else %}
+
+                        <a href="{{ url_for('signin_page') }}">
+                            Sign In
+                        </a>
+
+                        <a href="{{ url_for('signup_page') }}">
+                            Create Account
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER BOTTOM -->
+
+            <div class="footer-bottom">
+
+                <span>
+                    © 2026 LUNARMATCH
+                </span>
+
+                <span>
+                    Computational correspondence ·
+                    Geometric verification ·
+                    Metadata-aware validation
+                </span>
+
+            </div>
+
         </div>
 
-        <div style="margin-top: 5px;">
-            Research & hackathon prototype · Evidence-first processing
-        </div>
-
-        <div style="margin-top: 9px;">
-            Coordinates and mission metadata are displayed only when
-            genuinely supported by available evidence.
-        </div>
-
-    </div>
-
-</footer>
+    </footer>
 
 
-<!-- ============================================================
-     GLOBAL MOBILE NAVIGATION FALLBACK
-     ============================================================ -->
+    <!-- =====================================================
+         JAVASCRIPT
+         ===================================================== -->
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+    <script
+        src="{{ url_for('static', filename='app.js') }}"
+        defer
+    ></script>
 
-    const toggle =
-        document.getElementById("mobileMenuToggle");
-
-    const menu =
-        document.getElementById("mobileMenu");
-
-
-    if (!toggle || !menu) {
-        return;
-    }
-
-
-    toggle.addEventListener("click", function () {
-
-        const isOpen =
-            menu.classList.toggle("open");
-
-        toggle.classList.toggle(
-            "open",
-            isOpen
-        );
-
-        toggle.setAttribute(
-            "aria-expanded",
-            String(isOpen)
-        );
-
-        toggle.setAttribute(
-            "aria-label",
-            isOpen
-                ? "Close navigation menu"
-                : "Open navigation menu"
-        );
-
-    });
-
-
-    menu.querySelectorAll("a").forEach(function (link) {
-
-        link.addEventListener("click", function () {
-
-            menu.classList.remove("open");
-
-            toggle.classList.remove("open");
-
-            toggle.setAttribute(
-                "aria-expanded",
-                "false"
-            );
-
-            toggle.setAttribute(
-                "aria-label",
-                "Open navigation menu"
-            );
-
-        });
-
-    });
-
-
-    document.addEventListener("click", function (event) {
-
-        if (
-            menu.classList.contains("open") &&
-            !menu.contains(event.target) &&
-            !toggle.contains(event.target)
-        ) {
-
-            menu.classList.remove("open");
-
-            toggle.classList.remove("open");
-
-            toggle.setAttribute(
-                "aria-expanded",
-                "false"
-            );
-
-        }
-
-    });
-
-});
-</script>
-
-
-<!-- ============================================================
-     APPLICATION JAVASCRIPT
-     ============================================================ -->
-
-<script
-    src="{{ url_for('static', filename='app.js') }}"
-    defer
-></script>
+    {% block scripts %}{% endblock %}
 
 </body>
 </html>
+```
