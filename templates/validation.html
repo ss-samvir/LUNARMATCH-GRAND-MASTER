@@ -1,777 +1,735 @@
-{% extends 'base.html' %}
+```html
+{% extends "base.html" %}
 
-{% block title %}Validation · LUNARMATCH V2{% endblock %}
+{% block title %}Validation — LUNARMATCH{% endblock %}
 
 {% block content %}
 
-<section class="page-head reveal">
+<section class="section validation-page">
 
-```
-<div>
+    <div class="container">
 
-    <div class="eyebrow">
-        SCIENTIFIC VALIDATION CENTER
-    </div>
+        <!-- HEADER -->
+        <div class="section-header reveal">
 
-    <h1>
-        Validate the
-        <span class="gradient">Evidence.</span>
-    </h1>
-
-    <p class="lead">
-        LUNARMATCH separates computational correspondence from
-        mission metadata, coordinate evidence, projection information
-        and independent reference data.
-    </p>
-
-</div>
-
-<div class="page-head-status">
-    <span class="status-dot"></span>
-    EVIDENCE-FIRST
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     VALIDATION PRINCIPLE
-========================================================= -->
-
-<section class="validation-hero reveal">
-
-```
-<div class="validation-hero-copy">
-
-    <div class="eyebrow">
-        CORE PRINCIPLE
-    </div>
-
-    <h2>
-        A visually convincing match
-        is not automatically ground truth.
-    </h2>
-
-    <p class="muted">
-        Image correspondence answers one question:
-        <strong>“Do these observations contain geometrically
-        consistent visual structures?”</strong>
-    </p>
-
-    <p class="muted">
-        Scientific validation asks additional questions:
-        <strong>“What is the image?” “Which instrument produced it?”
-        “Where was it acquired?” and “What independent evidence
-        supports that claim?”</strong>
-    </p>
-
-</div>
-
-
-<div class="validation-equation">
-
-    <span>COMPUTATIONAL</span>
-
-    <strong>+</strong>
-
-    <span>GEOMETRIC</span>
-
-    <strong>+</strong>
-
-    <span>METADATA</span>
-
-    <strong>+</strong>
-
-    <span>REFERENCE</span>
-
-    <div class="equation-result">
-        EVIDENCE TRAIL
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     INSTRUMENT VALIDATION
-========================================================= -->
-
-<section class="reveal">
-
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            MISSION / INSTRUMENT IDENTITY
-        </div>
-
-        <h2>
-            OHRC · TMC · IIRS
-        </h2>
-
-    </div>
-
-    <p class="section-intro">
-        Instrument identity is treated as metadata/reference evidence.
-        LUNARMATCH does not classify an instrument merely from the
-        visual appearance of an uploaded image.
-    </p>
-
-</div>
-
-
-<div class="validation-instrument-grid">
-
-    <!-- OHRC -->
-    <article class="validation-instrument-card">
-
-        <div class="instrument-top">
-
-            <span class="validation-code">
-                OHRC
+            <span class="section-eyebrow">
+                EVIDENCE & VALIDATION
             </span>
 
-            <span
-                id="ohrcStatus"
-                class="validation-status"
+            <h1 class="section-title">
+                Don't just match.
+                <span class="gradient">Verify.</span>
+            </h1>
+
+            <p class="section-description">
+                LUNARMATCH separates computational correspondence from
+                metadata and reference evidence so users can understand
+                exactly what a result establishes—and what it does not.
+            </p>
+
+        </div>
+
+
+        <!-- VALIDATION PRINCIPLE -->
+        <div class="card validation-principle reveal">
+
+            <div class="validation-principle-icon">
+                ◎
+            </div>
+
+            <div>
+
+                <span class="section-eyebrow">
+                    CORE PRINCIPLE
+                </span>
+
+                <h2>
+                    Evidence must come from the data.
+                </h2>
+
+                <p>
+                    A visually strong correspondence does not automatically
+                    establish a mission, instrument, geographic coordinate
+                    or lunar location. Those claims require independent
+                    supporting evidence.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- THREE EVIDENCE LAYERS -->
+        <div class="section-header compact-header reveal">
+
+            <span class="section-eyebrow">
+                EVIDENCE MODEL
+            </span>
+
+            <h2 class="section-title">
+                Three layers of
+                <span class="gradient">verification.</span>
+            </h2>
+
+        </div>
+
+
+        <div class="validation-grid">
+
+            <!-- LAYER 1 -->
+            <article class="validation-card card reveal">
+
+                <div class="validation-layer">
+                    <span>01</span>
+                    COMPUTATIONAL
+                </div>
+
+                <div class="validation-status">
+                    <span class="status-dot"></span>
+                    IMAGE EVIDENCE
+                </div>
+
+                <h3>
+                    Correspondence
+                </h3>
+
+                <p>
+                    Measures whether local visual features between the two
+                    observations produce consistent candidate matches.
+                </p>
+
+                <ul class="validation-list">
+
+                    <li>
+                        SIFT feature extraction
+                    </li>
+
+                    <li>
+                        Descriptor matching
+                    </li>
+
+                    <li>
+                        Lowe ratio filtering
+                    </li>
+
+                    <li>
+                        Reciprocal matching
+                    </li>
+
+                    <li>
+                        Homography estimation
+                    </li>
+
+                    <li>
+                        RANSAC inlier verification
+                    </li>
+
+                </ul>
+
+            </article>
+
+
+            <!-- LAYER 2 -->
+            <article class="validation-card card reveal">
+
+                <div class="validation-layer">
+                    <span>02</span>
+                    METADATA
+                </div>
+
+                <div class="validation-status">
+                    <span class="status-dot"></span>
+                    FILE EVIDENCE
+                </div>
+
+                <h3>
+                    Provenance
+                </h3>
+
+                <p>
+                    Examines information embedded in the supplied image file
+                    rather than attempting to infer unsupported information
+                    from visual appearance.
+                </p>
+
+                <ul class="validation-list">
+
+                    <li>
+                        Latitude / longitude
+                    </li>
+
+                    <li>
+                        Acquisition time
+                    </li>
+
+                    <li>
+                        Camera information
+                    </li>
+
+                    <li>
+                        Mission information
+                    </li>
+
+                    <li>
+                        Instrument information
+                    </li>
+
+                    <li>
+                        Projection / CRS information
+                    </li>
+
+                </ul>
+
+            </article>
+
+
+            <!-- LAYER 3 -->
+            <article class="validation-card card reveal">
+
+                <div class="validation-layer">
+                    <span>03</span>
+                    REFERENCE
+                </div>
+
+                <div class="validation-status">
+                    <span class="status-dot"></span>
+                    EXTERNAL EVIDENCE
+                </div>
+
+                <h3>
+                    Ground Truth
+                </h3>
+
+                <p>
+                    Independent mission or reference information can provide
+                    stronger validation when a trusted reference source is
+                    available.
+                </p>
+
+                <ul class="validation-list">
+
+                    <li>
+                        Reference image identity
+                    </li>
+
+                    <li>
+                        Known coordinates
+                    </li>
+
+                    <li>
+                        Mission archive information
+                    </li>
+
+                    <li>
+                        Instrument provenance
+                    </li>
+
+                    <li>
+                        Calibrated map information
+                    </li>
+
+                    <li>
+                        Independent ground truth
+                    </li>
+
+                </ul>
+
+            </article>
+
+        </div>
+
+
+        <!-- LIVE VALIDATION -->
+        <div class="section-header compact-header reveal">
+
+            <span class="section-eyebrow">
+                CURRENT ANALYSIS
+            </span>
+
+            <h2 class="section-title">
+                Evidence status
+                <span class="gradient">for this result.</span>
+            </h2>
+
+            <p class="section-description">
+                Run an analysis first. The validation panel will then display
+                the evidence actually available from that analysis.
+            </p>
+
+        </div>
+
+
+        <div class="card validation-live reveal">
+
+            <div class="validation-live-header">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        VALIDATION REPORT
+                    </span>
+
+                    <h2 id="validationResultTitle">
+                        Waiting for analysis
+                    </h2>
+
+                </div>
+
+                <span
+                    class="validation-pill"
+                    id="validationOverall"
+                >
+                    NOT RUN
+                </span>
+
+            </div>
+
+
+            <div class="validation-live-grid">
+
+                <!-- COORDINATES -->
+                <div class="validation-check">
+
+                    <div class="validation-check-top">
+
+                        <span class="validation-check-icon">
+                            ◎
+                        </span>
+
+                        <span
+                            class="validation-check-status"
+                            id="validationCoordinateStatus"
+                        >
+                            NOT AVAILABLE
+                        </span>
+
+                    </div>
+
+                    <h3>
+                        Coordinate Evidence
+                    </h3>
+
+                    <p id="validationCoordinateText">
+                        No analysis has been loaded yet.
+                    </p>
+
+                    <div class="validation-value">
+
+                        <span>LATITUDE</span>
+
+                        <strong id="validationLatitude">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <div class="validation-value">
+
+                        <span>LONGITUDE</span>
+
+                        <strong id="validationLongitude">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- INSTRUMENT -->
+                <div class="validation-check">
+
+                    <div class="validation-check-top">
+
+                        <span class="validation-check-icon">
+                            ◈
+                        </span>
+
+                        <span
+                            class="validation-check-status"
+                            id="validationInstrumentStatus"
+                        >
+                            NOT ESTABLISHED
+                        </span>
+
+                    </div>
+
+                    <h3>
+                        Instrument Evidence
+                    </h3>
+
+                    <p id="validationInstrumentText">
+                        Instrument identity will only be reported when
+                        supported by available evidence.
+                    </p>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION A</span>
+
+                        <strong id="validationInstrumentA">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION B</span>
+
+                        <strong id="validationInstrumentB">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MISSION -->
+                <div class="validation-check">
+
+                    <div class="validation-check-top">
+
+                        <span class="validation-check-icon">
+                            ⌁
+                        </span>
+
+                        <span
+                            class="validation-check-status"
+                            id="validationMissionStatus"
+                        >
+                            NOT ESTABLISHED
+                        </span>
+
+                    </div>
+
+                    <h3>
+                        Mission Evidence
+                    </h3>
+
+                    <p id="validationMissionText">
+                        Mission information will be shown when supported by
+                        metadata or reference evidence.
+                    </p>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION A</span>
+
+                        <strong id="validationMissionA">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION B</span>
+
+                        <strong id="validationMissionB">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROJECTION -->
+                <div class="validation-check">
+
+                    <div class="validation-check-top">
+
+                        <span class="validation-check-icon">
+                            ⟐
+                        </span>
+
+                        <span
+                            class="validation-check-status"
+                            id="validationProjectionStatus"
+                        >
+                            NOT AVAILABLE
+                        </span>
+
+                    </div>
+
+                    <h3>
+                        Projection Evidence
+                    </h3>
+
+                    <p id="validationProjectionText">
+                        Projection and coordinate reference information are
+                        checked from available metadata.
+                    </p>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION A</span>
+
+                        <strong id="validationProjectionA">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <div class="validation-value">
+
+                        <span>OBSERVATION B</span>
+
+                        <strong id="validationProjectionB">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- WARNINGS -->
+            <div class="validation-warnings">
+
+                <div class="validation-warning-header">
+
+                    <span class="section-eyebrow">
+                        WARNINGS & LIMITATIONS
+                    </span>
+
+                    <span class="validation-pill">
+                        TRANSPARENT
+                    </span>
+
+                </div>
+
+                <div id="validationWarnings">
+
+                    <p>
+                        Run an analysis to populate validation warnings.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- INSTRUMENT REFERENCE -->
+        <div class="section-header compact-header reveal">
+
+            <span class="section-eyebrow">
+                CHANDRAYAAN CONTEXT
+            </span>
+
+            <h2 class="section-title">
+                Instrument identities
+                <span class="gradient">must be evidenced.</span>
+            </h2>
+
+            <p class="section-description">
+                LUNARMATCH can recognize instrument names from supported
+                metadata. Visual appearance alone is not treated as proof
+                of instrument identity.
+            </p>
+
+        </div>
+
+
+        <div class="feature-grid">
+
+            <article class="feature-card card reveal">
+
+                <div class="feature-number">
+                    OHRC
+                </div>
+
+                <div class="feature-icon">
+                    ◉
+                </div>
+
+                <h3>
+                    Orbiter High Resolution Camera
+                </h3>
+
+                <p>
+                    A high-resolution imaging instrument associated with
+                    Chandrayaan-2. LUNARMATCH reports OHRC only when the
+                    supplied evidence supports that identity.
+                </p>
+
+            </article>
+
+
+            <article class="feature-card card reveal">
+
+                <div class="feature-number">
+                    TMC
+                </div>
+
+                <div class="feature-icon">
+                    ◇
+                </div>
+
+                <h3>
+                    Terrain Mapping Camera
+                </h3>
+
+                <p>
+                    A terrain-mapping imaging instrument associated with
+                    Chandrayaan-2. Instrument identity is not inferred solely
+                    from image appearance.
+                </p>
+
+            </article>
+
+
+            <article class="feature-card card reveal">
+
+                <div class="feature-number">
+                    IIRS
+                </div>
+
+                <div class="feature-icon">
+                    ⟡
+                </div>
+
+                <h3>
+                    Imaging Infrared Spectrometer
+                </h3>
+
+                <p>
+                    An imaging spectrometer associated with Chandrayaan-2.
+                    LUNARMATCH treats its identity as established only when
+                    supported by metadata or reference evidence.
+                </p>
+
+            </article>
+
+        </div>
+
+
+        <!-- COORDINATE POLICY -->
+        <div class="card coordinate-policy reveal">
+
+            <div class="coordinate-policy-icon">
+                ◎
+            </div>
+
+            <div>
+
+                <span class="section-eyebrow">
+                    COORDINATE POLICY
+                </span>
+
+                <h2>
+                    Exact coordinates only when available.
+                </h2>
+
+                <p>
+                    If genuine latitude and longitude metadata are present,
+                    LUNARMATCH can display them. If they are absent, the
+                    platform reports that localization is unavailable rather
+                    than generating an estimated coordinate.
+                </p>
+
+                <div class="technical-note">
+
+                    <strong>
+                        Current limitation
+                    </strong>
+
+                    <p>
+                        The current correspondence engine does not perform
+                        calibrated pixel-to-lunar-coordinate localization or
+                        independently query a mission reference catalogue.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- OGC / STANDARDS -->
+        <div class="card standards-card reveal">
+
+            <div class="section-eyebrow">
+                GEOSPATIAL INTEROPERABILITY
+            </div>
+
+            <h2>
+                Standards should be claimed only when implemented.
+            </h2>
+
+            <p>
+                Geospatial standards such as OGC specifications can provide
+                important interoperability concepts for planetary data.
+                However, LUNARMATCH does not claim formal OGC certification
+                or compliance unless a specific implemented standard has
+                been tested and documented.
+            </p>
+
+            <div class="technical-note">
+
+                <strong>
+                    About the “IRC” reference
+                </strong>
+
+                <p>
+                    If a specific standard or requirement is referred to as
+                    “IRC”, its exact expansion and specification must first
+                    be identified before the platform claims compliance.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- SCIENTIFIC DISCLAIMER -->
+        <div class="validation-disclaimer reveal">
+
+            <span class="section-eyebrow">
+                SCIENTIFIC INTERPRETATION
+            </span>
+
+            <p>
+                LUNARMATCH provides computational correspondence evidence and
+                metadata-aware validation. A strong correspondence result
+                does not, by itself, prove that two observations depict the
+                same lunar location. Independent reference data, calibration
+                and ground truth may be required for stronger localization
+                claims.
+            </p>
+
+        </div>
+
+
+        <!-- ACTION -->
+        <div class="result-actions reveal">
+
+            <a
+                href="{{ url_for('analyze_page') }}"
+                class="btn btn-primary btn-large"
             >
-                NOT CHECKED
-            </span>
+                RUN AN ANALYSIS →
+            </a>
 
-        </div>
-
-        <h3>
-            Orbiter High Resolution Camera
-        </h3>
-
-        <p class="muted">
-            High-resolution orbital imaging context.
-        </p>
-
-        <div class="instrument-evidence">
-
-            <div>
-                <span>IMAGE A</span>
-                <strong id="ohrcA">—</strong>
-            </div>
-
-            <div>
-                <span>IMAGE B</span>
-                <strong id="ohrcB">—</strong>
-            </div>
-
-        </div>
-
-    </article>
-
-
-    <!-- TMC -->
-    <article class="validation-instrument-card">
-
-        <div class="instrument-top">
-
-            <span class="validation-code">
-                TMC
-            </span>
-
-            <span
-                id="tmcStatus"
-                class="validation-status"
+            <a
+                href="{{ url_for('science_page') }}"
+                class="btn btn-secondary btn-large"
             >
-                NOT CHECKED
-            </span>
+                EXPLORE THE SCIENCE
+            </a>
 
         </div>
 
-        <h3>
-            Terrain Mapping Camera
-        </h3>
-
-        <p class="muted">
-            Terrain and mapping observation context.
-        </p>
-
-        <div class="instrument-evidence">
-
-            <div>
-                <span>IMAGE A</span>
-                <strong id="tmcA">—</strong>
-            </div>
-
-            <div>
-                <span>IMAGE B</span>
-                <strong id="tmcB">—</strong>
-            </div>
-
-        </div>
-
-    </article>
-
-
-    <!-- IIRS -->
-    <article class="validation-instrument-card">
-
-        <div class="instrument-top">
-
-            <span class="validation-code">
-                IIRS
-            </span>
-
-            <span
-                id="iirsStatus"
-                class="validation-status"
-            >
-                NOT CHECKED
-            </span>
-
-        </div>
-
-        <h3>
-            Imaging Infrared Spectrometer
-        </h3>
-
-        <p class="muted">
-            Infrared/spectral observation context.
-        </p>
-
-        <div class="instrument-evidence">
-
-            <div>
-                <span>IMAGE A</span>
-                <strong id="iirsA">—</strong>
-            </div>
-
-            <div>
-                <span>IMAGE B</span>
-                <strong id="iirsB">—</strong>
-            </div>
-
-        </div>
-
-    </article>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     COORDINATE VALIDATION
-========================================================= -->
-
-<section class="coordinate-section reveal">
-
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            GEOSPATIAL EVIDENCE
-        </div>
-
-        <h2>
-            Latitude · Longitude
-        </h2>
-
     </div>
-
-    <span
-        id="locationStatus"
-        class="validation-status large"
-    >
-        NOT AVAILABLE
-    </span>
-
-</div>
-
-
-<div class="coordinate-panel">
-
-    <div class="coordinate-main">
-
-        <span class="coordinate-label">
-            LATITUDE
-        </span>
-
-        <strong id="validationLatitude">
-            —
-        </strong>
-
-        <small>
-            Degrees / metadata-supported value
-        </small>
-
-    </div>
-
-
-    <div class="coordinate-divider"></div>
-
-
-    <div class="coordinate-main">
-
-        <span class="coordinate-label">
-            LONGITUDE
-        </span>
-
-        <strong id="validationLongitude">
-            —
-        </strong>
-
-        <small>
-            Degrees / metadata-supported value
-        </small>
-
-    </div>
-
-</div>
-
-
-<div class="coordinate-basis">
-
-    <div class="basis-icon">
-        ⌖
-    </div>
-
-    <div>
-
-        <span class="eyebrow">
-            COORDINATE BASIS
-        </span>
-
-        <p id="coordinateBasis">
-            Coordinates have not yet been established from available
-            evidence.
-        </p>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     REFERENCE / PROJECTION DATA
-========================================================= -->
-
-<section class="reveal">
-
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            REFERENCE METADATA
-        </div>
-
-        <h2>
-            Spatial context
-        </h2>
-
-    </div>
-
-    <p class="section-intro">
-        These fields provide context for interpreting coordinates
-        and image identity. Missing information is intentionally
-        reported as missing.
-    </p>
-
-</div>
-
-
-<div class="metadata-grid">
-
-    <div class="metadata-card">
-
-        <span>CRS</span>
-
-        <strong id="validationCrs">
-            —
-        </strong>
-
-    </div>
-
-
-    <div class="metadata-card">
-
-        <span>PROJECTION</span>
-
-        <strong id="validationProjection">
-            —
-        </strong>
-
-    </div>
-
-
-    <div class="metadata-card">
-
-        <span>DATUM</span>
-
-        <strong id="validationDatum">
-            —
-        </strong>
-
-    </div>
-
-
-    <div class="metadata-card">
-
-        <span>IMAGE ID</span>
-
-        <strong id="validationImageId">
-            —
-        </strong>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     MISSION VALIDATION
-========================================================= -->
-
-<section class="validation-report reveal">
-
-```
-<div class="report-heading">
-
-    <div>
-
-        <div class="eyebrow">
-            VALIDATION RESULT
-        </div>
-
-        <h2>
-            Mission evidence
-        </h2>
-
-    </div>
-
-    <span
-        id="missionValidationStatus"
-        class="validation-status large"
-    >
-        NOT CHECKED
-    </span>
-
-</div>
-
-
-<div class="report-body">
-
-    <div class="report-symbol">
-        M
-    </div>
-
-    <p
-        id="missionValidationText"
-        class="muted"
-    >
-        Mission identity has not yet been evaluated.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     REFERENCE VALIDATION
-========================================================= -->
-
-<section class="validation-report reveal">
-
-```
-<div class="report-heading">
-
-    <div>
-
-        <div class="eyebrow">
-            REFERENCE EVIDENCE
-        </div>
-
-        <h2>
-            Independent support
-        </h2>
-
-    </div>
-
-    <span
-        id="referenceValidationStatus"
-        class="validation-status large"
-    >
-        NOT CHECKED
-    </span>
-
-</div>
-
-
-<div class="report-body">
-
-    <div class="report-symbol">
-        R
-    </div>
-
-    <p
-        id="referenceValidationText"
-        class="muted"
-    >
-        No independent reference evidence has been evaluated yet.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     PROJECTION VALIDATION
-========================================================= -->
-
-<section class="validation-report reveal">
-
-```
-<div class="report-heading">
-
-    <div>
-
-        <div class="eyebrow">
-            GEOSPATIAL INTERPRETATION
-        </div>
-
-        <h2>
-            Projection consistency
-        </h2>
-
-    </div>
-
-    <span
-        id="projectionValidationStatus"
-        class="validation-status large"
-    >
-        NOT CHECKED
-    </span>
-
-</div>
-
-
-<div class="report-body">
-
-    <div class="report-symbol">
-        P
-    </div>
-
-    <p
-        id="projectionValidationText"
-        class="muted"
-    >
-        Projection and spatial-reference consistency have not yet
-        been evaluated.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     WARNINGS
-========================================================= -->
-
-<section class="warnings-panel reveal">
-
-```
-<div class="warnings-head">
-
-    <div>
-
-        <div class="eyebrow">
-            EVIDENCE WARNINGS
-        </div>
-
-        <h2>
-            What remains unverified?
-        </h2>
-
-    </div>
-
-    <span
-        id="warningCount"
-        class="warning-count"
-    >
-        0
-    </span>
-
-</div>
-
-
-<div
-    id="validationWarnings"
-    class="warnings-list"
->
-
-    <div class="warning-empty">
-        <span>✓</span>
-        <p>
-            No validation warnings have been generated yet.
-        </p>
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     JUDGE EXPLANATION
-========================================================= -->
-
-<section class="judge-card reveal">
-
-```
-<div class="judge-card-header">
-
-    <div class="eyebrow">
-        JUDGE-READY EXPLANATION
-    </div>
-
-    <span>
-        EVIDENCE MODEL
-    </span>
-
-</div>
-
-
-<div class="judge-card-content">
-
-    <h2>
-        How do we validate an image?
-    </h2>
-
-    <p>
-        LUNARMATCH does not treat feature similarity alone as
-        scientific validation.
-    </p>
-
-    <div class="judge-points">
-
-        <div>
-            <span>01</span>
-            <strong>Correspondence</strong>
-            <p>
-                Feature descriptors identify candidate visual matches.
-            </p>
-        </div>
-
-        <div>
-            <span>02</span>
-            <strong>Geometry</strong>
-            <p>
-                RANSAC tests whether those correspondences support
-                a consistent geometric relationship.
-            </p>
-        </div>
-
-        <div>
-            <span>03</span>
-            <strong>Metadata</strong>
-            <p>
-                Mission, instrument and image metadata are inspected
-                independently.
-            </p>
-        </div>
-
-        <div>
-            <span>04</span>
-            <strong>Localization</strong>
-            <p>
-                Coordinates are presented only when supported by
-                genuine metadata or legitimate reference/calibration
-                evidence.
-            </p>
-        </div>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     LIMITATION
-========================================================= -->
-
-<section class="notice-card reveal">
-
-```
-<div class="notice-icon">
-    !
-</div>
-
-<div>
-
-    <div class="eyebrow">
-        IMPORTANT LIMITATION
-    </div>
-
-    <h3>
-        Validation evidence must be traceable.
-    </h3>
-
-    <p class="muted">
-        If an uploaded image contains no reliable mission metadata,
-        LUNARMATCH will not manufacture an instrument identity,
-        coordinate, projection or ground-truth claim. Such information
-        remains explicitly marked as unavailable or unestablished.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     ACTIONS
-========================================================= -->
-
-<section class="page-navigation reveal">
-
-```
-<a
-    class="btn"
-    href="/analyze"
->
-    ← ANALYZE IMAGES
-</a>
-
-<div class="actions">
-
-    <a
-        class="btn"
-        href="/stress"
-    >
-        STRESS LAB
-    </a>
-
-    <a
-        class="btn primary"
-        href="/technology"
-    >
-        VIEW TECHNOLOGY →
-    </a>
-
-</div>
-```
 
 </section>
 
 {% endblock %}
+```
