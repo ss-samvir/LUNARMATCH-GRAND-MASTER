@@ -1,1 +1,481 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">ACCOUNT</div><h1>Sign <span class="gradient">Up</span></h1></div><form class="form card" data-auth="/api/signup"><label>Name</label><input name="name" required><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" minlength="8" required><button class="btn primary">CREATE ACCOUNT</button><p id="msg" class="muted"></p></form>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Create Account
+{% endblock %}
+
+{% block content %}
+
+<section class="auth-page signup-page">
+
+    <!-- =========================================================
+         LEFT — MISSION VISUAL
+    ========================================================== -->
+
+    <div class="auth-visual">
+
+        <div class="auth-visual-grid"></div>
+
+        <div class="auth-orbit orbit-one"></div>
+        <div class="auth-orbit orbit-two"></div>
+        <div class="auth-orbit orbit-three"></div>
+
+        <div class="auth-moon">
+
+            <span class="auth-crater crater-one"></span>
+            <span class="auth-crater crater-two"></span>
+            <span class="auth-crater crater-three"></span>
+            <span class="auth-crater crater-four"></span>
+
+        </div>
+
+        <div class="auth-coordinate">
+
+            <span>
+                LUNARMATCH V2
+            </span>
+
+            <strong>
+                NEW RESEARCHER
+            </strong>
+
+            <small>
+                CREATE · ANALYZE · VALIDATE
+            </small>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         RIGHT — SIGN UP PANEL
+    ========================================================== -->
+
+    <div class="auth-panel">
+
+        <div class="auth-panel-inner">
+
+            <div class="eyebrow">
+                RESEARCHER REGISTRATION
+            </div>
+
+            <h1>
+                Create your
+                <span class="gradient">account.</span>
+            </h1>
+
+            <p class="lead">
+                Create a LunarMatch workspace for correspondence
+                analysis, validation and research experiments.
+            </p>
+
+
+            <!-- =================================================
+                 REGISTRATION FORM
+            ================================================== -->
+
+            <form
+                id="signupForm"
+                data-auth="/api/register"
+                class="auth-form">
+
+                <label>
+
+                    <span>
+                        FULL NAME
+                    </span>
+
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Enter your name"
+                        autocomplete="name"
+                        minlength="2"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <span>
+                        EMAIL
+                    </span>
+
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <div class="password-label">
+
+                        <span>
+                            PASSWORD
+                        </span>
+
+                        <button
+                            type="button"
+                            id="toggleSignupPassword"
+                            class="password-toggle">
+
+                            SHOW
+
+                        </button>
+
+                    </div>
+
+                    <input
+                        id="signupPassword"
+                        type="password"
+                        name="password"
+                        placeholder="Minimum 8 characters"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+
+                    <div class="password-label">
+
+                        <span>
+                            CONFIRM PASSWORD
+                        </span>
+
+                        <button
+                            type="button"
+                            id="toggleConfirmPassword"
+                            class="password-toggle">
+
+                            SHOW
+
+                        </button>
+
+                    </div>
+
+                    <input
+                        id="confirmPassword"
+                        type="password"
+                        name="confirm_password"
+                        placeholder="Re-enter your password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    >
+
+                </label>
+
+
+                <button
+                    class="btn primary auth-submit"
+                    type="submit">
+
+                    CREATE ACCOUNT →
+
+                </button>
+
+
+                <p
+                    id="msg"
+                    class="auth-message"
+                    aria-live="polite">
+                </p>
+
+            </form>
+
+
+            <!-- =================================================
+                 ACCOUNT NOTE
+            ================================================== -->
+
+            <div class="auth-security">
+
+                <div class="security-icon">
+                    +
+                </div>
+
+                <div>
+
+                    <strong>
+                        EVIDENCE-FIRST PLATFORM
+                    </strong>
+
+                    <p>
+                        Account creation does not alter scientific
+                        evidence. Coordinates and mission metadata
+                        are displayed only when supported.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 EXISTING ACCOUNT
+            ================================================== -->
+
+            <div class="auth-switch">
+
+                <span>
+                    ALREADY REGISTERED?
+                </span>
+
+                <a href="/signin">
+                    SIGN IN →
+
+                </a>
+
+            </div>
+
+
+            <a
+                href="/"
+                class="auth-back">
+
+                ← RETURN TO MISSION CONTROL
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("signupForm");
+
+    const password =
+        document.getElementById("signupPassword");
+
+    const confirmPassword =
+        document.getElementById("confirmPassword");
+
+    const togglePassword =
+        document.getElementById("toggleSignupPassword");
+
+    const toggleConfirm =
+        document.getElementById("toggleConfirmPassword");
+
+    const message =
+        document.getElementById("msg");
+
+
+    /* =========================================================
+       PASSWORD VISIBILITY
+    ========================================================== */
+
+    if (togglePassword && password) {
+
+        togglePassword.addEventListener("click", function () {
+
+            if (password.type === "password") {
+
+                password.type = "text";
+                togglePassword.textContent = "HIDE";
+
+            } else {
+
+                password.type = "password";
+                togglePassword.textContent = "SHOW";
+
+            }
+
+        });
+
+    }
+
+
+    if (toggleConfirm && confirmPassword) {
+
+        toggleConfirm.addEventListener("click", function () {
+
+            if (confirmPassword.type === "password") {
+
+                confirmPassword.type = "text";
+                toggleConfirm.textContent = "HIDE";
+
+            } else {
+
+                confirmPassword.type = "password";
+                toggleConfirm.textContent = "SHOW";
+
+            }
+
+        });
+
+    }
+
+
+    /* =========================================================
+       PASSWORD MATCH VALIDATION
+    ========================================================== */
+
+    if (form) {
+
+        form.addEventListener("submit", async function (event) {
+
+            event.preventDefault();
+
+            message.textContent = "";
+            message.className = "auth-message";
+
+
+            if (password.value.length < 8) {
+
+                message.textContent =
+                    "Password must contain at least 8 characters.";
+
+                message.classList.add("error");
+
+                return;
+
+            }
+
+
+            if (password.value !== confirmPassword.value) {
+
+                message.textContent =
+                    "Passwords do not match.";
+
+                message.classList.add("error");
+
+                return;
+
+            }
+
+
+            const submitButton =
+                form.querySelector("button[type='submit']");
+
+            submitButton.disabled = true;
+            submitButton.textContent = "CREATING ACCOUNT…";
+
+
+            try {
+
+                const formData =
+                    new FormData(form);
+
+                /*
+                 * Send only the fields expected by the backend.
+                 * confirm_password is intentionally not sent.
+                 */
+
+                const payload = {
+
+                    name:
+                        formData.get("name"),
+
+                    email:
+                        formData.get("email"),
+
+                    password:
+                        formData.get("password")
+
+                };
+
+
+                const response =
+                    await fetch(
+                        form.dataset.auth,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(payload)
+                        }
+                    );
+
+
+                let result = {};
+
+                try {
+
+                    result =
+                        await response.json();
+
+                } catch (jsonError) {
+
+                    throw new Error(
+                        "The server returned an invalid response."
+                    );
+
+                }
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        result.error ||
+                        "Account creation failed."
+                    );
+
+                }
+
+
+                message.textContent =
+                    result.message ||
+                    "Account created successfully.";
+
+                message.classList.add("success");
+
+
+                /*
+                 * Give the user a moment to see the success
+                 * message before moving to the workspace.
+                 */
+
+                setTimeout(function () {
+
+                    window.location.href = "/analyze";
+
+                }, 700);
+
+
+            } catch (error) {
+
+                message.textContent =
+                    error.message ||
+                    "Unable to create the account.";
+
+                message.classList.add("error");
+
+                submitButton.disabled = false;
+                submitButton.textContent =
+                    "CREATE ACCOUNT →";
+
+            }
+
+        });
+
+    }
+
+});
+
+</script>
+
+{% endblock %}
