@@ -1,1 +1,88 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">02 · RESULTS</div><h1>Evidence, not <span class="gradient">guesswork.</span></h1></div><div id="result"></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Evidence Dashboard
+{% endblock %}
+
+{% block content %}
+
+<section class="results-page">
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <div class="pagehead results-head">
+        <div class="eyebrow">02 · MISSION RESULTS · EVIDENCE DASHBOARD</div>
+
+        <h1>
+            Evidence,
+            <span class="gradient">not guesswork.</span>
+        </h1>
+
+        <p class="lead">
+            Every result is separated into measurable correspondence,
+            geometric verification, image quality and independently
+            available scientific metadata.
+        </p>
+
+        <div class="result-integrity">
+            <span><i class="status-dot"></i> ANALYSIS COMPLETE</span>
+            <span>NO FABRICATED COORDINATES</span>
+            <span>RANSAC VERIFIED</span>
+            <span>METADATA-AWARE</span>
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         EMPTY / LOADING STATE
+    ========================================================== -->
+
+    <div id="resultLoading" class="card result-loading">
+        <div class="loading-orbit"></div>
+
+        <div>
+            <div class="eyebrow">RESULT CHANNEL</div>
+            <h3>Retrieving analysis evidence…</h3>
+            <p class="muted">
+                The latest LunarMatch analysis is being loaded.
+            </p>
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         MAIN RESULT CONTAINER
+    ========================================================== -->
+
+    <div id="result" class="result-container"></div>
+
+
+    <!-- =========================================================
+         NO RESULT STATE
+    ========================================================== -->
+
+    <div id="noResult" class="card no-result" hidden>
+
+        <div class="eyebrow">NO ANALYSIS FOUND</div>
+
+        <h2>
+            Run a correspondence
+            <span class="gradient">analysis.</span>
+        </h2>
+
+        <p class="muted">
+            Upload two lunar observations in the Analysis Control
+            Center to generate the evidence dashboard.
+        </p>
+
+        <a href="/analyze" class="btn primary">
+            OPEN ANALYSIS CENTER →
+        </a>
+
+    </div>
+
+</section>
+
+{% endblock %}
