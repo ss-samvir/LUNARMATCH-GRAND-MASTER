@@ -1,1 +1,926 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">04 · ROBUSTNESS</div><h1>Stress <span class="gradient">Lab</span></h1><p class="lead">Deliberately challenge the correspondence pipeline instead of hiding failure cases.</p></div><div class="grid">{% for x in ['Rotation','Scale variation','Illumination','Noise / compression','Blur','Partial overlap','Low texture','Unrelated images'] %}<div class="card"><h3>{{x}}</h3><p class="muted">Benchmark category reserved for controlled perturbation and repeatable evaluation.</p></div>{% endfor %}</div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Stress Testing Laboratory
+{% endblock %}
+
+{% block content %}
+
+<section class="stress-page">
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <div class="pagehead stress-head">
+
+        <div class="eyebrow">
+            04 · STRESS LAB · ROBUSTNESS TESTING
+        </div>
+
+        <h1>
+            Break the
+            <span class="gradient">algorithm.</span>
+        </h1>
+
+        <p class="lead">
+            A correspondence system should not only work on ideal
+            image pairs. LunarMatch evaluates how its evidence behaves
+            under controlled visual changes and difficult inputs.
+        </p>
+
+        <div class="stress-integrity">
+
+            <span>
+                <i class="status-dot"></i>
+                ROBUSTNESS LAB
+            </span>
+
+            <span>
+                ROTATION
+            </span>
+
+            <span>
+                SCALE
+            </span>
+
+            <span>
+                NOISE
+            </span>
+
+            <span>
+                LOW CONTRAST
+            </span>
+
+            <span>
+                PARTIAL OVERLAP
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         TEST PHILOSOPHY
+    ========================================================== -->
+
+    <section class="stress-intro card">
+
+        <div>
+
+            <div class="eyebrow">
+                WHY STRESS TEST?
+            </div>
+
+            <h2>
+                Reliability under
+                <span class="gradient">adversarial conditions.</span>
+            </h2>
+
+            <p class="muted">
+                A high correspondence score on one clean image pair
+                is not sufficient evidence of robustness. Stress tests
+                deliberately alter image conditions and observe whether
+                the correspondence engine remains geometrically
+                consistent.
+            </p>
+
+        </div>
+
+
+        <div class="stress-principle">
+
+            <div class="stress-principle-item">
+                <strong>INPUT</strong>
+                <span>Controlled image transformation</span>
+            </div>
+
+            <div class="stress-arrow">→</div>
+
+            <div class="stress-principle-item">
+                <strong>ENGINE</strong>
+                <span>SIFT + BF + RANSAC</span>
+            </div>
+
+            <div class="stress-arrow">→</div>
+
+            <div class="stress-principle-item">
+                <strong>OUTPUT</strong>
+                <span>Evidence stability</span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         TEST CONTROLS
+    ========================================================== -->
+
+    <section class="stress-control card">
+
+        <div class="console-top">
+
+            <div>
+
+                <div class="eyebrow">
+                    TEST CONFIGURATION
+                </div>
+
+                <h2>
+                    Select a
+                    <span class="gradient">stress condition.</span>
+                </h2>
+
+            </div>
+
+            <div class="console-code">
+                TEST / LAB
+            </div>
+
+        </div>
+
+
+        <div class="stress-upload-grid">
+
+            <!-- BASE IMAGE -->
+
+            <div class="stress-input">
+
+                <div class="input-label-new">
+
+                    <span class="input-letter">
+                        A
+                    </span>
+
+                    <div>
+                        <strong>
+                            BASE OBSERVATION
+                        </strong>
+
+                        <small>
+                            CONTROL IMAGE
+                        </small>
+                    </div>
+
+                </div>
+
+
+                <label class="drop-new"
+                       id="stressDrop"
+                       for="stressImage">
+
+                    <div class="drop-content"
+                         id="stressDropContent">
+
+                        <div class="upload-symbol">
+                            +
+                        </div>
+
+                        <strong>
+                            SELECT TEST IMAGE
+                        </strong>
+
+                        <span>
+                            Choose an image for stress testing
+                        </span>
+
+                        <small>
+                            JPG · JPEG · PNG · WEBP
+                        </small>
+
+                    </div>
+
+
+                    <img id="stressPreview"
+                         class="image-preview"
+                         alt="Stress test image preview">
+
+
+                    <div class="preview-overlay">
+
+                        <span>
+                            TEST IMAGE
+                        </span>
+
+                        <small id="stressPreviewName">
+                            —
+                        </small>
+
+                    </div>
+
+                </label>
+
+
+                <input id="stressImage"
+                       type="file"
+                       accept="image/*"
+                       hidden>
+
+
+                <div class="file-info"
+                     id="stressFileInfo">
+
+                    <span>
+                        READY
+                    </span>
+
+                    <small>
+                        No image selected
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- TRANSFORMATION -->
+
+            <div class="stress-settings">
+
+                <div class="eyebrow">
+                    TRANSFORMATION
+                </div>
+
+
+                <label class="stress-select-label">
+
+                    <span>
+                        TEST TYPE
+                    </span>
+
+                    <select id="stressType">
+
+                        <option value="rotation">
+                            Rotation
+                        </option>
+
+                        <option value="scale">
+                            Scale change
+                        </option>
+
+                        <option value="brightness">
+                            Brightness variation
+                        </option>
+
+                        <option value="contrast">
+                            Contrast variation
+                        </option>
+
+                        <option value="noise">
+                            Sensor / image noise
+                        </option>
+
+                        <option value="blur">
+                            Blur degradation
+                        </option>
+
+                        <option value="crop">
+                            Partial overlap / crop
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+                <label class="stress-range-label">
+
+                    <div>
+                        <span>
+                            SEVERITY
+                        </span>
+
+                        <strong id="stressSeverityValue">
+                            50%
+                        </strong>
+                    </div>
+
+                    <input id="stressSeverity"
+                           type="range"
+                           min="10"
+                           max="100"
+                           value="50">
+
+                </label>
+
+
+                <div class="stress-description"
+                     id="stressDescription">
+
+                    Rotation tests evaluate whether local visual
+                    descriptors remain useful when the same terrain
+                    appears at a different orientation.
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button id="stressRunBtn"
+                class="launch-btn"
+                type="button">
+
+            <span>
+                RUN STRESS TEST
+            </span>
+
+            <b>
+                →
+            </b>
+
+        </button>
+
+
+        <div id="stressMessage"
+             class="analysis-message"
+             aria-live="polite">
+        </div>
+
+
+        <div class="console-footer-new">
+
+            <span>
+                ● CONTROLLED TEST
+            </span>
+
+            <span>
+                ● REPRODUCIBLE
+            </span>
+
+            <span>
+                ● RANSAC VERIFIED
+            </span>
+
+            <span>
+                ● EVIDENCE LOGGED
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         TEST MATRIX
+    ========================================================== -->
+
+    <section class="stress-matrix-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    ROBUSTNESS MATRIX
+                </div>
+
+                <h2>
+                    Test
+                    <span class="gradient">conditions.</span>
+                </h2>
+
+            </div>
+
+            <span class="pipeline-status">
+                07 CONDITIONS
+            </span>
+
+        </div>
+
+
+        <div class="stress-matrix">
+
+            <!-- ROTATION -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    01
+                </span>
+
+                <div class="test-icon">
+                    ↻
+                </div>
+
+                <h3>
+                    ROTATION
+                </h3>
+
+                <p>
+                    Tests correspondence when the same terrain is
+                    presented at a different orientation.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Orientation invariance
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- SCALE -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    02
+                </span>
+
+                <div class="test-icon">
+                    ⤢
+                </div>
+
+                <h3>
+                    SCALE
+                </h3>
+
+                <p>
+                    Evaluates correspondence after controlled
+                    enlargement or reduction of the observation.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Scale stability
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- BRIGHTNESS -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    03
+                </span>
+
+                <div class="test-icon">
+                    ☼
+                </div>
+
+                <h3>
+                    BRIGHTNESS
+                </h3>
+
+                <p>
+                    Simulates illumination variation between
+                    observations of lunar terrain.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Illumination tolerance
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- CONTRAST -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    04
+                </span>
+
+                <div class="test-icon">
+                    ◐
+                </div>
+
+                <h3>
+                    CONTRAST
+                </h3>
+
+                <p>
+                    Reduces or increases local contrast to evaluate
+                    feature detectability.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Feature stability
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- NOISE -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    05
+                </span>
+
+                <div class="test-icon">
+                    ≋
+                </div>
+
+                <h3>
+                    NOISE
+                </h3>
+
+                <p>
+                    Introduces controlled image noise to test whether
+                    the matching pipeline rejects unstable evidence.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Noise resistance
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- BLUR -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    06
+                </span>
+
+                <div class="test-icon">
+                    ◌
+                </div>
+
+                <h3>
+                    BLUR
+                </h3>
+
+                <p>
+                    Simulates degraded spatial detail and evaluates
+                    the resulting correspondence evidence.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Degradation tolerance
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <!-- CROP -->
+
+            <article class="stress-test-card card">
+
+                <span class="test-number">
+                    07
+                </span>
+
+                <div class="test-icon">
+                    ⌗
+                </div>
+
+                <h3>
+                    PARTIAL OVERLAP
+                </h3>
+
+                <p>
+                    Tests whether correspondence remains measurable
+                    when only part of the terrain overlaps.
+                </p>
+
+                <div class="test-target">
+                    <span>
+                        TARGET
+                    </span>
+
+                    <strong>
+                        Partial-scene robustness
+                    </strong>
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         RESULTS
+    ========================================================== -->
+
+    <section class="stress-results card">
+
+        <div class="warnings-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    EXPERIMENT OUTPUT
+                </div>
+
+                <h2>
+                    Stress test
+                    <span class="gradient">evidence.</span>
+                </h2>
+
+            </div>
+
+            <span id="stressResultStatus"
+                  class="validation-status-pill">
+                STANDBY
+            </span>
+
+        </div>
+
+
+        <div id="stressResultEmpty"
+             class="stress-result-empty">
+
+            <div class="empty-cross">
+                +
+            </div>
+
+            <h3>
+                No experiment executed.
+            </h3>
+
+            <p class="muted">
+                Select an image and run a controlled stress test.
+                Results will appear here.
+            </p>
+
+        </div>
+
+
+        <div id="stressResult"
+             class="stress-result"
+             hidden>
+
+            <div class="metrics">
+
+                <div class="card metric">
+
+                    <span class="muted">
+                        BASE SCORE
+                    </span>
+
+                    <strong id="stressBaseScore">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="card metric">
+
+                    <span class="muted">
+                        STRESSED SCORE
+                    </span>
+
+                    <strong id="stressTestScore">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="card metric">
+
+                    <span class="muted">
+                        VERIFIED
+                    </span>
+
+                    <strong id="stressVerified">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="card metric">
+
+                    <span class="muted">
+                        STABILITY
+                    </span>
+
+                    <strong id="stressStability">
+                        —
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="stress-output-grid">
+
+                <div class="stress-output-card">
+
+                    <span>
+                        TRANSFORMATION
+                    </span>
+
+                    <strong id="stressOutputType">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stress-output-card">
+
+                    <span>
+                        SEVERITY
+                    </span>
+
+                    <strong id="stressOutputSeverity">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stress-output-card">
+
+                    <span>
+                        GEOMETRIC CONSISTENCY
+                    </span>
+
+                    <strong id="stressOutputGeometry">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stress-output-card">
+
+                    <span>
+                        INTERPRETATION
+                    </span>
+
+                    <strong id="stressOutputInterpretation">
+                        —
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="stress-comparison">
+
+                <div>
+
+                    <div class="eyebrow">
+                        CONTROL IMAGE
+                    </div>
+
+                    <img id="stressBasePreview"
+                         alt="Base stress test image">
+
+                </div>
+
+
+                <div>
+
+                    <div class="eyebrow">
+                        TRANSFORMED IMAGE
+                    </div>
+
+                    <img id="stressTransformedPreview"
+                         alt="Transformed stress test image">
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         SCIENTIFIC NOTE
+    ========================================================== -->
+
+    <section class="stress-note">
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                01
+            </span>
+
+            <h3>
+                ROBUSTNESS ≠ ACCURACY
+            </h3>
+
+            <p>
+                Passing a stress test demonstrates behavior under a
+                particular controlled transformation. It does not
+                establish geographic ground truth.
+            </p>
+
+        </div>
+
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                02
+            </span>
+
+            <h3>
+                FAILURE IS DATA
+            </h3>
+
+            <p>
+                A degraded correspondence result is retained as an
+                observable limitation rather than artificially
+                converted into a successful match.
+            </p>
+
+        </div>
+
+
+        <div class="principle-card">
+
+            <span class="principle-number">
+                03
+            </span>
+
+            <h3>
+                REPRODUCIBLE TESTS
+            </h3>
+
+            <p>
+                Each condition has a defined transformation and
+                severity so that the same experiment can be repeated
+                during judging or further development.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ACTIONS
+    ========================================================== -->
+
+    <section class="validation-actions">
+
+        <a href="/analyze"
+           class="btn primary">
+            RETURN TO ANALYSIS →
+        </a>
+
+        <a href="/validation"
+           class="btn">
+            OPEN VALIDATION CENTER
+        </a>
+
+        <a href="/technology"
+           class="btn">
+            VIEW TECHNOLOGY
+        </a>
+
+    </section>
+
+</section>
+
+{% endblock %}
