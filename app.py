@@ -1,58 +1,63 @@
+```python
 import os
+import io
 import json
-import sqlite3
 import uuid
-import time
-import math
+import sqlite3
+import secrets
+import hashlib
+import smtplib
 from datetime import datetime, timezone
-from pathlib import Path
-
-from flask import (
-    Flask,
-    render_template,
-    request,
-    jsonify,
-    session,
-    send_from_directory
-)
-
-from werkzeug.security import generate_password_hash, check_password_hash
-from PIL import Image, ExifTags
+from email.message import EmailMessage
+from functools import wraps
 
 import cv2
 import numpy as np
-
-
-# ============================================================
-# LUNARMATCH V2 — GRAND MASTER BACKEND
-# ============================================================
-
-BASE = Path(__file__).resolve().parent
-
-UPLOADS = BASE / "uploads"
-RESULTS = BASE / "results"
-DB = BASE / "lunarmatch.db"
-
-UPLOADS.mkdir(exist_ok=True)
-RESULTS.mkdir(exist_ok=True)
-
-
-app = Flask(
-    __name__,
-    template_folder="templates",
-    static_folder="static"
+from PIL import Image, ExifTags
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    session,
+    redirect,
+    url_for,
+    render_template,
+    send_file,
+    abort,
 )
+
+# ============================================================
+# LUNARMATCH V3
+# Evidence-first lunar image correspondence platform
+#
+# IMPORTANT:
+# - No fabricated coordinates
+# - No fabricated instrument identity
+# - No fake scientific claims
+# - No admin panel
+# - Guest users can perform basic correspondence
+# - Registered users receive research-workspace features
+# ============================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+REPORT_DIR = os.path.join(BASE_DIR, "reports")
+DB_PATH = os.path.join(BASE_DIR, "lunarmatch.db")
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(REPORT_DIR, exist_ok=True)
+
+app = Flask(__name__)
 
 app.secret_key = os.environ.get(
     "SECRET_KEY",
-    "lunarmatch-development-secret-change-me"
+    "CHANGE_THIS_SECRET_KEY_BEFORE_PUBLIC_DEPLOYMENT"
 )
 
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 
-
 # ============================================================
-# CONFIGURATION
+# ENGINE CONFIGURATION
 # ============================================================
 
 MAX_DIMENSION = 1600
@@ -64,47 +69,92 @@ SIFT_SIGMA = 1.6
 
 LOWE_RATIO = 0.76
 RANSAC_THRESHOLD = 5.0
-MIN_GEOMETRIC_MATCHES = 4
 
 CLAHE_CLIP = 2.0
 CLAHE_GRID = (8, 8)
+
+ALLOWED_EXTENSIONS = {
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "tif",
+    "tiff",
+}
+
+MAX_ANALYSIS_HISTORY = 100
 
 
 # ============================================================
 # DATABASE
 # ============================================================
 
-def db():
-    connection = sqlite3.connect(DB)
-    connection.row_factory = sqlite3.Row
-    return connection
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def init_db():
-    connection = db()
+    conn = get_db()
 
-    connection.executescript(
+    conn.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            profession TEXT NOT NULL,
+            institution TEXT,
+            study_level TEXT,
+            course TEXT,
+            study_year TEXT,
+            usage_reason TEXT,
+            research_area TEXT,
+            intended_use TEXT,
             created_at TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS analyses (
-            id TEXT PRIMARY KEY,
-            user_id INTEGER,
-            created_at TEXT NOT NULL,
-            result_json TEXT NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
+        )
         """
     )
 
-    connection.commit()
-    connection.close()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            public_id TEXT NOT NULL UNIQUE,
+            user_id INTEGER,
+            image_a_name TEXT NOT NULL,
+            image_b_name TEXT NOT NULL,
+            score REAL,
+            verified INTEGER,
+            result_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT,
+            email TEXT,
+            feedback_type TEXT NOT NULL,
+            rating INTEGER,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """
+    )
+
+    conn.commit()
+    conn.close()
 
 
 init_db()
@@ -118,451 +168,334 @@ def utc_now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def safe_float(value):
+def clean_text(value, maximum=500):
+    if value is None:
+        return ""
+    return str(value).strip()[:maximum]
+
+
+def allowed_file(filename):
+    if not filename or "." not in filename:
+        return False
+
+    extension = filename.rsplit(".", 1)[1].lower()
+    return extension in ALLOWED_EXTENSIONS
+
+
+def safe_json(value):
     try:
-        return float(value)
+        return json.loads(value)
     except Exception:
+        return {}
+
+
+def json_response(data, status=200):
+    return jsonify(data), status
+
+
+def hash_password(password):
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        180000,
+    )
+
+    return (
+        salt.hex()
+        + ":"
+        + digest.hex()
+    )
+
+
+def verify_password(password, stored):
+    try:
+        salt_hex, digest_hex = stored.split(":", 1)
+
+        salt = bytes.fromhex(salt_hex)
+
+        calculated = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            salt,
+            180000,
+        ).hex()
+
+        return secrets.compare_digest(calculated, digest_hex)
+
+    except Exception:
+        return False
+
+
+def current_user():
+    user_id = session.get("user_id")
+
+    if not user_id:
         return None
 
+    conn = get_db()
 
-def clamp(value, low=0.0, high=100.0):
-    return max(low, min(high, value))
+    user = conn.execute(
+        "SELECT * FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+
+    conn.close()
+
+    return user
+
+
+def login_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            if request.path.startswith("/api/"):
+                return json_response(
+                    {
+                        "ok": False,
+                        "error": "Authentication required.",
+                        "code": "AUTH_REQUIRED",
+                    },
+                    401,
+                )
+
+            return redirect(url_for("signin"))
+
+        return function(*args, **kwargs)
+
+    return wrapper
 
 
 # ============================================================
-# GPS / EXIF HELPERS
+# WELCOME EMAIL
 # ============================================================
 
-def gps_decimal(value):
+def send_welcome_email(user):
     """
-    Convert EXIF GPS rational / tuple representation
-    into decimal degrees.
+    Sends a real email only when SMTP credentials are configured.
+
+    Required environment variables:
+        SMTP_HOST
+        SMTP_PORT
+        SMTP_USERNAME
+        SMTP_PASSWORD
+        MAIL_FROM
+
+    Optional:
+        SMTP_USE_TLS=true
+
+    If these are not configured, the application does NOT pretend
+    that an email was sent.
     """
+
+    host = os.environ.get("SMTP_HOST")
+    port = os.environ.get("SMTP_PORT")
+    username = os.environ.get("SMTP_USERNAME")
+    password = os.environ.get("SMTP_PASSWORD")
+    mail_from = os.environ.get("MAIL_FROM")
+
+    if not all([host, port, username, password, mail_from]):
+        return {
+            "sent": False,
+            "reason": "Email service is not configured."
+        }
 
     try:
-        if hasattr(value, "numerator"):
-            return float(value.numerator) / float(value.denominator)
+        port = int(port)
 
-        if isinstance(value, tuple):
-            total = 0.0
+        message = EmailMessage()
 
-            for index, item in enumerate(value):
-                if hasattr(item, "numerator"):
-                    number = float(item.numerator) / float(item.denominator)
-                else:
-                    number = float(item)
+        message["Subject"] = "Welcome to LUNARMATCH"
+        message["From"] = mail_from
+        message["To"] = user["email"]
 
-                total += number / (60 ** index)
+        message.set_content(
+            f"""
+Welcome to LUNARMATCH, {user["name"]}.
 
-            return total
+Your LUNARMATCH research workspace has been created successfully.
 
-        if isinstance(value, list):
-            total = 0.0
+You can now:
+• perform lunar image correspondence
+• save analysis results
+• access detailed validation evidence
+• run robustness tests
+• generate scientific PDF reports
+• maintain your analysis history
 
-            for index, item in enumerate(value):
-                if hasattr(item, "numerator"):
-                    number = float(item.numerator) / float(item.denominator)
-                else:
-                    number = float(item)
+Username: {user["username"]}
 
-                total += number / (60 ** index)
+Thank you for exploring LUNARMATCH.
 
-            return total
-
-        return float(value)
-
-    except Exception:
-        return None
-
-
-# ============================================================
-# MISSION / INSTRUMENT IDENTIFICATION
-# ============================================================
-
-def identify_instrument(metadata):
-    """
-    Instrument identification is deliberately conservative.
-
-    We do NOT claim OHRC/TMC/IIRS merely because an image is
-    lunar or because it comes from Chandrayaan-2.
-
-    Identification requires explicit metadata/reference evidence.
-    """
-
-    text_parts = []
-
-    for key in [
-        "camera",
-        "mission",
-        "instrument",
-        "image_id",
-        "source"
-    ]:
-        value = metadata.get(key)
-
-        if value:
-            text_parts.append(str(value).lower())
-
-    text = " ".join(text_parts)
-
-    if "ohrc" in text or "orbiter high resolution camera" in text:
-        return {
-            "name": "OHRC",
-            "status": "IDENTIFIED",
-            "basis": "Explicit metadata/reference evidence"
-        }
-
-    if "tmc" in text or "terrain mapping camera" in text:
-        return {
-            "name": "TMC",
-            "status": "IDENTIFIED",
-            "basis": "Explicit metadata/reference evidence"
-        }
-
-    if (
-        "iirs" in text
-        or "imaging infrared spectrometer" in text
-    ):
-        return {
-            "name": "IIRS",
-            "status": "IDENTIFIED",
-            "basis": "Explicit metadata/reference evidence"
-        }
-
-    return {
-        "name": "UNKNOWN",
-        "status": "NOT ESTABLISHED",
-        "basis": "No explicit instrument identification available"
-    }
-
-
-# ============================================================
-# METADATA EXTRACTION
-# ============================================================
-
-def read_metadata(path):
-    """
-    Extract available metadata without fabricating information.
-
-    Sources:
-    1. Embedded EXIF metadata
-    2. Optional same-stem JSON sidecar
-
-    Example:
-        image_a.jpg
-        image_a.json
-    """
-
-    result = {
-        "available": False,
-
-        "latitude": None,
-        "longitude": None,
-        "altitude": None,
-
-        "acquisition_time": None,
-
-        "camera": None,
-        "make": None,
-
-        "mission": None,
-        "instrument": None,
-        "image_id": None,
-
-        "crs": None,
-        "projection": None,
-        "datum": None,
-
-        "reference_source": None,
-
-        "source": "No usable metadata detected",
-
-        "metadata_confidence": "NONE"
-    }
-
-    try:
-        image = Image.open(path)
-
-        exif = image.getexif()
-
-        tags = {
-            ExifTags.TAGS.get(key, key): value
-            for key, value in exif.items()
-        }
-
-        result["camera"] = tags.get("Model")
-        result["make"] = tags.get("Make")
-
-        result["acquisition_time"] = (
-            tags.get("DateTimeOriginal")
-            or tags.get("DateTime")
+LUNARMATCH
+Lunar Image Correspondence & Geometric Verification
+"""
         )
 
-        gps = tags.get("GPSInfo")
+        use_tls = os.environ.get(
+            "SMTP_USE_TLS",
+            "true"
+        ).lower() == "true"
 
-        if gps:
+        with smtplib.SMTP(host, port, timeout=20) as server:
 
-            gps_tags = {
-                ExifTags.GPSTAGS.get(key, key): value
-                for key, value in gps.items()
-            }
+            if use_tls:
+                server.starttls()
 
-            latitude = gps_tags.get("GPSLatitude")
-            longitude = gps_tags.get("GPSLongitude")
+            server.login(username, password)
+            server.send_message(message)
 
-            if latitude and longitude:
+        return {
+            "sent": True,
+            "reason": "Welcome email sent."
+        }
 
-                lat = gps_decimal(latitude)
-                lon = gps_decimal(longitude)
+    except Exception as exc:
 
-                if lat is not None:
-                    if gps_tags.get("GPSLatitudeRef") in ["S", "s"]:
-                        lat *= -1
+        app.logger.warning(
+            "Welcome email could not be sent: %s",
+            exc
+        )
 
-                if lon is not None:
-                    if gps_tags.get("GPSLongitudeRef") in ["W", "w"]:
-                        lon *= -1
-
-                result["latitude"] = lat
-                result["longitude"] = lon
-
-            altitude = gps_tags.get("GPSAltitude")
-
-            if altitude:
-                result["altitude"] = gps_decimal(altitude)
-
-        # ----------------------------------------------------
-        # OPTIONAL REFERENCE / MISSION SIDECAR
-        # ----------------------------------------------------
-
-        sidecar = path.with_suffix(".json")
-
-        if sidecar.exists():
-
-            try:
-                side_data = json.loads(
-                    sidecar.read_text(encoding="utf-8")
-                )
-
-                allowed_fields = [
-                    "latitude",
-                    "longitude",
-                    "altitude",
-                    "acquisition_time",
-                    "camera",
-                    "make",
-                    "mission",
-                    "instrument",
-                    "image_id",
-                    "crs",
-                    "projection",
-                    "datum",
-                    "reference_source"
-                ]
-
-                for field in allowed_fields:
-
-                    if (
-                        field in side_data
-                        and side_data[field] not in [None, ""]
-                    ):
-                        result[field] = side_data[field]
-
-                result["source"] = (
-                    "Embedded metadata + supplied reference metadata"
-                )
-
-            except Exception as error:
-
-                result["metadata_sidecar_error"] = str(error)
-
-        # ----------------------------------------------------
-        # AVAILABILITY
-        # ----------------------------------------------------
-
-        metadata_fields = [
-            "latitude",
-            "longitude",
-            "altitude",
-            "acquisition_time",
-            "camera",
-            "make",
-            "mission",
-            "instrument",
-            "image_id",
-            "crs",
-            "projection",
-            "datum",
-            "reference_source"
-        ]
-
-        available_values = [
-            result[field]
-            for field in metadata_fields
-            if result[field] not in [None, ""]
-        ]
-
-        result["available"] = len(available_values) > 0
-
-        if result["latitude"] is not None and result["longitude"] is not None:
-            result["metadata_confidence"] = "COORDINATE_AVAILABLE"
-
-        elif result["mission"] or result["instrument"]:
-            result["metadata_confidence"] = "MISSION_METADATA"
-
-        elif result["available"]:
-            result["metadata_confidence"] = "PARTIAL"
-
-        else:
-            result["metadata_confidence"] = "NONE"
-
-    except Exception as error:
-
-        result["metadata_error"] = str(error)
-
-    result["instrument_validation"] = identify_instrument(result)
-
-    return result
+        return {
+            "sent": False,
+            "reason": "Email service returned an error."
+        }
 
 
 # ============================================================
-# IMAGE LOADING
+# IMAGE HELPERS
 # ============================================================
 
-def load_image(path):
+def read_image(file_storage):
+    raw = file_storage.read()
 
-    image = cv2.imread(
-        str(path),
-        cv2.IMREAD_GRAYSCALE
+    if not raw:
+        raise ValueError("The uploaded image is empty.")
+
+    array = np.frombuffer(raw, dtype=np.uint8)
+
+    image = cv2.imdecode(
+        array,
+        cv2.IMREAD_COLOR
     )
 
     if image is None:
         raise ValueError(
-            "Unsupported or unreadable image."
+            "The uploaded file could not be decoded as an image."
         )
 
-    height, width = image.shape
+    return image, raw
 
-    return image, width, height
-
-
-# ============================================================
-# IMAGE RESIZING
-# ============================================================
 
 def resize_image(image):
+    height, width = image.shape[:2]
 
-    height, width = image.shape
+    largest = max(height, width)
 
-    largest_dimension = max(height, width)
-
-    if largest_dimension <= MAX_DIMENSION:
+    if largest <= MAX_DIMENSION:
         return image
 
-    scale = MAX_DIMENSION / float(largest_dimension)
-
-    new_width = max(1, round(width * scale))
-    new_height = max(1, round(height * scale))
+    scale = MAX_DIMENSION / float(largest)
 
     return cv2.resize(
         image,
-        (new_width, new_height),
-        interpolation=cv2.INTER_AREA
+        None,
+        fx=scale,
+        fy=scale,
+        interpolation=cv2.INTER_AREA,
     )
 
 
-# ============================================================
-# IMAGE QUALITY
-# ============================================================
-
-def calculate_quality(image):
-
-    image_float = image.astype(np.float32)
-
-    # --------------------------------------------------------
-    # Contrast
-    # --------------------------------------------------------
-
-    contrast = float(np.std(image_float))
-
-    contrast_score = clamp(
-        contrast / 64.0 * 100.0
-    )
-
-    # --------------------------------------------------------
-    # Sharpness
-    # --------------------------------------------------------
-
-    laplacian = cv2.Laplacian(
+def image_to_jpeg_bytes(image):
+    success, encoded = cv2.imencode(
+        ".jpg",
         image,
-        cv2.CV_64F
+        [cv2.IMWRITE_JPEG_QUALITY, 90],
     )
 
-    sharpness_raw = float(
-        laplacian.var()
+    if not success:
+        return None
+
+    return encoded.tobytes()
+
+
+def calculate_image_quality(image):
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_BGR2GRAY
     )
 
-    # Log scaling avoids extreme values dominating.
-    sharpness_score = clamp(
-        math.log1p(sharpness_raw) / math.log1p(1500) * 100
+    contrast = float(np.std(gray))
+
+    sharpness = float(
+        cv2.Laplacian(
+            gray,
+            cv2.CV_64F
+        ).var()
     )
 
-    # --------------------------------------------------------
-    # Brightness
-    # --------------------------------------------------------
+    brightness = float(np.mean(gray))
 
-    brightness = float(
-        np.mean(image_float)
-    )
+    # These are heuristic quality indicators, not
+    # scientific truth measurements.
 
-    if brightness < 20:
-        brightness_score = 20
-
-    elif brightness > 240:
-        brightness_score = 25
-
-    else:
-        brightness_score = 100 - (
-            abs(brightness - 127.5) / 127.5 * 35
+    contrast_score = min(
+        100.0,
+        max(
+            0.0,
+            (contrast / 64.0) * 100.0
         )
+    )
+
+    sharpness_score = min(
+        100.0,
+        max(
+            0.0,
+            (sharpness / 500.0) * 100.0
+        )
+    )
+
+    brightness_penalty = abs(
+        brightness - 128.0
+    ) / 128.0
+
+    brightness_score = max(
+        0.0,
+        100.0 - brightness_penalty * 100.0
+    )
 
     quality = (
-        contrast_score * 0.45
+        contrast_score * 0.35
         + sharpness_score * 0.45
-        + brightness_score * 0.10
+        + brightness_score * 0.20
     )
 
     return {
-        "contrast_raw": round(contrast, 3),
-        "contrast_score": round(contrast_score, 2),
-
-        "sharpness_raw": round(sharpness_raw, 3),
-        "sharpness_score": round(sharpness_score, 2),
-
-        "brightness": round(brightness, 2),
-        "brightness_score": round(brightness_score, 2),
-
+        "contrast": round(contrast, 3),
+        "sharpness": round(sharpness, 3),
+        "brightness": round(brightness, 3),
         "quality_score": round(
-            clamp(quality),
+            min(100.0, max(0.0, quality)),
             2
-        )
+        ),
     }
 
 
-# ============================================================
-# PREPROCESSING
-# ============================================================
-
 def preprocess(image):
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_BGR2GRAY
+    )
 
     clahe = cv2.createCLAHE(
         clipLimit=CLAHE_CLIP,
-        tileGridSize=CLAHE_GRID
+        tileGridSize=CLAHE_GRID,
     )
 
-    enhanced = clahe.apply(image)
+    enhanced = clahe.apply(gray)
 
-    # Gentle denoising.
     enhanced = cv2.GaussianBlur(
         enhanced,
         (3, 3),
@@ -573,43 +506,235 @@ def preprocess(image):
 
 
 # ============================================================
-# SIFT FEATURE EXTRACTION
+# METADATA
 # ============================================================
 
-def extract_features(image):
+EXIF_TAGS = {
+    value: key
+    for key, value in ExifTags.TAGS.items()
+}
 
-    sift = cv2.SIFT_create(
+
+def rational_to_float(value):
+    try:
+        if isinstance(value, tuple):
+            return float(value[0]) / float(value[1])
+
+        return float(value)
+
+    except Exception:
+        return None
+
+
+def convert_gps_coordinate(value, reference):
+    try:
+        degrees = rational_to_float(value[0])
+        minutes = rational_to_float(value[1])
+        seconds = rational_to_float(value[2])
+
+        if None in [degrees, minutes, seconds]:
+            return None
+
+        coordinate = (
+            degrees
+            + minutes / 60.0
+            + seconds / 3600.0
+        )
+
+        if reference in ["S", "W"]:
+            coordinate *= -1
+
+        return coordinate
+
+    except Exception:
+        return None
+
+
+def extract_metadata(raw_bytes, original_filename):
+    metadata = {
+        "latitude": None,
+        "longitude": None,
+        "altitude": None,
+        "acquisition_time": None,
+        "camera": None,
+        "make": None,
+        "mission": None,
+        "instrument": None,
+        "image_id": None,
+        "crs": None,
+        "projection": None,
+        "datum": None,
+        "reference_source": None,
+        "metadata_confidence": "NONE",
+        "source_filename": original_filename,
+    }
+
+    try:
+        image = Image.open(
+            io.BytesIO(raw_bytes)
+        )
+
+        exif = image.getexif()
+
+        if exif:
+
+            decoded = {}
+
+            for key, value in exif.items():
+                decoded[
+                    ExifTags.TAGS.get(
+                        key,
+                        str(key)
+                    )
+                ] = value
+
+            gps = decoded.get("GPSInfo")
+
+            if gps:
+
+                gps_decoded = {}
+
+                for key, value in gps.items():
+                    gps_decoded[
+                        ExifTags.GPSTAGS.get(
+                            key,
+                            str(key)
+                        )
+                    ] = value
+
+                lat = gps_decoded.get("GPSLatitude")
+                lat_ref = gps_decoded.get("GPSLatitudeRef")
+
+                lon = gps_decoded.get("GPSLongitude")
+                lon_ref = gps_decoded.get("GPSLongitudeRef")
+
+                if lat and lat_ref:
+                    metadata["latitude"] = convert_gps_coordinate(
+                        lat,
+                        lat_ref
+                    )
+
+                if lon and lon_ref:
+                    metadata["longitude"] = convert_gps_coordinate(
+                        lon,
+                        lon_ref
+                    )
+
+            metadata["make"] = decoded.get("Make")
+            metadata["camera"] = decoded.get("Model")
+            metadata["acquisition_time"] = decoded.get(
+                "DateTimeOriginal"
+            )
+
+            if (
+                metadata["latitude"] is not None
+                and metadata["longitude"] is not None
+            ):
+                metadata["metadata_confidence"] = "EXIF_COORDINATES"
+
+            elif any(
+                [
+                    metadata["make"],
+                    metadata["camera"],
+                    metadata["acquisition_time"],
+                ]
+            ):
+                metadata["metadata_confidence"] = "EXIF_GENERAL"
+
+    except Exception:
+        pass
+
+    return metadata
+
+
+# ============================================================
+# INSTRUMENT VALIDATION
+# ============================================================
+
+INSTRUMENTS = {
+    "OHRC": [
+        "OHRC",
+        "Orbiter High Resolution Camera",
+    ],
+    "TMC": [
+        "TMC",
+        "Terrain Mapping Camera",
+    ],
+    "IIRS": [
+        "IIRS",
+        "Imaging Infrared Spectrometer",
+    ],
+}
+
+
+def identify_instrument(metadata):
+    values = []
+
+    for key in [
+        "instrument",
+        "camera",
+        "mission",
+        "reference_source",
+    ]:
+        value = metadata.get(key)
+
+        if value:
+            values.append(
+                str(value).lower()
+            )
+
+    combined = " ".join(values)
+
+    for code, names in INSTRUMENTS.items():
+
+        for name in names:
+
+            if name.lower() in combined:
+
+                return {
+                    "code": code,
+                    "name": names[1],
+                    "status": "ESTABLISHED",
+                    "basis": "Metadata/reference evidence",
+                }
+
+    return {
+        "code": "UNKNOWN",
+        "name": "Instrument not established",
+        "status": "NOT_ESTABLISHED",
+        "basis": "No trusted instrument metadata was found.",
+    }
+
+
+# ============================================================
+# SIFT + MATCHING
+# ============================================================
+
+def create_sift():
+    return cv2.SIFT_create(
         nfeatures=SIFT_FEATURES,
         contrastThreshold=SIFT_CONTRAST,
         edgeThreshold=SIFT_EDGE,
-        sigma=SIFT_SIGMA
+        sigma=SIFT_SIGMA,
     )
+
+
+def extract_features(processed):
+    sift = create_sift()
 
     keypoints, descriptors = sift.detectAndCompute(
-        image,
+        processed,
         None
     )
-
-    if keypoints is None:
-        keypoints = []
 
     return keypoints, descriptors
 
 
-# ============================================================
-# MATCHING
-# ============================================================
-
-def ratio_matches(
+def calculate_reciprocal_matches(
     descriptors_a,
     descriptors_b,
-    ratio=LOWE_RATIO
 ):
-
-    if descriptors_a is None:
-        return []
-
-    if descriptors_b is None:
+    if descriptors_a is None or descriptors_b is None:
         return []
 
     if len(descriptors_a) < 2:
@@ -623,91 +748,89 @@ def ratio_matches(
         crossCheck=False
     )
 
-    knn = matcher.knnMatch(
+    forward = matcher.knnMatch(
         descriptors_a,
         descriptors_b,
         k=2
     )
 
-    good = []
-
-    for pair in knn:
-
-        if len(pair) != 2:
-            continue
-
-        best, second = pair
-
-        if best.distance < ratio * second.distance:
-            good.append(best)
-
-    return good
-
-
-# ============================================================
-# RECIPROCAL MATCHING
-# ============================================================
-
-def reciprocal_filter(
-    descriptors_a,
-    descriptors_b,
-    forward_matches
-):
-
-    reverse_matches = ratio_matches(
+    backward = matcher.knnMatch(
         descriptors_b,
         descriptors_a,
-        LOWE_RATIO
+        k=2
     )
 
-    reverse_map = {
-        match.queryIdx: match.trainIdx
-        for match in reverse_matches
-    }
+    good_forward = {}
+
+    for pair in forward:
+
+        if len(pair) < 2:
+            continue
+
+        first, second = pair
+
+        if first.distance < LOWE_RATIO * second.distance:
+            good_forward[
+                (
+                    first.queryIdx,
+                    first.trainIdx
+                )
+            ] = first
+
+    good_backward = set()
+
+    for pair in backward:
+
+        if len(pair) < 2:
+            continue
+
+        first, second = pair
+
+        if first.distance < LOWE_RATIO * second.distance:
+            good_backward.add(
+                (
+                    first.trainIdx,
+                    first.queryIdx
+                )
+            )
 
     reciprocal = []
 
-    for match in forward_matches:
+    for key, match in good_forward.items():
 
-        reverse_target = reverse_map.get(
-            match.trainIdx
-        )
-
-        if reverse_target == match.queryIdx:
+        if key in good_backward:
             reciprocal.append(match)
+
+    reciprocal.sort(
+        key=lambda item: item.distance
+    )
 
     return reciprocal
 
 
-# ============================================================
-# GEOMETRIC VERIFICATION
-# ============================================================
-
-def verify_geometry(
+def calculate_homography(
     keypoints_a,
     keypoints_b,
-    matches
+    matches,
 ):
-
-    if len(matches) < MIN_GEOMETRIC_MATCHES:
+    if len(matches) < 4:
 
         return {
             "homography": None,
-            "inliers": [],
-            "verified_matches": 0,
+            "inliers": 0,
             "inlier_ratio": 0.0,
-            "geometric_consistency": 0.0,
-            "verification_status": "INSUFFICIENT_MATCHES"
+            "verified": False,
+            "reason": "Fewer than four geometrically usable matches.",
         }
 
-    source_points = np.float32(
+    source = np.float32(
         [
             keypoints_a[m.queryIdx].pt
             for m in matches
         ]
     ).reshape(-1, 1, 2)
 
-    destination_points = np.float32(
+    destination = np.float32(
         [
             keypoints_b[m.trainIdx].pt
             for m in matches
@@ -717,13 +840,13 @@ def verify_geometry(
     try:
 
         homography, mask = cv2.findHomography(
-            source_points,
-            destination_points,
+            source,
+            destination,
             cv2.RANSAC,
-            RANSAC_THRESHOLD
+            RANSAC_THRESHOLD,
         )
 
-    except cv2.error:
+    except Exception:
 
         homography = None
         mask = None
@@ -732,254 +855,127 @@ def verify_geometry(
 
         return {
             "homography": None,
-            "inliers": [],
-            "verified_matches": 0,
+            "inliers": 0,
             "inlier_ratio": 0.0,
-            "geometric_consistency": 0.0,
-            "verification_status": "GEOMETRY_NOT_ESTABLISHED"
+            "verified": False,
+            "reason": "A stable homography could not be estimated.",
         }
 
     mask = mask.ravel().astype(bool)
 
-    inliers = [
-        index
-        for index, value in enumerate(mask)
-        if value
-    ]
-
-    verified = len(inliers)
+    inliers = int(np.sum(mask))
 
     ratio = (
-        verified / len(matches) * 100
+        inliers / float(len(matches))
         if matches
-        else 0
+        else 0.0
     )
 
-    # A high inlier ratio indicates that many candidate
-    # correspondences agree with the same geometric model.
-
-    geometric_consistency = clamp(
-        ratio
+    verified = (
+        inliers >= 10
+        and ratio >= 0.20
     )
-
-    if verified >= 8 and ratio >= 60:
-        status = "STRONG_GEOMETRIC_SUPPORT"
-
-    elif verified >= 5 and ratio >= 40:
-        status = "MODERATE_GEOMETRIC_SUPPORT"
-
-    elif verified > 0:
-        status = "WEAK_GEOMETRIC_SUPPORT"
-
-    else:
-        status = "NO_GEOMETRIC_SUPPORT"
 
     return {
-        "homography": homography.tolist(),
+        "homography": homography,
         "inliers": inliers,
-        "verified_matches": verified,
-        "inlier_ratio": round(ratio, 2),
-        "geometric_consistency": round(
-            geometric_consistency,
-            2
+        "inlier_ratio": ratio,
+        "verified": verified,
+        "mask": mask,
+        "reason": (
+            "Sufficient geometric consistency detected."
+            if verified
+            else "Geometric consistency is below the verification threshold."
         ),
-        "verification_status": status
     }
 
 
 # ============================================================
-# SPATIAL FEATURE COVERAGE
+# EVIDENCE SCORING
 # ============================================================
 
-def calculate_coverage(
-    keypoints,
-    matches,
-    inlier_indices,
-    grid_size=5
-):
-
-    if not keypoints:
-        return 0.0
-
-    if not inlier_indices:
-        return 0.0
-
-    occupied = set()
-
-    width_estimate = max(
-        [kp.pt[0] for kp in keypoints] or [1]
-    )
-
-    height_estimate = max(
-        [kp.pt[1] for kp in keypoints] or [1]
-    )
-
-    width_estimate = max(width_estimate, 1)
-    height_estimate = max(height_estimate, 1)
-
-    for index in inlier_indices:
-
-        match = matches[index]
-
-        x, y = keypoints[
-            match.queryIdx
-        ].pt
-
-        gx = int(
-            x / width_estimate * grid_size
-        )
-
-        gy = int(
-            y / height_estimate * grid_size
-        )
-
-        gx = min(grid_size - 1, max(0, gx))
-        gy = min(grid_size - 1, max(0, gy))
-
-        occupied.add(
-            (gx, gy)
-        )
-
-    total_cells = grid_size * grid_size
-
-    return round(
-        len(occupied) / total_cells * 100,
-        2
-    )
-
-
-# ============================================================
-# MATCH SCORE
-# ============================================================
-
-def calculate_score(
+def calculate_evidence_score(
     keypoints_a,
     keypoints_b,
-    candidate_matches,
-    verified_matches,
-    inlier_ratio,
-    coverage,
+    matches,
+    geometry,
     quality_a,
-    quality_b
+    quality_b,
 ):
+    kp_a = len(keypoints_a)
+    kp_b = len(keypoints_b)
 
-    minimum_keypoints = max(
-        1,
-        min(
-            len(keypoints_a),
-            len(keypoints_b)
-        )
+    candidate_count = len(matches)
+
+    inliers = geometry["inliers"]
+    inlier_ratio = geometry["inlier_ratio"]
+
+    quality_average = (
+        quality_a["quality_score"]
+        + quality_b["quality_score"]
+    ) / 2.0
+
+    # Correspondence evidence
+    correspondence_score = min(
+        100.0,
+        candidate_count / 5.0
     )
 
-    # --------------------------------------------------------
-    # Verification evidence
-    # --------------------------------------------------------
-
-    verification_score = (
-        verified_matches
-        / max(1, len(candidate_matches))
-        * 100
+    # Geometric evidence
+    geometric_score = min(
+        100.0,
+        inlier_ratio * 100.0
     )
 
-    # --------------------------------------------------------
-    # Absolute verified-feature evidence
-    # --------------------------------------------------------
-
-    feature_score = clamp(
-        verified_matches / 30 * 100
+    # Inlier count contribution
+    inlier_count_score = min(
+        100.0,
+        inliers / 2.0
     )
 
-    # --------------------------------------------------------
-    # Geometry
-    # --------------------------------------------------------
+    # Image quality contribution
+    quality_score = quality_average
 
-    geometry_score = clamp(
-        inlier_ratio
+    total = (
+        correspondence_score * 0.25
+        + geometric_score * 0.40
+        + inlier_count_score * 0.20
+        + quality_score * 0.15
     )
-
-    # --------------------------------------------------------
-    # Spatial coverage
-    # --------------------------------------------------------
-
-    coverage_score = clamp(
-        coverage
-    )
-
-    # --------------------------------------------------------
-    # Image quality
-    # --------------------------------------------------------
-
-    quality_score = (
-        quality_a + quality_b
-    ) / 2
-
-    # --------------------------------------------------------
-    # Combined evidence score
-    # --------------------------------------------------------
-
-    score = (
-        verification_score * 0.30
-        + feature_score * 0.20
-        + coverage_score * 0.15
-        + geometry_score * 0.25
-        + quality_score * 0.10
-    )
-
-    # Avoid pretending that a very small number of matches
-    # represents strong evidence.
-
-    if verified_matches < 4:
-        score *= 0.35
-
-    elif verified_matches < 6:
-        score *= 0.65
-
-    score = clamp(score)
-
-    # --------------------------------------------------------
-    # Reliability classification
-    # --------------------------------------------------------
-
-    if verified_matches >= 12 and score >= 70:
-        reliability = "HIGH"
-
-    elif verified_matches >= 8 and score >= 55:
-        reliability = "MODERATE"
-
-    elif verified_matches >= 4 and score >= 35:
-        reliability = "LOW"
-
-    else:
-        reliability = "INSUFFICIENT"
 
     return {
-        "score": round(score, 2),
-        "reliability": reliability,
-
-        "verification_score": round(
-            clamp(verification_score),
+        "total": round(
+            min(100.0, max(0.0, total)),
             2
         ),
-
-        "feature_score": round(
-            feature_score,
-            2
+        "components": {
+            "correspondence": round(
+                correspondence_score,
+                2
+            ),
+            "geometric_consistency": round(
+                geometric_score,
+                2
+            ),
+            "inlier_count": round(
+                inlier_count_score,
+                2
+            ),
+            "image_quality": round(
+                quality_score,
+                2
+            ),
+        },
+        "formula": {
+            "correspondence_weight": 0.25,
+            "geometric_weight": 0.40,
+            "inlier_count_weight": 0.20,
+            "quality_weight": 0.15,
+        },
+        "note": (
+            "This is an evidence score for this computational pipeline, "
+            "not a calibrated probability that two images show the same place."
         ),
-
-        "coverage_score": round(
-            coverage_score,
-            2
-        ),
-
-        "geometry_score": round(
-            geometry_score,
-            2
-        ),
-
-        "quality_score": round(
-            quality_score,
-            2
-        )
     }
 
 
@@ -987,417 +983,232 @@ def calculate_score(
 # CORRESPONDENCE VISUALIZATION
 # ============================================================
 
-def create_correspondence_map(
+def create_match_visualization(
     image_a,
     keypoints_a,
     image_b,
     keypoints_b,
     matches,
-    inlier_indices
+    geometry,
 ):
-
-    if image_a is None or image_b is None:
+    if not matches:
         return None
 
-    # Draw all reciprocal matches lightly and verified
-    # correspondences prominently.
+    draw_matches = matches[:120]
 
-    inlier_matches = [
-        matches[index]
-        for index in inlier_indices
-    ]
+    mask = geometry.get("mask")
 
-    height_a, width_a = image_a.shape
-    height_b, width_b = image_b.shape
+    if mask is not None:
+        mask_for_draw = mask[:len(draw_matches)].tolist()
+    else:
+        mask_for_draw = None
 
-    canvas = cv2.drawMatches(
-        image_a,
-        keypoints_a,
-        image_b,
-        keypoints_b,
-        inlier_matches,
-        None,
-        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
-    )
+    try:
 
-    # If no inliers exist, show candidate correspondences
-    # rather than returning a blank visualization.
-
-    if not inlier_matches and matches:
-
-        preview_matches = matches[:80]
-
-        canvas = cv2.drawMatches(
+        output = cv2.drawMatches(
             image_a,
             keypoints_a,
             image_b,
             keypoints_b,
-            preview_matches,
+            draw_matches,
             None,
-            flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
+            matchColor=(0, 230, 180),
+            singlePointColor=(255, 255, 255),
+            matchesMask=mask_for_draw,
+            flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
         )
 
-    output_id = uuid.uuid4().hex
+        return image_to_jpeg_bytes(output)
 
-    output_path = RESULTS / (
-        f"correspondence_{output_id}.jpg"
+    except Exception:
+        return None
+
+
+# ============================================================
+# VALIDATION
+# ============================================================
+
+def validate_coordinates(metadata):
+    lat = metadata.get("latitude")
+    lon = metadata.get("longitude")
+
+    if lat is None or lon is None:
+
+        return {
+            "status": "NOT_AVAILABLE",
+            "latitude": None,
+            "longitude": None,
+            "basis": "No trusted coordinate metadata was found.",
+        }
+
+    if not (
+        -90 <= float(lat) <= 90
+        and -180 <= float(lon) <= 180
+    ):
+
+        return {
+            "status": "INVALID",
+            "latitude": None,
+            "longitude": None,
+            "basis": "Extracted coordinate values were outside valid ranges.",
+        }
+
+    return {
+        "status": "AVAILABLE",
+        "latitude": round(float(lat), 8),
+        "longitude": round(float(lon), 8),
+        "basis": "Coordinate metadata embedded in the supplied image.",
+    }
+
+
+def build_validation(metadata_a, metadata_b):
+    instrument_a = identify_instrument(metadata_a)
+    instrument_b = identify_instrument(metadata_b)
+
+    coordinate = validate_coordinates(metadata_a)
+
+    warnings = []
+
+    if instrument_a["status"] != "ESTABLISHED":
+        warnings.append(
+            "Image A instrument identity was not established from supplied metadata."
+        )
+
+    if instrument_b["status"] != "ESTABLISHED":
+        warnings.append(
+            "Image B instrument identity was not established from supplied metadata."
+        )
+
+    if coordinate["status"] == "NOT_AVAILABLE":
+        warnings.append(
+            "No trusted latitude/longitude source was available for Image A."
+        )
+
+    warnings.append(
+        "Instrument identity is not inferred from visual appearance alone."
     )
 
-    cv2.imwrite(
-        str(output_path),
-        canvas,
-        [
-            cv2.IMWRITE_JPEG_QUALITY,
-            90
-        ]
+    warnings.append(
+        "No independent lunar reference catalogue is assumed by this analysis."
     )
 
     return {
-        "filename": output_path.name,
-        "url": f"/results/{output_path.name}",
-        "verified_lines": len(inlier_matches),
-        "candidate_lines": len(matches)
-    }
-
-
-# ============================================================
-# VALIDATION ENGINE
-# ============================================================
-
-def validate_scientific_metadata(
-    metadata_a,
-    metadata_b
-):
-
-    validation = {
-        "overall_status": "NOT_ESTABLISHED",
-
         "instrument": {
-            "image_a": metadata_a["instrument_validation"],
-            "image_b": metadata_b["instrument_validation"]
+            "A": instrument_a,
+            "B": instrument_b,
         },
-
-        "coordinate_validation": {
-            "status": "NOT_AVAILABLE",
-            "image_a": None,
-            "image_b": None,
-            "basis": None
-        },
-
+        "coordinate_validation": coordinate,
         "mission_validation": {
-            "status": "NOT_ESTABLISHED",
-            "mission_a": metadata_a.get("mission"),
-            "mission_b": metadata_b.get("mission")
+            "status": "METADATA_ONLY",
+            "text": (
+                "Mission/instrument identity is reported only when supplied "
+                "metadata provides supporting evidence."
+            ),
         },
-
         "projection_validation": {
-            "status": "NOT_AVAILABLE",
-            "image_a": metadata_a.get("projection"),
-            "image_b": metadata_b.get("projection"),
-            "crs_a": metadata_a.get("crs"),
-            "crs_b": metadata_b.get("crs")
+            "status": (
+                "AVAILABLE"
+                if metadata_a.get("projection")
+                else "NOT_AVAILABLE"
+            ),
+            "projection": metadata_a.get("projection"),
+            "crs": metadata_a.get("crs"),
+            "datum": metadata_a.get("datum"),
         },
-
         "reference_validation": {
-            "status": "NOT_AVAILABLE",
-            "source_a": metadata_a.get("reference_source"),
-            "source_b": metadata_b.get("reference_source")
+            "status": (
+                "AVAILABLE"
+                if metadata_a.get("reference_source")
+                else "NOT_AVAILABLE"
+            ),
+            "source": metadata_a.get("reference_source"),
         },
-
-        "warnings": []
+        "warnings": warnings,
+        "overall": (
+            "PARTIAL"
+            if warnings
+            else "SUPPORTED"
+        ),
     }
-
-    # --------------------------------------------------------
-    # Coordinates
-    # --------------------------------------------------------
-
-    coordinates_a_available = (
-        metadata_a.get("latitude") is not None
-        and metadata_a.get("longitude") is not None
-    )
-
-    coordinates_b_available = (
-        metadata_b.get("latitude") is not None
-        and metadata_b.get("longitude") is not None
-    )
-
-    if coordinates_a_available or coordinates_b_available:
-
-        validation["coordinate_validation"]["status"] = (
-            "PARTIAL"
-        )
-
-        validation["coordinate_validation"]["image_a"] = {
-            "latitude": metadata_a.get("latitude"),
-            "longitude": metadata_a.get("longitude")
-        }
-
-        validation["coordinate_validation"]["image_b"] = {
-            "latitude": metadata_b.get("latitude"),
-            "longitude": metadata_b.get("longitude")
-        }
-
-        validation["coordinate_validation"]["basis"] = (
-            "Embedded or explicitly supplied metadata"
-        )
-
-    if coordinates_a_available and coordinates_b_available:
-
-        validation["coordinate_validation"]["status"] = (
-            "AVAILABLE_FOR_BOTH_IMAGES"
-        )
-
-    # --------------------------------------------------------
-    # Mission
-    # --------------------------------------------------------
-
-    mission_a = metadata_a.get("mission")
-    mission_b = metadata_b.get("mission")
-
-    if mission_a or mission_b:
-
-        validation["mission_validation"]["status"] = (
-            "PARTIAL"
-        )
-
-    if mission_a and mission_b:
-
-        if str(mission_a).strip().lower() == str(
-            mission_b
-        ).strip().lower():
-
-            validation["mission_validation"]["status"] = (
-                "CONSISTENT_METADATA"
-            )
-
-        else:
-
-            validation["mission_validation"]["status"] = (
-                "DIFFERENT_MISSION_METADATA"
-            )
-
-    # --------------------------------------------------------
-    # Projection
-    # --------------------------------------------------------
-
-    projection_a = metadata_a.get("projection")
-    projection_b = metadata_b.get("projection")
-
-    crs_a = metadata_a.get("crs")
-    crs_b = metadata_b.get("crs")
-
-    if projection_a or projection_b or crs_a or crs_b:
-
-        validation["projection_validation"]["status"] = (
-            "PARTIAL"
-        )
-
-    if (
-        projection_a
-        and projection_b
-        and crs_a
-        and crs_b
-    ):
-
-        if (
-            str(projection_a).lower()
-            == str(projection_b).lower()
-            and str(crs_a).lower()
-            == str(crs_b).lower()
-        ):
-
-            validation["projection_validation"]["status"] = (
-                "CONSISTENT"
-            )
-
-    # --------------------------------------------------------
-    # Reference
-    # --------------------------------------------------------
-
-    source_a = metadata_a.get(
-        "reference_source"
-    )
-
-    source_b = metadata_b.get(
-        "reference_source"
-    )
-
-    if source_a or source_b:
-
-        validation["reference_validation"]["status"] = (
-            "REFERENCE_INFORMATION_PRESENT"
-        )
-
-    # --------------------------------------------------------
-    # Warnings
-    # --------------------------------------------------------
-
-    if not coordinates_a_available:
-        validation["warnings"].append(
-            "Image A does not contain usable coordinates."
-        )
-
-    if not coordinates_b_available:
-        validation["warnings"].append(
-            "Image B does not contain usable coordinates."
-        )
-
-    if (
-        metadata_a["instrument_validation"]["status"]
-        != "IDENTIFIED"
-    ):
-        validation["warnings"].append(
-            "Image A instrument identity is not established."
-        )
-
-    if (
-        metadata_b["instrument_validation"]["status"]
-        != "IDENTIFIED"
-    ):
-        validation["warnings"].append(
-            "Image B instrument identity is not established."
-        )
-
-    # --------------------------------------------------------
-    # Overall status
-    # --------------------------------------------------------
-
-    if (
-        validation["coordinate_validation"]["status"]
-        == "AVAILABLE_FOR_BOTH_IMAGES"
-        or validation["mission_validation"]["status"]
-        == "CONSISTENT_METADATA"
-        or validation["projection_validation"]["status"]
-        == "CONSISTENT"
-    ):
-
-        validation["overall_status"] = (
-            "PARTIAL_SCIENTIFIC_VALIDATION"
-        )
-
-    else:
-
-        validation["overall_status"] = (
-            "COMPUTATIONAL_VALIDATION_ONLY"
-        )
-
-    return validation
 
 
 # ============================================================
 # INTERPRETATION
 # ============================================================
 
-def generate_interpretation(
-    score,
-    reliability,
-    verified_matches,
-    candidate_matches,
-    inlier_ratio,
-    coverage
-):
+def interpret_result(score, verified, inliers):
+    if verified and score >= 70:
+        return {
+            "label": "STRONG CORRESPONDENCE EVIDENCE",
+            "summary": (
+                "The two observations contain substantial feature "
+                "correspondence with geometric consistency."
+            ),
+        }
 
-    if reliability == "HIGH":
+    if verified:
+        return {
+            "label": "GEOMETRICALLY CONSISTENT",
+            "summary": (
+                "A geometrically consistent correspondence was detected, "
+                "but the evidence should be interpreted with the reported metrics."
+            ),
+        }
 
-        return (
-            "The analysis found a strong set of geometrically "
-            "consistent feature correspondences. The result "
-            "should be interpreted as strong computational "
-            "evidence of visual correspondence, not as "
-            "independent ground-truth localization."
-        )
+    if inliers >= 5:
+        return {
+            "label": "WEAK / INCONCLUSIVE",
+            "summary": (
+                "Some matching structure was detected, but the available "
+                "geometric evidence is insufficient for strong verification."
+            ),
+        }
 
-    if reliability == "MODERATE":
-
-        return (
-            "The analysis found a meaningful set of candidate "
-            "correspondences with moderate geometric support. "
-            "Additional reference data or independent validation "
-            "would strengthen the scientific conclusion."
-        )
-
-    if reliability == "LOW":
-
-        return (
-            "Some correspondence evidence was detected, but the "
-            "available geometric evidence is limited. The result "
-            "should be treated cautiously and preferably checked "
-            "against reference imagery or mission metadata."
-        )
-
-    if candidate_matches > 0:
-
-        return (
-            "Candidate correspondences were detected, but the "
-            "system could not establish sufficient geometric "
-            "evidence for a reliable correspondence conclusion. "
-            "This is a legitimate negative/insufficient result."
-        )
-
-    return (
-        "The images did not produce sufficient descriptor "
-        "correspondences for geometric verification. This can "
-        "occur when imagery differs strongly in content, "
-        "resolution, illumination, texture or acquisition "
-        "conditions."
-    )
+    return {
+        "label": "NO STRONG CORRESPONDENCE",
+        "summary": (
+            "The current computational evidence does not establish "
+            "a strong correspondence between the observations."
+        ),
+    }
 
 
 # ============================================================
-# MAIN ANALYSIS
+# ANALYSIS ENGINE
 # ============================================================
 
-def analyze(image_a_path, image_b_path):
+def analyze_images(file_a, file_b):
+    image_a_original, raw_a = read_image(file_a)
+    image_b_original, raw_b = read_image(file_b)
 
-    start_time = time.perf_counter()
-
-    # ========================================================
-    # ACQUIRE
-    # ========================================================
-
-    original_a, width_a, height_a = load_image(
-        image_a_path
+    metadata_a = extract_metadata(
+        raw_a,
+        file_a.filename
     )
 
-    original_b, width_b, height_b = load_image(
-        image_b_path
+    metadata_b = extract_metadata(
+        raw_b,
+        file_b.filename
     )
 
-    # ========================================================
-    # QUALITY
-    # ========================================================
-
-    quality_a = calculate_quality(
-        original_a
+    image_a = resize_image(
+        image_a_original
     )
 
-    quality_b = calculate_quality(
-        original_b
+    image_b = resize_image(
+        image_b_original
     )
 
-    # ========================================================
-    # PREPROCESS
-    # ========================================================
-
-    processed_a = resize_image(
-        original_a
+    quality_a = calculate_image_quality(
+        image_a
     )
 
-    processed_b = resize_image(
-        original_b
+    quality_b = calculate_image_quality(
+        image_b
     )
 
-    processed_a = preprocess(
-        processed_a
-    )
-
-    processed_b = preprocess(
-        processed_b
-    )
-
-    # ========================================================
-    # FEATURE EXTRACTION
-    # ========================================================
+    processed_a = preprocess(image_a)
+    processed_b = preprocess(image_b)
 
     keypoints_a, descriptors_a = extract_features(
         processed_a
@@ -1407,517 +1218,958 @@ def analyze(image_a_path, image_b_path):
         processed_b
     )
 
-    # ========================================================
-    # PRIMARY MATCHING
-    # ========================================================
-
-    raw_matches = ratio_matches(
-        descriptors_a,
-        descriptors_b
-    )
-
-    # ========================================================
-    # RECIPROCAL MATCHING
-    # ========================================================
-
-    reciprocal_matches = reciprocal_filter(
+    matches = calculate_reciprocal_matches(
         descriptors_a,
         descriptors_b,
-        raw_matches
     )
 
-    # ========================================================
-    # GEOMETRIC VERIFICATION
-    # ========================================================
-
-    geometry = verify_geometry(
+    geometry = calculate_homography(
         keypoints_a,
         keypoints_b,
-        reciprocal_matches
+        matches,
     )
 
-    inlier_indices = geometry[
-        "inliers"
-    ]
-
-    verified_matches = geometry[
-        "verified_matches"
-    ]
-
-    # ========================================================
-    # COVERAGE
-    # ========================================================
-
-    coverage = calculate_coverage(
-        keypoints_a,
-        reciprocal_matches,
-        inlier_indices
-    )
-
-    # ========================================================
-    # SCORE
-    # ========================================================
-
-    scoring = calculate_score(
+    evidence = calculate_evidence_score(
         keypoints_a,
         keypoints_b,
-        reciprocal_matches,
-        verified_matches,
-        geometry["inlier_ratio"],
-        coverage,
-        quality_a["quality_score"],
-        quality_b["quality_score"]
+        matches,
+        geometry,
+        quality_a,
+        quality_b,
     )
 
-    # ========================================================
-    # METADATA
-    # ========================================================
-
-    metadata_a = read_metadata(
-        image_a_path
-    )
-
-    metadata_b = read_metadata(
-        image_b_path
-    )
-
-    # ========================================================
-    # SCIENTIFIC VALIDATION
-    # ========================================================
-
-    scientific_validation = validate_scientific_metadata(
+    validation = build_validation(
         metadata_a,
-        metadata_b
+        metadata_b,
     )
 
-    # ========================================================
-    # CORRESPONDENCE MAP
-    # ========================================================
+    interpretation = interpret_result(
+        evidence["total"],
+        geometry["verified"],
+        geometry["inliers"],
+    )
 
-    visualization = create_correspondence_map(
-        processed_a,
+    visualization = create_match_visualization(
+        image_a,
         keypoints_a,
-        processed_b,
+        image_b,
         keypoints_b,
-        reciprocal_matches,
-        inlier_indices
+        matches,
+        geometry,
     )
 
-    # ========================================================
-    # INTERPRETATION
-    # ========================================================
+    visualization_url = None
 
-    interpretation = generate_interpretation(
-        scoring["score"],
-        scoring["reliability"],
-        verified_matches,
-        len(reciprocal_matches),
-        geometry["inlier_ratio"],
-        coverage
-    )
+    if visualization:
 
-    # ========================================================
-    # PROCESSING TIME
-    # ========================================================
+        visualization_id = (
+            uuid.uuid4().hex
+            + ".jpg"
+        )
 
-    processing_time = (
-        time.perf_counter()
-        - start_time
-    ) * 1000
+        visualization_path = os.path.join(
+            UPLOAD_DIR,
+            visualization_id
+        )
 
-    # ========================================================
-    # RESULT
-    # ========================================================
+        with open(
+            visualization_path,
+            "wb"
+        ) as handle:
+            handle.write(visualization)
 
-    analysis_id = (
-        visualization["filename"]
-        .replace("correspondence_", "")
-        .replace(".jpg", "")
-        if visualization
-        else uuid.uuid4().hex
-    )
+        visualization_url = (
+            "/media/"
+            + visualization_id
+        )
 
     result = {
-
-        "analysis_id": analysis_id,
-
-        "created_at": utc_now(),
-
         "engine": {
-            "name": "LUNARMATCH Hybrid Correspondence Engine",
-
+            "name": "LUNARMATCH Correspondence Engine",
+            "version": "3.0",
             "feature_detector": "SIFT",
-
-            "descriptor": "SIFT",
-
             "matcher": "BFMatcher / L2",
-
-            "matching": (
-                "Lowe ratio test + reciprocal filtering"
-            ),
-
+            "ratio_test": LOWE_RATIO,
+            "reciprocal_matching": True,
             "geometric_model": "Homography",
-
             "verification": "RANSAC",
+            "ransac_threshold_px": RANSAC_THRESHOLD,
+            "max_dimension_px": MAX_DIMENSION,
+            "preprocessing": [
+                "grayscale",
+                "CLAHE",
+                "Gaussian smoothing",
+            ],
+        },
 
-            "preprocessing": (
-                "Resize + CLAHE + Gaussian smoothing"
+        "images": {
+            "A": {
+                "filename": file_a.filename,
+                "original_width": int(
+                    image_a_original.shape[1]
+                ),
+                "original_height": int(
+                    image_a_original.shape[0]
+                ),
+                "processed_width": int(
+                    image_a.shape[1]
+                ),
+                "processed_height": int(
+                    image_a.shape[0]
+                ),
+            },
+
+            "B": {
+                "filename": file_b.filename,
+                "original_width": int(
+                    image_b_original.shape[1]
+                ),
+                "original_height": int(
+                    image_b_original.shape[0]
+                ),
+                "processed_width": int(
+                    image_b.shape[1]
+                ),
+                "processed_height": int(
+                    image_b.shape[0]
+                ),
+            },
+        },
+
+        "quality": {
+            "A": quality_a,
+            "B": quality_b,
+        },
+
+        "features": {
+            "keypoints_A": len(keypoints_a),
+            "keypoints_B": len(keypoints_b),
+        },
+
+        "matching": {
+            "reciprocal_matches": len(matches),
+            "lowe_ratio": LOWE_RATIO,
+        },
+
+        "geometry": {
+            "inliers": geometry["inliers"],
+            "inlier_ratio": round(
+                geometry["inlier_ratio"],
+                4
             ),
-
-            "max_dimension": MAX_DIMENSION,
-
-            "sift_features": SIFT_FEATURES,
-
-            "ratio_threshold": LOWE_RATIO,
-
-            "ransac_threshold": RANSAC_THRESHOLD
-        },
-
-        "score": scoring["score"],
-
-        "reliability": scoring["reliability"],
-
-        "score_components": {
-            "verification": scoring[
-                "verification_score"
-            ],
-
-            "features": scoring[
-                "feature_score"
-            ],
-
-            "coverage": scoring[
-                "coverage_score"
-            ],
-
-            "geometry": scoring[
-                "geometry_score"
-            ],
-
-            "quality": scoring[
-                "quality_score"
-            ]
-        },
-
-        "raw_matches": len(
-            raw_matches
-        ),
-
-        "candidate_matches": len(
-            reciprocal_matches
-        ),
-
-        "verified_matches": verified_matches,
-
-        "inlier_ratio": geometry[
-            "inlier_ratio"
-        ],
-
-        "feature_coverage": coverage,
-
-        "geometric_consistency": geometry[
-            "geometric_consistency"
-        ],
-
-        "homography_status": (
-            "ESTABLISHED"
-            if geometry["homography"] is not None
-            else "NOT ESTABLISHED"
-        ),
-
-        "verification_status": geometry[
-            "verification_status"
-        ],
-
-        "processing_time_ms": round(
-            processing_time,
-            1
-        ),
-
-        "image_a": {
-
-            "width": width_a,
-
-            "height": height_a,
-
-            "keypoints": len(
-                keypoints_a
+            "verified": bool(
+                geometry["verified"]
             ),
-
-            "quality": quality_a,
-
-            "metadata": metadata_a
+            "reason": geometry["reason"],
         },
 
-        "image_b": {
+        "evidence": evidence,
 
-            "width": width_b,
-
-            "height": height_b,
-
-            "keypoints": len(
-                keypoints_b
-            ),
-
-            "quality": quality_b,
-
-            "metadata": metadata_b
+        "metadata": {
+            "A": metadata_a,
+            "B": metadata_b,
         },
 
-        "scientific_validation": scientific_validation,
+        "validation": validation,
 
         "localization": {
-
             "status": (
                 "AVAILABLE"
-                if (
-                    metadata_a.get("latitude") is not None
-                    and metadata_a.get("longitude") is not None
-                )
-                else "NOT AVAILABLE"
+                if validation["coordinate_validation"]["status"]
+                == "AVAILABLE"
+                else "NOT_AVAILABLE"
             ),
-
-            "latitude": metadata_a.get(
-                "latitude"
-            ),
-
-            "longitude": metadata_a.get(
-                "longitude"
-            ),
-
-            "basis": (
-                "Image A embedded/reference metadata"
-                if (
-                    metadata_a.get("latitude") is not None
-                    and metadata_a.get("longitude") is not None
-                )
-                else None
-            )
+            "latitude": validation[
+                "coordinate_validation"
+            ]["latitude"],
+            "longitude": validation[
+                "coordinate_validation"
+            ]["longitude"],
+            "basis": validation[
+                "coordinate_validation"
+            ]["basis"],
         },
-
-        "visualization": visualization,
-
-        # Backward-compatible field for the current V2 UI.
-        "result_image": (
-            visualization["url"]
-            if visualization
-            else None
-        ),
 
         "interpretation": interpretation,
 
-        "validation_note": (
-            "The correspondence score is a computational "
-            "evidence indicator. It is not ground-truth "
-            "positional accuracy and does not independently "
-            "establish latitude/longitude."
-        )
+        "visualization_url": visualization_url,
+
+        "limitations": [
+            "The evidence score is not a probability.",
+            "Visual correspondence alone does not prove geographic identity.",
+            "Coordinates are never inferred without a trusted source.",
+            "Instrument identity is not visually guessed.",
+            "No independent lunar reference catalogue is assumed.",
+            "A calibrated pixel-to-lunar-coordinate localization engine is not claimed by this version.",
+        ],
+
+        "created_at": utc_now(),
     }
 
     return result
 
 
 # ============================================================
-# TEMPLATE GLOBALS
+# REPORT GENERATION
+# ============================================================
+
+def generate_pdf_report(analysis):
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            SimpleDocTemplate,
+            Paragraph,
+            Spacer,
+            Table,
+            TableStyle,
+            PageBreak,
+        )
+
+    except ImportError:
+        raise RuntimeError(
+            "PDF report dependency is not installed."
+        )
+
+    public_id = analysis.get(
+        "public_id",
+        uuid.uuid4().hex
+    )
+
+    filename = (
+        "LUNARMATCH_Report_"
+        + public_id
+        + ".pdf"
+    )
+
+    path = os.path.join(
+        REPORT_DIR,
+        filename
+    )
+
+    document = SimpleDocTemplate(
+        path,
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+
+    story = []
+
+    story.append(
+        Paragraph(
+            "LUNARMATCH",
+            styles["Title"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Lunar Image Correspondence & Geometric Verification",
+            styles["Heading2"]
+        )
+    )
+
+    story.append(
+        Spacer(1, 8)
+    )
+
+    story.append(
+        Paragraph(
+            "Scientific analysis report",
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Analysis ID: "
+            + str(public_id),
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Generated: "
+            + str(analysis.get("created_at", utc_now())),
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Spacer(1, 14)
+    )
+
+    evidence = analysis["evidence"]
+    geometry = analysis["geometry"]
+    features = analysis["features"]
+    matching = analysis["matching"]
+
+    table_data = [
+        ["Metric", "Value"],
+        [
+            "Evidence score",
+            f'{evidence["total"]:.2f}/100'
+        ],
+        [
+            "Keypoints — Image A",
+            str(features["keypoints_A"])
+        ],
+        [
+            "Keypoints — Image B",
+            str(features["keypoints_B"])
+        ],
+        [
+            "Reciprocal matches",
+            str(matching["reciprocal_matches"])
+        ],
+        [
+            "RANSAC inliers",
+            str(geometry["inliers"])
+        ],
+        [
+            "Inlier ratio",
+            f'{geometry["inlier_ratio"] * 100:.2f}%'
+        ],
+        [
+            "Geometric verification",
+            "VERIFIED"
+            if geometry["verified"]
+            else "NOT VERIFIED"
+        ],
+    ]
+
+    table = Table(
+        table_data,
+        colWidths=[75 * mm, 85 * mm]
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.HexColor("#111827"),
+                ),
+                (
+                    "TEXTCOLOR",
+                    (0, 0),
+                    (-1, 0),
+                    colors.white,
+                ),
+                (
+                    "GRID",
+                    (0, 0),
+                    (-1, -1),
+                    0.5,
+                    colors.grey,
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6,
+                ),
+            ]
+        )
+    )
+
+    story.append(table)
+
+    story.append(
+        Spacer(1, 14)
+    )
+
+    story.append(
+        Paragraph(
+            "Interpretation",
+            styles["Heading2"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            analysis["interpretation"]["label"],
+            styles["Heading3"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            analysis["interpretation"]["summary"],
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Spacer(1, 12)
+    )
+
+    story.append(
+        Paragraph(
+            "Coordinate validation",
+            styles["Heading2"]
+        )
+    )
+
+    localization = analysis["localization"]
+
+    if localization["status"] == "AVAILABLE":
+
+        story.append(
+            Paragraph(
+                "Latitude: "
+                + str(localization["latitude"]),
+                styles["Normal"]
+            )
+        )
+
+        story.append(
+            Paragraph(
+                "Longitude: "
+                + str(localization["longitude"]),
+                styles["Normal"]
+            )
+        )
+
+        story.append(
+            Paragraph(
+                "Basis: "
+                + localization["basis"],
+                styles["Normal"]
+            )
+        )
+
+    else:
+
+        story.append(
+            Paragraph(
+                "No trusted coordinate source was available.",
+                styles["Normal"]
+            )
+        )
+
+    story.append(
+        Spacer(1, 12)
+    )
+
+    story.append(
+        Paragraph(
+            "Instrument / mission evidence",
+            styles["Heading2"]
+        )
+    )
+
+    instrument = analysis["validation"]["instrument"]
+
+    story.append(
+        Paragraph(
+            "Image A: "
+            + instrument["A"]["name"]
+            + " — "
+            + instrument["A"]["status"],
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Image B: "
+            + instrument["B"]["name"]
+            + " — "
+            + instrument["B"]["status"],
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Spacer(1, 12)
+    )
+
+    story.append(
+        Paragraph(
+            "Method",
+            styles["Heading2"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "The current pipeline uses SIFT feature extraction, "
+            "BFMatcher with L2 distance, Lowe ratio filtering, "
+            "reciprocal matching, homography estimation and "
+            "RANSAC geometric verification.",
+            styles["Normal"]
+        )
+    )
+
+    story.append(
+        Spacer(1, 12)
+    )
+
+    story.append(
+        Paragraph(
+            "Scientific limitations",
+            styles["Heading2"]
+        )
+    )
+
+    for limitation in analysis["limitations"]:
+
+        story.append(
+            Paragraph(
+                "• " + limitation,
+                styles["Normal"]
+            )
+        )
+
+    document.build(story)
+
+    return path
+
+
+# ============================================================
+# PAGE ROUTES
 # ============================================================
 
 @app.context_processor
-def globals():
+def inject_user():
+    user = current_user()
 
     return {
-        "logged_in": bool(
-            session.get("user_id")
+        "logged_in": user is not None,
+        "user_name": (
+            user["name"]
+            if user
+            else None
         ),
-
-        "user_name": session.get(
-            "user_name"
-        )
+        "current_user": user,
     }
 
-
-# ============================================================
-# PAGES
-# ============================================================
 
 @app.route("/")
 def home():
-
-    return render_template(
-        "home.html"
-    )
+    return render_template("home.html")
 
 
-@app.route("/<page>")
-def page(page):
+@app.route("/analyze")
+def analyze_page():
+    return render_template("analyze.html")
 
-    allowed_pages = {
-        "analyze",
-        "results",
-        "validation",
-        "stress",
-        "technology",
-        "about",
-        "contact",
-        "signin",
-        "signup"
-    }
 
-    if page not in allowed_pages:
+@app.route("/results")
+def results_page():
+    return render_template("results.html")
 
-        return render_template(
-            "404.html"
-        ), 404
 
-    return render_template(
-        f"{page}.html"
-    )
+@app.route("/validation")
+def validation_page():
+    return render_template("validation.html")
+
+
+@app.route("/stress")
+def stress_page():
+    return render_template("stress.html")
+
+
+@app.route("/science")
+def science_page():
+    return render_template("science.html")
+
+
+@app.route("/about")
+def about_page():
+    return render_template("about.html")
+
+
+@app.route("/contact")
+def contact_page():
+    return render_template("contact.html")
+
+
+@app.route("/feedback")
+def feedback_page():
+    return render_template("feedback.html")
+
+
+@app.route("/signin")
+def signin():
+    if session.get("user_id"):
+        return redirect(
+            url_for("workspace")
+        )
+
+    return render_template("signin.html")
+
+
+@app.route("/signup")
+def signup():
+    if session.get("user_id"):
+        return redirect(
+            url_for("workspace")
+        )
+
+    return render_template("signup.html")
+
+
+@app.route("/workspace")
+@login_required
+def workspace():
+    return render_template("workspace.html")
 
 
 # ============================================================
-# AUTHENTICATION
+# AUTH API
 # ============================================================
 
 @app.post("/api/signup")
-def signup():
+def api_signup():
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
-    name = data.get(
+    required = [
         "name",
-        ""
-    ).strip()
-
-    email = data.get(
+        "phone",
         "email",
-        ""
-    ).strip().lower()
-
-    password = data.get(
+        "username",
         "password",
-        ""
+        "profession",
+    ]
+
+    for field in required:
+
+        if not clean_text(
+            data.get(field)
+        ):
+            return json_response(
+                {
+                    "ok": False,
+                    "error": (
+                        field.replace("_", " ").title()
+                        + " is required."
+                    ),
+                },
+                400,
+            )
+
+    name = clean_text(
+        data.get("name"),
+        120
     )
 
-    if not name:
+    phone = clean_text(
+        data.get("phone"),
+        40
+    )
 
-        return jsonify(
-            error="Name is required."
-        ), 400
+    email = clean_text(
+        data.get("email"),
+        180
+    ).lower()
 
-    if "@" not in email:
+    username = clean_text(
+        data.get("username"),
+        60
+    ).lower()
 
-        return jsonify(
-            error="Please enter a valid email address."
-        ), 400
+    password = str(
+        data.get("password")
+    )
+
+    profession = clean_text(
+        data.get("profession"),
+        80
+    )
 
     if len(password) < 8:
 
-        return jsonify(
-            error=(
-                "Password must contain at least "
-                "8 characters."
-            )
-        ), 400
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "Password must contain at least 8 characters."
+                ),
+            },
+            400,
+        )
+
+    if "@" not in email:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Please enter a valid email address.",
+            },
+            400,
+        )
+
+    institution = clean_text(
+        data.get("institution"),
+        180
+    )
+
+    study_level = clean_text(
+        data.get("study_level"),
+        100
+    )
+
+    course = clean_text(
+        data.get("course"),
+        120
+    )
+
+    study_year = clean_text(
+        data.get("study_year"),
+        40
+    )
+
+    usage_reason = clean_text(
+        data.get("usage_reason"),
+        250
+    )
+
+    research_area = clean_text(
+        data.get("research_area"),
+        200
+    )
+
+    intended_use = clean_text(
+        data.get("intended_use"),
+        300
+    )
+
+    conn = get_db()
 
     try:
 
-        connection = db()
-
-        connection.execute(
+        cursor = conn.execute(
             """
-            INSERT INTO users
-            (name, email, password, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (
+                name,
+                phone,
+                email,
+                username,
+                password_hash,
+                profession,
+                institution,
+                study_level,
+                course,
+                study_year,
+                usage_reason,
+                research_area,
+                intended_use,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 name,
+                phone,
                 email,
-                generate_password_hash(
-                    password
-                ),
-                utc_now()
-            )
+                username,
+                hash_password(password),
+                profession,
+                institution,
+                study_level,
+                course,
+                study_year,
+                usage_reason,
+                research_area,
+                intended_use,
+                utc_now(),
+            ),
         )
 
-        connection.commit()
+        conn.commit()
 
-        user_id = connection.execute(
-            "SELECT last_insert_rowid()"
-        ).fetchone()[0]
+        user_id = cursor.lastrowid
 
-        connection.close()
-
-        session["user_id"] = user_id
-        session["user_name"] = name
-
-        return jsonify(
-            ok=True
-        )
+        user = conn.execute(
+            "SELECT * FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
 
     except sqlite3.IntegrityError:
 
-        return jsonify(
-            error=(
-                "An account with this email "
-                "already exists."
-            )
-        ), 409
+        conn.close()
+
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "That email or username is already registered."
+                ),
+            },
+            409,
+        )
+
+    conn.close()
+
+    session["user_id"] = user_id
+
+    email_result = send_welcome_email(
+        user
+    )
+
+    return json_response(
+        {
+            "ok": True,
+            "message": (
+                "Your LUNARMATCH research workspace is ready."
+            ),
+            "welcome_email": email_result,
+            "redirect": "/workspace",
+        }
+    )
 
 
 @app.post("/api/signin")
-def signin():
+def api_signin():
 
-    data = request.get_json() or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
-    email = data.get(
-        "email",
-        ""
-    ).strip().lower()
+    identity = clean_text(
+        data.get("identity"),
+        180
+    ).lower()
 
-    password = data.get(
-        "password",
-        ""
+    password = str(
+        data.get("password")
+        or ""
     )
 
-    connection = db()
+    if not identity or not password:
 
-    user = connection.execute(
+        return json_response(
+            {
+                "ok": False,
+                "error": "Username/email and password are required.",
+            },
+            400,
+        )
+
+    conn = get_db()
+
+    user = conn.execute(
         """
         SELECT *
         FROM users
-        WHERE email = ?
+        WHERE LOWER(email) = ?
+           OR LOWER(username) = ?
         """,
-        (email,)
+        (
+            identity,
+            identity,
+        ),
     ).fetchone()
 
-    connection.close()
+    conn.close()
 
-    if (
-        not user
-        or not check_password_hash(
-            user["password"],
-            password
-        )
+    if not user or not verify_password(
+        password,
+        user["password_hash"]
     ):
 
-        return jsonify(
-            error="Invalid email or password."
-        ), 401
+        return json_response(
+            {
+                "ok": False,
+                "error": "Incorrect login details.",
+            },
+            401,
+        )
 
     session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
 
-    return jsonify(
-        ok=True
+    return json_response(
+        {
+            "ok": True,
+            "message": "Signed in successfully.",
+            "redirect": "/workspace",
+        }
     )
 
 
 @app.post("/api/signout")
-def signout():
+def api_signout():
 
     session.clear()
 
-    return jsonify(
-        ok=True
+    return json_response(
+        {
+            "ok": True,
+            "redirect": "/",
+        }
+    )
+
+
+# ============================================================
+# PROFILE
+# ============================================================
+
+@app.get("/api/profile")
+@login_required
+def api_profile():
+
+    user = current_user()
+
+    if not user:
+        return json_response(
+            {
+                "ok": False,
+                "error": "User not found.",
+            },
+            404,
+        )
+
+    data = dict(user)
+
+    data.pop(
+        "password_hash",
+        None
+    )
+
+    return json_response(
+        {
+            "ok": True,
+            "profile": data,
+        }
     )
 
 
@@ -1928,155 +2180,948 @@ def signout():
 @app.post("/api/analyze")
 def api_analyze():
 
-    if (
-        "image_a" not in request.files
-        or "image_b" not in request.files
+    file_a = request.files.get(
+        "image_a"
+    )
+
+    file_b = request.files.get(
+        "image_b"
+    )
+
+    if not file_a or not file_b:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Please provide two images.",
+            },
+            400,
+        )
+
+    if not allowed_file(
+        file_a.filename
     ):
 
-        return jsonify(
-            error=(
-                "Please upload both Image A "
-                "and Image B."
-            )
-        ), 400
+        return json_response(
+            {
+                "ok": False,
+                "error": "Image A has an unsupported file type.",
+            },
+            400,
+        )
 
-    image_a = request.files[
-        "image_a"
-    ]
+    if not allowed_file(
+        file_b.filename
+    ):
 
-    image_b = request.files[
-        "image_b"
-    ]
-
-    if not image_a.filename:
-
-        return jsonify(
-            error="Image A has no filename."
-        ), 400
-
-    if not image_b.filename:
-
-        return jsonify(
-            error="Image B has no filename."
-        ), 400
-
-    analysis_upload_id = uuid.uuid4().hex
-
-    suffix_a = (
-        Path(image_a.filename)
-        .suffix
-        .lower()
-    )
-
-    suffix_b = (
-        Path(image_b.filename)
-        .suffix
-        .lower()
-    )
-
-    if not suffix_a:
-        suffix_a = ".jpg"
-
-    if not suffix_b:
-        suffix_b = ".jpg"
-
-    path_a = UPLOADS / (
-        f"{analysis_upload_id}_a{suffix_a}"
-    )
-
-    path_b = UPLOADS / (
-        f"{analysis_upload_id}_b{suffix_b}"
-    )
-
-    image_a.save(path_a)
-    image_b.save(path_b)
+        return json_response(
+            {
+                "ok": False,
+                "error": "Image B has an unsupported file type.",
+            },
+            400,
+        )
 
     try:
 
-        result = analyze(
-            path_a,
-            path_b
+        result = analyze_images(
+            file_a,
+            file_b
         )
 
-    except Exception as error:
+    except ValueError as exc:
 
-        return jsonify(
-            error=str(error)
-        ), 422
+        return json_response(
+            {
+                "ok": False,
+                "error": str(exc),
+            },
+            400,
+        )
 
-    # --------------------------------------------------------
-    # Save result
-    # --------------------------------------------------------
+    except Exception as exc:
 
-    connection = db()
+        app.logger.exception(
+            "Analysis error"
+        )
 
-    connection.execute(
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "The analysis engine encountered an unexpected error."
+                ),
+                "detail": str(exc)
+                if app.debug
+                else None,
+            },
+            500,
+        )
+
+    public_id = uuid.uuid4().hex
+
+    result["public_id"] = public_id
+
+    user_id = session.get(
+        "user_id"
+    )
+
+    conn = get_db()
+
+    conn.execute(
         """
-        INSERT INTO analyses
-        (id, user_id, created_at, result_json)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO analyses (
+            public_id,
+            user_id,
+            image_a_name,
+            image_b_name,
+            score,
+            verified,
+            result_json,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            result["analysis_id"],
-            session.get("user_id"),
-            result["created_at"],
-            json.dumps(result)
-        )
+            public_id,
+            user_id,
+            file_a.filename,
+            file_b.filename,
+            result["evidence"]["total"],
+            int(
+                result["geometry"]["verified"]
+            ),
+            json.dumps(
+                result,
+                separators=(",", ":")
+            ),
+            utc_now(),
+        ),
     )
 
-    connection.commit()
-    connection.close()
+    conn.commit()
+    conn.close()
 
-    return jsonify(
-        result
+    return json_response(
+        {
+            "ok": True,
+            "analysis": result,
+        }
     )
 
-
-# ============================================================
-# RESULT HISTORY
-# ============================================================
 
 @app.get("/api/results")
 def api_results():
 
-    connection = db()
+    public_id = clean_text(
+        request.args.get("id"),
+        100
+    )
 
-    if session.get("user_id"):
+    if public_id:
 
-        rows = connection.execute(
+        conn = get_db()
+
+        row = conn.execute(
             """
-            SELECT id, created_at, result_json
+            SELECT *
             FROM analyses
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT 30
+            WHERE public_id = ?
             """,
-            (
-                session.get("user_id"),
+            (public_id,),
+        ).fetchone()
+
+        conn.close()
+
+        if not row:
+
+            return json_response(
+                {
+                    "ok": False,
+                    "error": "Analysis not found.",
+                },
+                404,
             )
-        ).fetchall()
 
-    else:
+        result = safe_json(
+            row["result_json"]
+        )
 
-        rows = connection.execute(
-            """
-            SELECT id, created_at, result_json
-            FROM analyses
-            WHERE user_id IS NULL
-            ORDER BY created_at DESC
-            LIMIT 30
-            """
-        ).fetchall()
+        return json_response(
+            {
+                "ok": True,
+                "analysis": result,
+            }
+        )
 
-    connection.close()
+    user_id = session.get(
+        "user_id"
+    )
 
-    return jsonify(
-        [
-            json.loads(
-                row["result_json"]
-            )
-            for row in rows
+    if not user_id:
+
+        return json_response(
+            {
+                "ok": True,
+                "analyses": [],
+                "message": (
+                    "Sign in to view saved analysis history."
+                ),
+            }
+        )
+
+    conn = get_db()
+
+    rows = conn.execute(
+        """
+        SELECT
+            public_id,
+            image_a_name,
+            image_b_name,
+            score,
+            verified,
+            created_at
+        FROM analyses
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (
+            user_id,
+            MAX_ANALYSIS_HISTORY,
+        ),
+    ).fetchall()
+
+    conn.close()
+
+    return json_response(
+        {
+            "ok": True,
+            "analyses": [
+                dict(row)
+                for row in rows
+            ],
+        }
+    )
+
+
+# ============================================================
+# PDF REPORT
+# ============================================================
+
+@app.get("/api/report/<public_id>")
+@login_required
+def api_report(public_id):
+
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT *
+        FROM analyses
+        WHERE public_id = ?
+          AND user_id = ?
+        """,
+        (
+            public_id,
+            session["user_id"],
+        ),
+    ).fetchone()
+
+    conn.close()
+
+    if not row:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "This report belongs to a different user "
+                    "or does not exist."
+                ),
+            },
+            404,
+        )
+
+    analysis = safe_json(
+        row["result_json"]
+    )
+
+    analysis["public_id"] = public_id
+
+    try:
+
+        path = generate_pdf_report(
+            analysis
+        )
+
+    except RuntimeError as exc:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": str(exc),
+            },
+            500,
+        )
+
+    except Exception:
+
+        app.logger.exception(
+            "PDF generation error"
+        )
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Could not generate the PDF report.",
+            },
+            500,
+        )
+
+    return send_file(
+        path,
+        as_attachment=True,
+        download_name=os.path.basename(path),
+        mimetype="application/pdf",
+    )
+
+
+# ============================================================
+# FEEDBACK API
+# ============================================================
+
+@app.post("/api/feedback")
+def api_feedback():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    message = clean_text(
+        data.get("message"),
+        3000
+    )
+
+    feedback_type = clean_text(
+        data.get("feedback_type"),
+        80
+    )
+
+    if not message:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Please enter your feedback.",
+            },
+            400,
+        )
+
+    if not feedback_type:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Please select a feedback type.",
+            },
+            400,
+        )
+
+    rating = data.get(
+        "rating"
+    )
+
+    try:
+
+        if rating not in [
+            None,
+            "",
+        ]:
+            rating = int(rating)
+
+            if not 1 <= rating <= 5:
+                rating = None
+
+    except Exception:
+
+        rating = None
+
+    user = current_user()
+
+    name = clean_text(
+        data.get("name"),
+        120
+    )
+
+    email = clean_text(
+        data.get("email"),
+        180
+    )
+
+    user_id = None
+
+    if user:
+
+        user_id = user["id"]
+
+        if not name:
+            name = user["name"]
+
+        if not email:
+            email = user["email"]
+
+    conn = get_db()
+
+    conn.execute(
+        """
+        INSERT INTO feedback (
+            user_id,
+            name,
+            email,
+            feedback_type,
+            rating,
+            message,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            name,
+            email,
+            feedback_type,
+            rating,
+            message,
+            utc_now(),
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+
+    return json_response(
+        {
+            "ok": True,
+            "message": (
+                "Thank you. Your feedback has been recorded."
+            ),
+        }
+    )
+
+
+# ============================================================
+# REAL STRESS TESTING
+# ============================================================
+
+def transform_image(image, test_type, severity):
+
+    severity = max(
+        0.0,
+        min(
+            1.0,
+            float(severity)
+        )
+    )
+
+    if test_type == "rotation":
+
+        angle = 5.0 + severity * 35.0
+
+        height, width = image.shape[:2]
+
+        center = (
+            width / 2.0,
+            height / 2.0
+        )
+
+        matrix = cv2.getRotationMatrix2D(
+            center,
+            angle,
+            1.0
+        )
+
+        return cv2.warpAffine(
+            image,
+            matrix,
+            (width, height),
+            borderMode=cv2.BORDER_REFLECT
+        )
+
+    if test_type == "scale":
+
+        scale = (
+            1.0
+            - 0.45 * severity
+        )
+
+        height, width = image.shape[:2]
+
+        resized = cv2.resize(
+            image,
+            None,
+            fx=scale,
+            fy=scale,
+            interpolation=cv2.INTER_AREA,
+        )
+
+        canvas = np.zeros_like(image)
+
+        new_h, new_w = resized.shape[:2]
+
+        y = max(
+            0,
+            (height - new_h) // 2
+        )
+
+        x = max(
+            0,
+            (width - new_w) // 2
+        )
+
+        crop_h = min(
+            new_h,
+            height - y
+        )
+
+        crop_w = min(
+            new_w,
+            width - x
+        )
+
+        canvas[
+            y:y + crop_h,
+            x:x + crop_w
+        ] = resized[
+            :crop_h,
+            :crop_w
         ]
+
+        return canvas
+
+    if test_type == "brightness":
+
+        delta = int(
+            20 + severity * 80
+        )
+
+        result = image.astype(
+            np.int16
+        )
+
+        result += delta
+
+        return np.clip(
+            result,
+            0,
+            255
+        ).astype(np.uint8)
+
+    if test_type == "contrast":
+
+        factor = (
+            1.0
+            + severity * 1.5
+        )
+
+        result = image.astype(
+            np.float32
+        )
+
+        result = (
+            (result - 128.0)
+            * factor
+            + 128.0
+        )
+
+        return np.clip(
+            result,
+            0,
+            255
+        ).astype(np.uint8)
+
+    if test_type == "noise":
+
+        sigma = (
+            5.0
+            + severity * 45.0
+        )
+
+        noise = np.random.normal(
+            0,
+            sigma,
+            image.shape
+        )
+
+        result = (
+            image.astype(np.float32)
+            + noise
+        )
+
+        return np.clip(
+            result,
+            0,
+            255
+        ).astype(np.uint8)
+
+    if test_type == "blur":
+
+        kernel_size = int(
+            3
+            + round(
+                severity * 10
+            ) * 2
+        )
+
+        kernel_size = max(
+            3,
+            min(
+                23,
+                kernel_size
+            )
+        )
+
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+
+        return cv2.GaussianBlur(
+            image,
+            (
+                kernel_size,
+                kernel_size
+            ),
+            0
+        )
+
+    if test_type == "crop":
+
+        height, width = image.shape[:2]
+
+        keep = (
+            1.0
+            - severity * 0.45
+        )
+
+        new_h = int(
+            height * keep
+        )
+
+        new_w = int(
+            width * keep
+        )
+
+        y = (
+            height - new_h
+        ) // 2
+
+        x = (
+            width - new_w
+        ) // 2
+
+        cropped = image[
+            y:y + new_h,
+            x:x + new_w
+        ]
+
+        return cv2.resize(
+            cropped,
+            (width, height),
+            interpolation=cv2.INTER_AREA,
+        )
+
+    raise ValueError(
+        "Unsupported stress transformation."
+    )
+
+
+def run_stress_analysis(
+    base_image,
+    transformed_image,
+):
+    base_processed = preprocess(
+        base_image
+    )
+
+    transformed_processed = preprocess(
+        transformed_image
+    )
+
+    keypoints_a, descriptors_a = extract_features(
+        base_processed
+    )
+
+    keypoints_b, descriptors_b = extract_features(
+        transformed_processed
+    )
+
+    matches = calculate_reciprocal_matches(
+        descriptors_a,
+        descriptors_b
+    )
+
+    geometry = calculate_homography(
+        keypoints_a,
+        keypoints_b,
+        matches
+    )
+
+    quality_a = calculate_image_quality(
+        base_image
+    )
+
+    quality_b = calculate_image_quality(
+        transformed_image
+    )
+
+    evidence = calculate_evidence_score(
+        keypoints_a,
+        keypoints_b,
+        matches,
+        geometry,
+        quality_a,
+        quality_b,
+    )
+
+    return {
+        "score": evidence["total"],
+        "keypoints_base": len(keypoints_a),
+        "keypoints_test": len(keypoints_b),
+        "matches": len(matches),
+        "inliers": geometry["inliers"],
+        "inlier_ratio": geometry["inlier_ratio"],
+        "verified": geometry["verified"],
+        "quality_base": quality_a,
+        "quality_test": quality_b,
+    }
+
+
+@app.post("/api/stress")
+def api_stress():
+
+    file = request.files.get(
+        "image"
+    )
+
+    test_type = clean_text(
+        request.form.get(
+            "type"
+        ),
+        50
+    )
+
+    severity_raw = request.form.get(
+        "severity",
+        "0.5"
+    )
+
+    if not file:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Please provide an image.",
+            },
+            400,
+        )
+
+    if not allowed_file(
+        file.filename
+    ):
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Unsupported image type.",
+            },
+            400,
+        )
+
+    try:
+
+        severity = float(
+            severity_raw
+        )
+
+        severity = max(
+            0.0,
+            min(
+                1.0,
+                severity
+            )
+        )
+
+    except Exception:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Invalid stress severity.",
+            },
+            400,
+        )
+
+    try:
+
+        base_image, raw = read_image(
+            file
+        )
+
+        base_image = resize_image(
+            base_image
+        )
+
+        transformed = transform_image(
+            base_image,
+            test_type,
+            severity
+        )
+
+        baseline = run_stress_analysis(
+            base_image,
+            base_image
+        )
+
+        stressed = run_stress_analysis(
+            base_image,
+            transformed
+        )
+
+        degradation = (
+            baseline["score"]
+            - stressed["score"]
+        )
+
+        stability = max(
+            0.0,
+            min(
+                100.0,
+                100.0 - max(
+                    0.0,
+                    degradation
+                )
+            )
+        )
+
+        transformed_bytes = image_to_jpeg_bytes(
+            transformed
+        )
+
+        transformed_url = None
+
+        if transformed_bytes:
+
+            transformed_id = (
+                "stress_"
+                + uuid.uuid4().hex
+                + ".jpg"
+            )
+
+            transformed_path = os.path.join(
+                UPLOAD_DIR,
+                transformed_id
+            )
+
+            with open(
+                transformed_path,
+                "wb"
+            ) as handle:
+                handle.write(
+                    transformed_bytes
+                )
+
+            transformed_url = (
+                "/media/"
+                + transformed_id
+            )
+
+        return json_response(
+            {
+                "ok": True,
+                "stress": {
+                    "type": test_type,
+                    "severity": round(
+                        severity,
+                        3
+                    ),
+                    "baseline": baseline,
+                    "test": stressed,
+                    "score_change": round(
+                        degradation,
+                        2
+                    ),
+                    "stability": round(
+                        stability,
+                        2
+                    ),
+                    "verified": stressed[
+                        "verified"
+                    ],
+                    "interpretation": (
+                        "Correspondence remained geometrically verified "
+                        "under this transformation."
+                        if stressed["verified"]
+                        else
+                        "Verification was not maintained under this transformation."
+                    ),
+                    "transformed_image": transformed_url,
+                },
+            }
+        )
+
+    except ValueError as exc:
+
+        return json_response(
+            {
+                "ok": False,
+                "error": str(exc),
+            },
+            400,
+        )
+
+    except Exception:
+
+        app.logger.exception(
+            "Stress test error"
+        )
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "Stress testing failed unexpectedly.",
+            },
+            500,
+        )
+
+
+# ============================================================
+# MEDIA
+# ============================================================
+
+@app.route("/media/<filename>")
+def media(filename):
+
+    # Only serve generated media files.
+    # Do not accept arbitrary filesystem paths.
+
+    if (
+        "/" in filename
+        or "\\"
+        in filename
+        or ".."
+        in filename
+    ):
+        abort(404)
+
+    path = os.path.join(
+        UPLOAD_DIR,
+        filename
+    )
+
+    if not os.path.isfile(path):
+        abort(404)
+
+    return send_file(
+        path
     )
 
 
@@ -2084,95 +3129,143 @@ def api_results():
 # HEALTH
 # ============================================================
 
-@app.get("/api/health")
+@app.get("/health")
 def health():
 
-    return jsonify(
+    sift_available = True
 
-        status="online",
+    try:
+        create_sift()
+    except Exception:
+        sift_available = False
 
-        service="LUNARMATCH V2",
+    database_available = True
 
-        version="2.0-grand-master",
+    try:
 
-        engine=(
-            "SIFT + BFMatcher + Lowe Ratio "
-            "+ Reciprocal Filtering + RANSAC"
-        ),
+        conn = get_db()
 
-        validation=(
-            "Metadata-aware OHRC/TMC/IIRS "
-            "validation architecture"
-        ),
-
-        localization=(
-            "Coordinates displayed only "
-            "when legitimately available"
-        ),
-
-        scientific_integrity=(
-            "No coordinate fabrication"
+        conn.execute(
+            "SELECT 1"
         )
+
+        conn.close()
+
+    except Exception:
+
+        database_available = False
+
+    return json_response(
+        {
+            "ok": (
+                sift_available
+                and database_available
+            ),
+            "service": "LUNARMATCH",
+            "version": "3.0",
+            "engine": {
+                "opencv": cv2.__version__,
+                "sift": sift_available,
+            },
+            "database": database_available,
+            "features": {
+                "correspondence": True,
+                "geometric_verification": True,
+                "metadata_extraction": True,
+                "coordinate_provenance": True,
+                "stress_testing": True,
+                "pdf_reports": True,
+                "feedback": True,
+                "welcome_email": bool(
+                    os.environ.get("SMTP_HOST")
+                ),
+            },
+        }
     )
 
 
 # ============================================================
-# RESULT FILES
-# ============================================================
-
-@app.route("/results/<path:name>")
-def result_file(name):
-
-    return send_from_directory(
-        RESULTS,
-        name
-    )
-
-
-# ============================================================
-# FILE SIZE ERROR
+# ERROR HANDLERS
 # ============================================================
 
 @app.errorhandler(413)
 def file_too_large(error):
 
-    return jsonify(
-        error=(
-            "Maximum upload size is 25 MB."
+    if request.path.startswith("/api/"):
+
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "The uploaded file is larger than 25 MB."
+                ),
+            },
+            413,
         )
-    ), 413
+
+    return (
+        "Uploaded file is larger than 25 MB.",
+        413
+    )
 
 
-# ============================================================
-# GENERAL ERROR
-# ============================================================
+@app.errorhandler(404)
+def not_found(error):
+
+    if request.path.startswith("/api/"):
+
+        return json_response(
+            {
+                "ok": False,
+                "error": "API endpoint not found.",
+            },
+            404,
+        )
+
+    return render_template(
+        "home.html"
+    ), 404
+
 
 @app.errorhandler(500)
 def internal_error(error):
 
-    return jsonify(
-        error=(
-            "LunarMatch encountered an internal "
-            "processing error."
+    app.logger.exception(
+        "Unhandled server error"
+    )
+
+    if request.path.startswith("/api/"):
+
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "The server encountered an unexpected error."
+                ),
+            },
+            500,
         )
-    ), 500
+
+    return (
+        "LUNARMATCH encountered an unexpected server error.",
+        500
+    )
 
 
 # ============================================================
-# LOCAL DEVELOPMENT
+# DEVELOPMENT ENTRY POINT
 # ============================================================
 
 if __name__ == "__main__":
 
-    port = int(
-        os.environ.get(
-            "PORT",
-            5000
-        )
-    )
-
     app.run(
         host="0.0.0.0",
-        port=port,
-        debug=False
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
+        ),
+        debug=True,
     )
+```
