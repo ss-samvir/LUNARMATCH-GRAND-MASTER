@@ -1,856 +1,262 @@
-{% extends 'base.html' %}
+```html
+{% extends "base.html" %}
 
-{% block title %}About · LUNARMATCH V2{% endblock %}
+{% block title %}About | LUNARMATCH{% endblock %}
 
 {% block content %}
 
-<!-- =========================================================
-     PAGE HERO
-========================================================= -->
-
-<section class="page-head reveal">
-
-```
-<div>
-
-    <div class="eyebrow">
-        MISSION / LUNAR IMAGE CORRESPONDENCE
+<section class="section page-hero">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-eyebrow">ABOUT LUNARMATCH</span>
+            <h1 class="section-title">
+                A research-oriented platform for
+                <span class="gradient">lunar image correspondence.</span>
+            </h1>
+            <p class="section-description">
+                LUNARMATCH is designed to help users compare lunar imagery,
+                investigate visual correspondence, examine geometric consistency,
+                and inspect available image metadata through an explainable workflow.
+            </p>
+        </div>
     </div>
-
-    <h1>
-        Built to turn
-        <span class="gradient">visual similarity</span>
-        into evidence.
-    </h1>
-
-    <p class="lead">
-        LUNARMATCH is a research-oriented prototype for comparing
-        lunar imagery, verifying geometric correspondence and
-        exposing the evidence available for scientific validation.
-    </p>
-
-</div>
-
-<div class="page-head-status">
-    <span class="status-dot"></span>
-    V2 / RESEARCH PROTOTYPE
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     MISSION STATEMENT
-========================================================= -->
 
-<section class="about-mission reveal">
+<section class="section">
+    <div class="container">
 
-```
-<div class="about-mission-visual">
+        <div class="feature-grid">
 
-    <div class="orbit orbit-one"></div>
-    <div class="orbit orbit-two"></div>
-    <div class="orbit orbit-three"></div>
+            <article class="card feature-card reveal">
+                <div class="feature-icon">◈</div>
+                <h3>Our Objective</h3>
+                <p>
+                    Build an accessible computational platform that demonstrates
+                    how computer vision can assist in comparing lunar observations
+                    while keeping the evidence behind each result visible.
+                </p>
+            </article>
 
-    <div class="about-moon">
-        <div class="moon-crater crater-one"></div>
-        <div class="moon-crater crater-two"></div>
-        <div class="moon-crater crater-three"></div>
-        <div class="moon-crater crater-four"></div>
-    </div>
+            <article class="card feature-card reveal">
+                <div class="feature-icon">⌁</div>
+                <h3>Explainable Analysis</h3>
+                <p>
+                    Instead of presenting only a final similarity number,
+                    LUNARMATCH exposes feature counts, candidate matches,
+                    geometric inliers, image quality and validation evidence.
+                </p>
+            </article>
 
-    <span class="orbit-label label-one">
-        CORRESPOND
-    </span>
+            <article class="card feature-card reveal">
+                <div class="feature-icon">◎</div>
+                <h3>Scientific Caution</h3>
+                <p>
+                    The platform distinguishes computational correspondence
+                    from mission metadata, reference evidence and genuine
+                    coordinate information. Unsupported information is not
+                    presented as fact.
+                </p>
+            </article>
 
-    <span class="orbit-label label-two">
-        VERIFY
-    </span>
-
-    <span class="orbit-label label-three">
-        LOCALIZE
-    </span>
-
-</div>
-
-
-<div class="about-mission-copy">
-
-    <div class="eyebrow">
-        THE CORE IDEA
-    </div>
-
-    <h2>
-        Same terrain.
-        Different observation.
-    </h2>
-
-    <p class="muted">
-        Lunar imagery may differ because of viewpoint, scale,
-        illumination, processing and acquisition conditions.
-        LUNARMATCH attempts to determine whether two observations
-        contain a geometrically consistent set of corresponding
-        visual structures.
-    </p>
-
-    <p class="muted">
-        Instead of treating one similarity number as a final answer,
-        V2 separates correspondence, geometric verification,
-        metadata validation and reference evidence.
-    </p>
-
-    <div class="about-principle">
-
-        <span>
-            DESIGN PRINCIPLE
-        </span>
-
-        <strong>
-            Evidence before conclusion.
-        </strong>
+        </div>
 
     </div>
-
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     WHAT WE SOLVE
-========================================================= -->
 
-<section class="reveal">
+<section class="section section-alt">
+    <div class="container">
 
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            PROBLEM DEFINITION
+        <div class="section-header reveal">
+            <span class="section-eyebrow">MISSION CONTEXT</span>
+            <h2 class="section-title">Built around planetary vision.</h2>
+            <p class="section-description">
+                Lunar imagery can contain repeated textures, illumination changes,
+                shadows and large variations in viewing conditions. These factors
+                make correspondence analysis an interesting computer-vision problem.
+            </p>
         </div>
 
-        <h2>
-            What problem are we addressing?
-        </h2>
+        <div class="split-grid">
+
+            <div class="card reveal">
+                <span class="section-eyebrow">THE PROBLEM</span>
+                <h3>Finding meaningful visual correspondence</h3>
+                <p>
+                    Two images of a lunar surface may represent related terrain
+                    while differing in scale, rotation, illumination, contrast
+                    or viewpoint. A useful system therefore needs more than
+                    simple pixel comparison.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Local feature extraction</li>
+                    <li>Feature-to-feature correspondence</li>
+                    <li>Geometric consistency checking</li>
+                    <li>Outlier rejection</li>
+                    <li>Evidence visualization</li>
+                </ul>
+            </div>
+
+            <div class="card reveal">
+                <span class="section-eyebrow">THE APPROACH</span>
+                <h3>Computer vision + validation</h3>
+                <p>
+                    LUNARMATCH combines feature-based image analysis with
+                    geometric verification and metadata inspection. The result
+                    is intended to be understandable to both general users and
+                    technically oriented researchers.
+                </p>
+
+                <ul class="feature-list">
+                    <li>SIFT-based local features</li>
+                    <li>Lowe-ratio filtering</li>
+                    <li>Homography estimation</li>
+                    <li>RANSAC-based verification</li>
+                    <li>Metadata-aware validation</li>
+                </ul>
+            </div>
+
+        </div>
 
     </div>
-
-    <p class="section-intro">
-        The platform focuses on the image-correspondence layer of
-        lunar observation analysis.
-    </p>
-
-</div>
-
-
-<div class="grid grid-3">
-
-    <article class="card about-card">
-
-        <div class="about-card-number">
-            01
-        </div>
-
-        <h3>
-            VISUAL CORRESPONDENCE
-        </h3>
-
-        <p class="muted">
-            Identify local features that can potentially correspond
-            between two observations of terrain.
-        </p>
-
-    </article>
-
-
-    <article class="card about-card">
-
-        <div class="about-card-number">
-            02
-        </div>
-
-        <h3>
-            GEOMETRIC VERIFICATION
-        </h3>
-
-        <p class="muted">
-            Determine whether candidate matches are consistent with
-            a common geometric transformation.
-        </p>
-
-    </article>
-
-
-    <article class="card about-card">
-
-        <div class="about-card-number">
-            03
-        </div>
-
-        <h3>
-            SCIENTIFIC VALIDATION
-        </h3>
-
-        <p class="muted">
-            Examine available mission metadata, spatial-reference
-            information and legitimate reference evidence.
-        </p>
-
-    </article>
-
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     V1 → V2
-========================================================= -->
 
-<section class="about-evolution reveal">
+<section class="section">
+    <div class="container">
 
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            DEVELOPMENT EVOLUTION
-        </div>
-
-        <h2>
-            From demonstration to evidence platform.
-        </h2>
-
-    </div>
-
-    <p class="section-intro">
-        V2 keeps the original correspondence concept while addressing
-        the weaknesses identified during evaluation.
-    </p>
-
-</div>
-
-
-<div class="evolution-grid">
-
-    <div class="evolution-column">
-
-        <div class="evolution-label">
-            EARLIER PROTOTYPE
-        </div>
-
-        <div class="evolution-item">
-            <span>01</span>
-            <p>
-                Image-to-image correspondence demonstration
+        <div class="section-header reveal">
+            <span class="section-eyebrow">MISSION IMAGERY</span>
+            <h2 class="section-title">OHRC · TMC · IIRS</h2>
+            <p class="section-description">
+                These instruments are relevant to lunar remote-sensing discussions.
+                LUNARMATCH does not automatically claim that an uploaded image
+                belongs to a particular instrument unless supporting metadata or
+                reference evidence establishes it.
             </p>
         </div>
 
-        <div class="evolution-item">
-            <span>02</span>
-            <p>
-                Browser-oriented visual matching
-            </p>
-        </div>
+        <div class="feature-grid">
 
-        <div class="evolution-item">
-            <span>03</span>
-            <p>
-                Limited validation visibility
-            </p>
-        </div>
+            <article class="card feature-card reveal">
+                <div class="feature-icon">O</div>
+                <h3>OHRC</h3>
+                <p>
+                    Orbiter High Resolution Camera. High-resolution lunar
+                    imagery can provide detailed surface information useful
+                    for visual correspondence studies.
+                </p>
+            </article>
 
-        <div class="evolution-item">
-            <span>04</span>
-            <p>
-                Limited stress-case coverage
-            </p>
+            <article class="card feature-card reveal">
+                <div class="feature-icon">T</div>
+                <h3>TMC</h3>
+                <p>
+                    Terrain Mapping Camera. Terrain-oriented imagery provides
+                    an important context for studying lunar surface geometry
+                    and mapping-related applications.
+                </p>
+            </article>
+
+            <article class="card feature-card reveal">
+                <div class="feature-icon">I</div>
+                <h3>IIRS</h3>
+                <p>
+                    Imaging Infrared Spectrometer. Spectral information can
+                    provide scientific context beyond ordinary visible-image
+                    correspondence.
+                </p>
+            </article>
+
         </div>
 
     </div>
-
-
-    <div class="evolution-arrow">
-        →
-    </div>
-
-
-    <div class="evolution-column evolution-current">
-
-        <div class="evolution-label">
-            LUNARMATCH V2
-        </div>
-
-        <div class="evolution-item">
-            <span>01</span>
-            <p>
-                Server-side SIFT correspondence engine
-            </p>
-        </div>
-
-        <div class="evolution-item">
-            <span>02</span>
-            <p>
-                BF/L2 matching + Lowe filtering
-            </p>
-        </div>
-
-        <div class="evolution-item">
-            <span>03</span>
-            <p>
-                Homography + RANSAC verification
-            </p>
-        </div>
-
-        <div class="evolution-item">
-            <span>04</span>
-            <p>
-                Metadata-aware scientific validation
-            </p>
-        </div>
-
-        <div class="evolution-item">
-            <span>05</span>
-            <p>
-                Dedicated stress-testing workflow
-            </p>
-        </div>
-
-    </div>
-
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     SCIENTIFIC STACK
-========================================================= -->
 
-<section class="reveal">
+<section class="section section-alt">
+    <div class="container">
 
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            SCIENTIFIC STACK
+        <div class="section-header reveal">
+            <span class="section-eyebrow">WHAT MAKES IT DIFFERENT</span>
+            <h2 class="section-title">Evidence before assumption.</h2>
         </div>
 
-        <h2>
-            Multiple layers. One workflow.
-        </h2>
+        <div class="evidence-grid">
 
-    </div>
+            <div class="card evidence-card reveal">
+                <span class="evidence-number">01</span>
+                <h3>Correspondence</h3>
+                <p>
+                    Local image features are compared to identify candidate
+                    visual relationships between observations.
+                </p>
+            </div>
 
-</div>
+            <div class="card evidence-card reveal">
+                <span class="evidence-number">02</span>
+                <h3>Geometry</h3>
+                <p>
+                    RANSAC and homography estimation test whether the
+                    correspondence follows a consistent geometric relationship.
+                </p>
+            </div>
 
+            <div class="card evidence-card reveal">
+                <span class="evidence-number">03</span>
+                <h3>Validation</h3>
+                <p>
+                    Available metadata and reference information are examined
+                    separately from the computer-vision result.
+                </p>
+            </div>
 
-<div class="about-stack">
+            <div class="card evidence-card reveal">
+                <span class="evidence-number">04</span>
+                <h3>Localization</h3>
+                <p>
+                    Coordinates are displayed only when legitimate coordinate
+                    information is actually available. The system does not
+                    manufacture latitude or longitude.
+                </p>
+            </div>
 
-    <div class="stack-layer">
-
-        <div class="stack-index">
-            01
-        </div>
-
-        <div>
-            <strong>
-                IMAGE
-            </strong>
-
-            <p>
-                Raw observation and image-quality characteristics.
-            </p>
-        </div>
-
-    </div>
-
-
-    <div class="stack-line"></div>
-
-
-    <div class="stack-layer">
-
-        <div class="stack-index">
-            02
-        </div>
-
-        <div>
-            <strong>
-                FEATURES
-            </strong>
-
-            <p>
-                SIFT keypoints and descriptors.
-            </p>
         </div>
 
     </div>
-
-
-    <div class="stack-line"></div>
-
-
-    <div class="stack-layer">
-
-        <div class="stack-index">
-            03
-        </div>
-
-        <div>
-            <strong>
-                CORRESPONDENCE
-            </strong>
-
-            <p>
-                Descriptor matching with filtering and reciprocal checks.
-            </p>
-        </div>
-
-    </div>
-
-
-    <div class="stack-line"></div>
-
-
-    <div class="stack-layer">
-
-        <div class="stack-index">
-            04
-        </div>
-
-        <div>
-            <strong>
-                GEOMETRY
-            </strong>
-
-            <p>
-                Homography estimation and RANSAC-supported inliers.
-            </p>
-        </div>
-
-    </div>
-
-
-    <div class="stack-line"></div>
-
-
-    <div class="stack-layer">
-
-        <div class="stack-index">
-            05
-        </div>
-
-        <div>
-            <strong>
-                VALIDATION
-            </strong>
-
-            <p>
-                Mission, coordinate, projection and reference evidence.
-            </p>
-        </div>
-
-    </div>
-
-</div>
-```
-
 </section>
 
-<!-- =========================================================
-     MISSION CONTEXT
-========================================================= -->
 
-<section class="reveal">
-
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            MISSION-DATA CONTEXT
-        </div>
-
-        <h2>
-            Designed around real scientific evidence.
-        </h2>
-
-    </div>
-
-    <p class="section-intro">
-        LUNARMATCH can expose mission-related metadata when that
-        information is actually present or supplied by a trusted
-        reference source.
-    </p>
-
-</div>
-
-
-<div class="grid grid-3">
-
-    <article class="card mission-card">
-
-        <span class="mission-code">
-            OHRC
-        </span>
-
-        <h3>
-            Orbiter High Resolution Camera
-        </h3>
-
-        <p class="muted">
-            High-resolution lunar imaging context.
-        </p>
-
-    </article>
-
-
-    <article class="card mission-card">
-
-        <span class="mission-code">
-            TMC
-        </span>
-
-        <h3>
-            Terrain Mapping Camera
-        </h3>
-
-        <p class="muted">
-            Terrain and mapping observation context.
-        </p>
-
-    </article>
-
-
-    <article class="card mission-card">
-
-        <span class="mission-code">
-            IIRS
-        </span>
-
-        <h3>
-            Imaging Infrared Spectrometer
-        </h3>
-
-        <p class="muted">
-            Infrared and spectral observation context.
-        </p>
-
-    </article>
-
-</div>
-
-
-<div class="technical-callout wide">
-
-    <span>
-        EVIDENCE RULE
-    </span>
-
-    <strong>
-        Instrument identity is reported only when supported by
-        available metadata or reference evidence.
-    </strong>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     LOCALIZATION
-========================================================= -->
-
-<section class="split-section reveal">
-
-```
-<div class="split-copy">
-
-    <div class="eyebrow">
-        LOCALIZATION
-    </div>
-
-    <h2>
-        Coordinates are evidence,
-        not decoration.
-    </h2>
-
-    <p class="muted">
-        If an image contains valid latitude/longitude metadata,
-        or a legitimate reference source supplies calibrated
-        coordinates, LUNARMATCH can expose that information in
-        the validation layer.
-    </p>
-
-    <p class="muted">
-        If coordinates are unavailable, the platform explicitly
-        reports that limitation rather than generating or guessing
-        a location.
-    </p>
-
-</div>
-
-
-<div class="location-principle">
-
-    <div class="location-crosshair">
-
-        <span class="crosshair-horizontal"></span>
-        <span class="crosshair-vertical"></span>
-
-        <div class="crosshair-center">
-            ?
-        </div>
-
-    </div>
-
-
-    <div class="location-readout">
-
-        <span>
-            LATITUDE
-        </span>
-
-        <strong>
-            EVIDENCE-DEPENDENT
-        </strong>
-
-    </div>
-
-
-    <div class="location-readout">
-
-        <span>
-            LONGITUDE
-        </span>
-
-        <strong>
-            EVIDENCE-DEPENDENT
-        </strong>
-
-    </div>
-
-
-    <div class="location-readout">
-
-        <span>
-            REFERENCE
-        </span>
-
-        <strong>
-            VALIDATION REQUIRED
-        </strong>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     RESPONSIBLE SCIENCE
-========================================================= -->
-
-<section class="notice-card reveal">
-
-```
-<div class="notice-icon">
-    ✓
-</div>
-
-<div>
-
-    <div class="eyebrow">
-        RESPONSIBLE COMPUTATION
-    </div>
-
-    <h3>
-        A correspondence is not automatically a discovery.
-    </h3>
-
-    <p class="muted">
-        LUNARMATCH is designed to expose the evidence behind its
-        output. A strong computational correspondence can support
-        further investigation, but mission identity, coordinates
-        and ground truth require independent supporting evidence.
-    </p>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     RESEARCH ROADMAP
-========================================================= -->
-
-<section class="reveal">
-
-```
-<div class="section-head">
-
-    <div>
-
-        <div class="eyebrow">
-            FUTURE RESEARCH
-        </div>
-
-        <h2>
-            Where the platform can go next.
-        </h2>
-
-    </div>
-
-</div>
-
-
-<div class="roadmap">
-
-    <div class="roadmap-item">
-
-        <span>
-            NOW
-        </span>
-
-        <div>
-
-            <strong>
-                IMAGE CORRESPONDENCE
-            </strong>
-
-            <p>
-                SIFT, descriptor matching, geometric verification
-                and evidence scoring.
-            </p>
+<section class="section">
+    <div class="container">
+
+        <div class="card cta-panel reveal">
+
+            <div>
+                <span class="section-eyebrow">EXPLORE THE PLATFORM</span>
+                <h2>See how the analysis works.</h2>
+                <p>
+                    Run a correspondence experiment without creating an account,
+                    or create an account to access additional research features.
+                </p>
+            </div>
+
+            <div class="hero-actions">
+                <a href="{{ url_for('analyze_page') }}" class="btn btn-primary">
+                    Start Analysis
+                </a>
+
+                <a href="{{ url_for('science_page') }}" class="btn btn-secondary">
+                    Explore Methodology
+                </a>
+            </div>
 
         </div>
 
     </div>
-
-
-    <div class="roadmap-item">
-
-        <span>
-            NEXT
-        </span>
-
-        <div>
-
-            <strong>
-                REFERENCE DATA INTEGRATION
-            </strong>
-
-            <p>
-                Connect correspondence results with curated,
-                independently verified mission reference data.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <div class="roadmap-item">
-
-        <span>
-            FUTURE
-        </span>
-
-        <div>
-
-            <strong>
-                CALIBRATED LOCALIZATION
-            </strong>
-
-            <p>
-                Incorporate validated spatial models and
-                mission-specific geometry where appropriate.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <div class="roadmap-item">
-
-        <span>
-            RESEARCH
-        </span>
-
-        <div>
-
-            <strong>
-                MULTI-MODAL ANALYSIS
-            </strong>
-
-            <p>
-                Explore how optical, spectral and terrain information
-                can complement image correspondence.
-            </p>
-
-        </div>
-
-    </div>
-
-</div>
-```
-
-</section>
-
-<!-- =========================================================
-     FINAL CTA
-========================================================= -->
-
-<section class="cta-panel reveal">
-
-```
-<div>
-
-    <div class="eyebrow">
-        LUNARMATCH V2
-    </div>
-
-    <h2>
-        Compare the evidence.
-        Inspect the result.
-    </h2>
-
-    <p>
-        Move from visual correspondence to a transparent,
-        judge-ready validation workflow.
-    </p>
-
-</div>
-
-
-<div class="actions">
-
-    <a
-        class="btn"
-        href="/technology"
-    >
-        TECHNOLOGY
-    </a>
-
-    <a
-        class="btn primary"
-        href="/analyze"
-    >
-        OPEN ANALYZER →
-    </a>
-
-</div>
-```
-
 </section>
 
 {% endblock %}
+```
