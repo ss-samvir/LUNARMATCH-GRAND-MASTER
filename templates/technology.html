@@ -1,1 +1,950 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">05 · TECHNOLOGY</div><h1>Under the <span class="gradient">hood.</span></h1></div><div class="card"><h2>Current V2 engine</h2><p class="muted">SIFT feature detection and description → BFMatcher → Lowe's ratio test → reciprocal matching → RANSAC homography verification. The resulting score is a deterministic correspondence/reliability indicator, not a trained-model probability.</p></div><br><div class="grid"><div class="card"><h3>Interoperability</h3><p class="muted">V2 is designed to become standards-aware for planetary/geospatial imagery, with CRS/projection/datum fields preserved rather than guessed.</p></div><div class="card"><h3>Future standards</h3><p class="muted">OGC and relevant planetary data conventions will be integrated only where technically appropriate and documented.</p></div><div class="card"><h3>Architecture</h3><p class="muted">Flask API · OpenCV · SQLite · browser UI · result persistence.</p></div></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+LUNARMATCH V2 | Technology & Architecture
+{% endblock %}
+
+{% block content %}
+
+<section class="technology-page">
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <div class="pagehead technology-head">
+
+        <div class="eyebrow">
+            05 · TECHNOLOGY · SYSTEM ARCHITECTURE
+        </div>
+
+        <h1>
+            Under the
+            <span class="gradient">surface.</span>
+        </h1>
+
+        <p class="lead">
+            LunarMatch combines classical computer vision,
+            robust geometric estimation and mission-aware
+            validation into a transparent evidence pipeline.
+        </p>
+
+        <div class="technology-integrity">
+
+            <span>
+                <i class="status-dot"></i>
+                COMPUTATIONAL ENGINE ONLINE
+            </span>
+
+            <span>
+                SIFT
+            </span>
+
+            <span>
+                BF / L2
+            </span>
+
+            <span>
+                RANSAC
+            </span>
+
+            <span>
+                METADATA
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         ARCHITECTURE OVERVIEW
+    ========================================================== -->
+
+    <section class="architecture card">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    SYSTEM ARCHITECTURE
+                </div>
+
+                <h2>
+                    From pixels to
+                    <span class="gradient">evidence.</span>
+                </h2>
+
+            </div>
+
+            <span class="pipeline-status">
+                07 STAGES
+            </span>
+
+        </div>
+
+
+        <div class="architecture-flow">
+
+            <div class="architecture-node">
+
+                <span>01</span>
+
+                <strong>
+                    ACQUIRE
+                </strong>
+
+                <small>
+                    Image input
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node">
+
+                <span>02</span>
+
+                <strong>
+                    PREPROCESS
+                </strong>
+
+                <small>
+                    CLAHE + smoothing
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node highlight">
+
+                <span>03</span>
+
+                <strong>
+                    EXTRACT
+                </strong>
+
+                <small>
+                    SIFT features
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node">
+
+                <span>04</span>
+
+                <strong>
+                    MATCH
+                </strong>
+
+                <small>
+                    BF / L2 + Lowe
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node highlight">
+
+                <span>05</span>
+
+                <strong>
+                    VERIFY
+                </strong>
+
+                <small>
+                    RANSAC geometry
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node">
+
+                <span>06</span>
+
+                <strong>
+                    SCORE
+                </strong>
+
+                <small>
+                    Evidence model
+                </small>
+
+            </div>
+
+
+            <div class="architecture-connector">
+                →
+            </div>
+
+
+            <div class="architecture-node">
+
+                <span>07</span>
+
+                <strong>
+                    VALIDATE
+                </strong>
+
+                <small>
+                    Mission evidence
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         COMPUTER VISION
+    ========================================================== -->
+
+    <section class="technology-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    COMPUTER VISION ENGINE
+                </div>
+
+                <h2>
+                    Why these
+                    <span class="gradient">algorithms?</span>
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="technology-grid">
+
+            <!-- SIFT -->
+
+            <article class="tech-card card">
+
+                <div class="tech-number">
+                    01
+                </div>
+
+                <div class="tech-tag">
+                    FEATURE DETECTION
+                </div>
+
+                <h3>
+                    SIFT
+                </h3>
+
+                <p class="muted">
+                    Scale-Invariant Feature Transform identifies
+                    distinctive local structures while providing
+                    descriptors designed to remain useful under
+                    scale and orientation changes.
+                </p>
+
+                <div class="tech-specs">
+
+                    <div>
+                        <span>
+                            FEATURES
+                        </span>
+
+                        <strong>
+                            Up to 5,000
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            CONTRAST
+                        </span>
+
+                        <strong>
+                            0.018
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            EDGE
+                        </span>
+
+                        <strong>
+                            10
+                        </strong>
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- DESCRIPTOR -->
+
+            <article class="tech-card card">
+
+                <div class="tech-number">
+                    02
+                </div>
+
+                <div class="tech-tag">
+                    DESCRIPTOR
+                </div>
+
+                <h3>
+                    LOCAL DESCRIPTORS
+                </h3>
+
+                <p class="muted">
+                    SIFT descriptors represent local image structure
+                    numerically so that candidate correspondences
+                    can be compared rather than judged by visual
+                    appearance alone.
+                </p>
+
+                <div class="tech-specs">
+
+                    <div>
+                        <span>
+                            REPRESENTATION
+                        </span>
+
+                        <strong>
+                            Numerical
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            COMPARISON
+                        </span>
+
+                        <strong>
+                            L2 DISTANCE
+                        </strong>
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- BF -->
+
+            <article class="tech-card card">
+
+                <div class="tech-number">
+                    03
+                </div>
+
+                <div class="tech-tag">
+                    MATCHING
+                </div>
+
+                <h3>
+                    BF / L2
+                </h3>
+
+                <p class="muted">
+                    Brute-force descriptor matching compares candidate
+                    descriptors directly using Euclidean distance.
+                    The implementation then applies a Lowe ratio
+                    criterion and reciprocal consistency check.
+                </p>
+
+                <div class="tech-specs">
+
+                    <div>
+                        <span>
+                            DISTANCE
+                        </span>
+
+                        <strong>
+                            EUCLIDEAN
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            RATIO
+                        </span>
+
+                        <strong>
+                            0.76
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            FILTER
+                        </span>
+
+                        <strong>
+                            RECIPROCAL
+                        </strong>
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- RANSAC -->
+
+            <article class="tech-card card">
+
+                <div class="tech-number">
+                    04
+                </div>
+
+                <div class="tech-tag">
+                    GEOMETRIC VERIFICATION
+                </div>
+
+                <h3>
+                    RANSAC
+                </h3>
+
+                <p class="muted">
+                    Random Sample Consensus estimates a geometric
+                    relationship while rejecting correspondences
+                    that do not agree with the dominant transformation.
+                </p>
+
+                <div class="tech-specs">
+
+                    <div>
+                        <span>
+                            MODEL
+                        </span>
+
+                        <strong>
+                            HOMOGRAPHY
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            THRESHOLD
+                        </span>
+
+                        <strong>
+                            5 px
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            PURPOSE
+                        </span>
+
+                        <strong>
+                            OUTLIER REJECTION
+                        </strong>
+                    </div>
+
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         WHY NOT LLM
+    ========================================================== -->
+
+    <section class="comparison-section card">
+
+        <div class="comparison-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    DESIGN DECISION
+                </div>
+
+                <h2>
+                    Why not simply use
+                    <span class="gradient">an LLM?</span>
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="comparison-grid">
+
+            <div class="comparison-column">
+
+                <span class="comparison-label">
+                    LUNARMATCH
+                </span>
+
+                <h3>
+                    Measurable image evidence
+                </h3>
+
+                <ul>
+
+                    <li>
+                        Detects local visual features.
+                    </li>
+
+                    <li>
+                        Produces numerical descriptors.
+                    </li>
+
+                    <li>
+                        Measures candidate correspondences.
+                    </li>
+
+                    <li>
+                        Applies geometric verification.
+                    </li>
+
+                    <li>
+                        Exposes inliers and outliers.
+                    </li>
+
+                    <li>
+                        Can preserve machine-readable metadata.
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+            <div class="comparison-divider">
+                VS
+            </div>
+
+
+            <div class="comparison-column">
+
+                <span class="comparison-label">
+                    GENERAL LLM
+                </span>
+
+                <h3>
+                    Semantic reasoning
+                </h3>
+
+                <ul>
+
+                    <li>
+                        Excellent for language and explanation.
+                    </li>
+
+                    <li>
+                        Useful for documentation and interpretation.
+                    </li>
+
+                    <li>
+                        Not inherently a calibrated image
+                        correspondence engine.
+                    </li>
+
+                    <li>
+                        Does not replace geometric verification.
+                    </li>
+
+                    <li>
+                        Cannot manufacture ground truth from
+                        an unsupported image.
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+
+        <div class="comparison-note">
+
+            <strong>
+                DESIGN PRINCIPLE
+            </strong>
+
+            <p class="muted">
+                LunarMatch uses deterministic computer-vision
+                measurements for correspondence and can use
+                higher-level AI systems as complementary tools
+                for explanation, assistance or future extensions.
+                The two roles should not be conflated.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         OGC / STANDARDS
+    ========================================================== -->
+
+    <section class="standards-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    INTEROPERABILITY
+                </div>
+
+                <h2>
+                    Standards &
+                    <span class="gradient">data language.</span>
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="standards-grid">
+
+            <article class="standard-card card">
+
+                <div class="standard-code">
+                    OGC
+                </div>
+
+                <h3>
+                    Open Geospatial Consortium
+                </h3>
+
+                <p class="muted">
+                    OGC develops open standards for geospatial
+                    information and services. A production
+                    LunarMatch ecosystem can use compatible
+                    geospatial standards to exchange imagery,
+                    coordinates and spatial reference information.
+                </p>
+
+                <div class="standard-status">
+                    <span>
+                        ROLE
+                    </span>
+
+                    <strong>
+                        GEOSPATIAL INTEROPERABILITY
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <article class="standard-card card">
+
+                <div class="standard-code">
+                    CRS
+                </div>
+
+                <h3>
+                    Coordinate Reference System
+                </h3>
+
+                <p class="muted">
+                    Coordinates have meaning only within an
+                    appropriate reference system. LunarMatch
+                    therefore reports CRS, projection and datum
+                    information when it is available.
+                </p>
+
+                <div class="standard-status">
+                    <span>
+                        ROLE
+                    </span>
+
+                    <strong>
+                        SPATIAL CONTEXT
+                    </strong>
+                </div>
+
+            </article>
+
+
+            <article class="standard-card card">
+
+                <div class="standard-code">
+                    GEO
+                </div>
+
+                <h3>
+                    Geospatial Metadata
+                </h3>
+
+                <p class="muted">
+                    Acquisition information, image identifiers,
+                    instrument names and coordinate information can
+                    provide evidence beyond pixel-level matching.
+                </p>
+
+                <div class="standard-status">
+                    <span>
+                        ROLE
+                    </span>
+
+                    <strong>
+                        SOURCE VALIDATION
+                    </strong>
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         SCIENTIFIC VALIDATION
+    ========================================================== -->
+
+    <section class="validation-tech card">
+
+        <div>
+
+            <div class="eyebrow">
+                SCIENTIFIC VALIDATION
+            </div>
+
+            <h2>
+                Correspondence is only
+                <span class="gradient">one layer.</span>
+            </h2>
+
+            <p class="muted">
+                The platform keeps image-level evidence separate from
+                mission-level evidence. This prevents a mathematically
+                strong image match from being incorrectly presented as
+                absolute geographic truth.
+            </p>
+
+        </div>
+
+
+        <div class="validation-tech-grid">
+
+            <div>
+                <span>
+                    OHRC
+                </span>
+
+                <strong>
+                    Instrument evidence
+                </strong>
+
+                <small>
+                    Requires supporting metadata/reference evidence.
+                </small>
+            </div>
+
+
+            <div>
+                <span>
+                    TMC
+                </span>
+
+                <strong>
+                    Terrain mapping evidence
+                </strong>
+
+                <small>
+                    Requires supporting metadata/reference evidence.
+                </small>
+            </div>
+
+
+            <div>
+                <span>
+                    IIRS
+                </span>
+
+                <strong>
+                    Spectral evidence
+                </strong>
+
+                <small>
+                    Requires supporting metadata/reference evidence.
+                </small>
+            </div>
+
+
+            <div>
+                <span>
+                    LAT / LON
+                </span>
+
+                <strong>
+                    Coordinate evidence
+                </strong>
+
+                <small>
+                    Displayed only when genuinely supported.
+                </small>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ENGINE CONFIGURATION
+    ========================================================== -->
+
+    <section class="configuration-section">
+
+        <div class="section-mini-head">
+
+            <div>
+
+                <div class="eyebrow">
+                    ENGINE CONFIGURATION
+                </div>
+
+                <h2>
+                    Transparent
+                    <span class="gradient">parameters.</span>
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="configuration-grid">
+
+            <div class="config-item">
+                <span>MAX IMAGE DIMENSION</span>
+                <strong>1600 px</strong>
+            </div>
+
+            <div class="config-item">
+                <span>MAX SIFT FEATURES</span>
+                <strong>5000</strong>
+            </div>
+
+            <div class="config-item">
+                <span>LOWE RATIO</span>
+                <strong>0.76</strong>
+            </div>
+
+            <div class="config-item">
+                <span>RANSAC THRESHOLD</span>
+                <strong>5 px</strong>
+            </div>
+
+            <div class="config-item">
+                <span>PREPROCESSING</span>
+                <strong>CLAHE</strong>
+            </div>
+
+            <div class="config-item">
+                <span>MATCHER</span>
+                <strong>BF / L2</strong>
+            </div>
+
+            <div class="config-item">
+                <span>GEOMETRIC MODEL</span>
+                <strong>HOMOGRAPHY</strong>
+            </div>
+
+            <div class="config-item">
+                <span>VERIFICATION</span>
+                <strong>RANSAC</strong>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         FINAL PIPELINE
+    ========================================================== -->
+
+    <section class="final-pipeline">
+
+        <div class="eyebrow">
+            LUNARMATCH COMPUTATIONAL MODEL
+        </div>
+
+        <h2>
+            Pixels → Features →
+            <span class="gradient">
+                Correspondence → Geometry → Evidence.
+            </span>
+        </h2>
+
+        <p class="muted">
+            The system is designed so that every major conclusion
+            can be traced back to an observable computational or
+            metadata-based evidence source.
+        </p>
+
+        <div class="technology-actions">
+
+            <a href="/analyze"
+               class="btn primary">
+                RUN THE ENGINE →
+            </a>
+
+            <a href="/validation"
+               class="btn">
+                OPEN VALIDATION CENTER
+            </a>
+
+            <a href="/stress"
+               class="btn">
+                TEST ROBUSTNESS
+            </a>
+
+        </div>
+
+    </section>
+
+</section>
+
+{% endblock %}
