@@ -1,949 +1,1086 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block title %}
-LUNARMATCH V2 | Technology & Architecture
-{% endblock %}
+{% block title %}Technology · LUNARMATCH V2{% endblock %}
 
 {% block content %}
 
-<section class="technology-page">
+<section class="page-head reveal">
 
-    <!-- =========================================================
-         HEADER
-    ========================================================== -->
+```
+<div>
 
-    <div class="pagehead technology-head">
+    <div class="eyebrow">
+        SYSTEM ARCHITECTURE / TECHNICAL METHOD
+    </div>
+
+    <h1>
+        Under the
+        <span class="gradient">Engine.</span>
+    </h1>
+
+    <p class="lead">
+        LUNARMATCH combines classical computer vision, geometric
+        verification and metadata-aware validation into a transparent
+        processing pipeline.
+    </p>
+
+</div>
+
+<div class="page-head-status">
+    <span class="status-dot"></span>
+    PIPELINE SPECIFICATION
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     ARCHITECTURE
+========================================================= -->
+
+<section class="architecture-section reveal">
+
+```
+<div class="section-head">
+
+    <div>
 
         <div class="eyebrow">
-            05 · TECHNOLOGY · SYSTEM ARCHITECTURE
+            END-TO-END ARCHITECTURE
         </div>
 
-        <h1>
-            Under the
-            <span class="gradient">surface.</span>
-        </h1>
+        <h2>
+            From pixels to evidence.
+        </h2>
 
-        <p class="lead">
-            LunarMatch combines classical computer vision,
-            robust geometric estimation and mission-aware
-            validation into a transparent evidence pipeline.
-        </p>
+    </div>
 
-        <div class="technology-integrity">
+    <p class="section-intro">
+        Each stage produces an observable intermediate output.
+        This makes the system easier to inspect, reproduce and
+        explain during evaluation.
+    </p>
 
-            <span>
-                <i class="status-dot"></i>
-                COMPUTATIONAL ENGINE ONLINE
-            </span>
+</div>
 
-            <span>
-                SIFT
-            </span>
 
-            <span>
-                BF / L2
-            </span>
+<div class="architecture-flow">
 
-            <span>
-                RANSAC
-            </span>
+    <div class="architecture-node">
 
-            <span>
-                METADATA
-            </span>
+        <span>01</span>
 
-        </div>
+        <strong>
+            ACQUIRE
+        </strong>
+
+        <small>
+            Images + available metadata
+        </small>
 
     </div>
 
 
-    <!-- =========================================================
-         ARCHITECTURE OVERVIEW
-    ========================================================== -->
+    <div class="architecture-connector">
+        →
+    </div>
 
-    <section class="architecture card">
 
-        <div class="section-mini-head">
+    <div class="architecture-node">
 
-            <div>
+        <span>02</span>
 
-                <div class="eyebrow">
-                    SYSTEM ARCHITECTURE
-                </div>
+        <strong>
+            PREPROCESS
+        </strong>
 
-                <h2>
-                    From pixels to
-                    <span class="gradient">evidence.</span>
-                </h2>
+        <small>
+            Resize + CLAHE + smoothing
+        </small>
 
-            </div>
+    </div>
 
-            <span class="pipeline-status">
-                07 STAGES
-            </span>
 
-        </div>
+    <div class="architecture-connector">
+        →
+    </div>
 
 
-        <div class="architecture-flow">
+    <div class="architecture-node">
 
-            <div class="architecture-node">
+        <span>03</span>
 
-                <span>01</span>
+        <strong>
+            EXTRACT
+        </strong>
 
-                <strong>
-                    ACQUIRE
-                </strong>
+        <small>
+            SIFT keypoints
+        </small>
 
-                <small>
-                    Image input
-                </small>
+    </div>
 
-            </div>
 
+    <div class="architecture-connector">
+        →
+    </div>
 
-            <div class="architecture-connector">
-                →
-            </div>
 
+    <div class="architecture-node">
 
-            <div class="architecture-node">
+        <span>04</span>
 
-                <span>02</span>
+        <strong>
+            MATCH
+        </strong>
 
-                <strong>
-                    PREPROCESS
-                </strong>
+        <small>
+            BF / L2 + Lowe ratio
+        </small>
 
-                <small>
-                    CLAHE + smoothing
-                </small>
+    </div>
 
-            </div>
 
+    <div class="architecture-connector">
+        →
+    </div>
 
-            <div class="architecture-connector">
-                →
-            </div>
 
+    <div class="architecture-node">
 
-            <div class="architecture-node highlight">
+        <span>05</span>
 
-                <span>03</span>
+        <strong>
+            VERIFY
+        </strong>
 
-                <strong>
-                    EXTRACT
-                </strong>
+        <small>
+            Homography + RANSAC
+        </small>
 
-                <small>
-                    SIFT features
-                </small>
+    </div>
 
-            </div>
 
+    <div class="architecture-connector">
+        →
+    </div>
 
-            <div class="architecture-connector">
-                →
-            </div>
 
+    <div class="architecture-node">
 
-            <div class="architecture-node">
+        <span>06</span>
 
-                <span>04</span>
+        <strong>
+            SCORE
+        </strong>
 
-                <strong>
-                    MATCH
-                </strong>
+        <small>
+            Evidence indicators
+        </small>
 
-                <small>
-                    BF / L2 + Lowe
-                </small>
+    </div>
 
-            </div>
 
+    <div class="architecture-connector">
+        →
+    </div>
 
-            <div class="architecture-connector">
-                →
-            </div>
 
+    <div class="architecture-node">
 
-            <div class="architecture-node highlight">
+        <span>07</span>
 
-                <span>05</span>
+        <strong>
+            VALIDATE
+        </strong>
 
-                <strong>
-                    VERIFY
-                </strong>
+        <small>
+            Metadata + references
+        </small>
 
-                <small>
-                    RANSAC geometry
-                </small>
+    </div>
 
-            </div>
+</div>
+```
 
+</section>
 
-            <div class="architecture-connector">
-                →
-            </div>
+<!-- =========================================================
+     WHY CLASSICAL COMPUTER VISION
+========================================================= -->
 
+<section class="split-section reveal">
 
-            <div class="architecture-node">
+```
+<div class="split-copy">
 
-                <span>06</span>
+    <div class="eyebrow">
+        DESIGN CHOICE
+    </div>
 
-                <strong>
-                    SCORE
-                </strong>
+    <h2>
+        Why computer vision instead of an LLM?
+    </h2>
 
-                <small>
-                    Evidence model
-                </small>
+    <p class="muted">
+        The central problem is geometric image correspondence.
+        It requires measurable relationships between image features,
+        not natural-language interpretation.
+    </p>
 
-            </div>
+    <p class="muted">
+        LUNARMATCH therefore uses deterministic computer-vision
+        operations for the correspondence pipeline and reserves
+        language-based explanation for the human-facing interface.
+    </p>
 
+</div>
 
-            <div class="architecture-connector">
-                →
-            </div>
 
+<div class="comparison-card">
 
-            <div class="architecture-node">
+    <div class="comparison-row comparison-head">
 
-                <span>07</span>
+        <span>
+            TASK
+        </span>
 
-                <strong>
-                    VALIDATE
-                </strong>
+        <span>
+            LUNARMATCH APPROACH
+        </span>
 
-                <small>
-                    Mission evidence
-                </small>
+    </div>
 
-            </div>
 
-        </div>
+    <div class="comparison-row">
 
-    </section>
+        <span>
+            Feature detection
+        </span>
 
+        <strong>
+            SIFT
+        </strong>
 
-    <!-- =========================================================
-         COMPUTER VISION
-    ========================================================== -->
+    </div>
 
-    <section class="technology-section">
 
-        <div class="section-mini-head">
+    <div class="comparison-row">
 
-            <div>
+        <span>
+            Descriptor comparison
+        </span>
 
-                <div class="eyebrow">
-                    COMPUTER VISION ENGINE
-                </div>
+        <strong>
+            BF / L2
+        </strong>
 
-                <h2>
-                    Why these
-                    <span class="gradient">algorithms?</span>
-                </h2>
+    </div>
 
-            </div>
 
-        </div>
+    <div class="comparison-row">
 
+        <span>
+            Match filtering
+        </span>
 
-        <div class="technology-grid">
+        <strong>
+            Lowe ratio + reciprocal check
+        </strong>
 
-            <!-- SIFT -->
+    </div>
 
-            <article class="tech-card card">
 
-                <div class="tech-number">
-                    01
-                </div>
+    <div class="comparison-row">
 
-                <div class="tech-tag">
-                    FEATURE DETECTION
-                </div>
+        <span>
+            Geometric verification
+        </span>
 
-                <h3>
-                    SIFT
-                </h3>
+        <strong>
+            Homography + RANSAC
+        </strong>
 
-                <p class="muted">
-                    Scale-Invariant Feature Transform identifies
-                    distinctive local structures while providing
-                    descriptors designed to remain useful under
-                    scale and orientation changes.
-                </p>
+    </div>
 
-                <div class="tech-specs">
 
-                    <div>
-                        <span>
-                            FEATURES
-                        </span>
+    <div class="comparison-row">
 
-                        <strong>
-                            Up to 5,000
-                        </strong>
-                    </div>
+        <span>
+            Scientific validation
+        </span>
 
-                    <div>
-                        <span>
-                            CONTRAST
-                        </span>
+        <strong>
+            Metadata / reference evidence
+        </strong>
 
-                        <strong>
-                            0.018
-                        </strong>
-                    </div>
+    </div>
 
-                    <div>
-                        <span>
-                            EDGE
-                        </span>
+</div>
+```
 
-                        <strong>
-                            10
-                        </strong>
-                    </div>
+</section>
 
-                </div>
+<!-- =========================================================
+     FEATURE EXTRACTION
+========================================================= -->
 
-            </article>
+<section class="reveal">
 
+```
+<div class="section-head">
 
-            <!-- DESCRIPTOR -->
-
-            <article class="tech-card card">
-
-                <div class="tech-number">
-                    02
-                </div>
-
-                <div class="tech-tag">
-                    DESCRIPTOR
-                </div>
-
-                <h3>
-                    LOCAL DESCRIPTORS
-                </h3>
-
-                <p class="muted">
-                    SIFT descriptors represent local image structure
-                    numerically so that candidate correspondences
-                    can be compared rather than judged by visual
-                    appearance alone.
-                </p>
-
-                <div class="tech-specs">
-
-                    <div>
-                        <span>
-                            REPRESENTATION
-                        </span>
-
-                        <strong>
-                            Numerical
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>
-                            COMPARISON
-                        </span>
-
-                        <strong>
-                            L2 DISTANCE
-                        </strong>
-                    </div>
-
-                </div>
-
-            </article>
-
-
-            <!-- BF -->
-
-            <article class="tech-card card">
-
-                <div class="tech-number">
-                    03
-                </div>
-
-                <div class="tech-tag">
-                    MATCHING
-                </div>
-
-                <h3>
-                    BF / L2
-                </h3>
-
-                <p class="muted">
-                    Brute-force descriptor matching compares candidate
-                    descriptors directly using Euclidean distance.
-                    The implementation then applies a Lowe ratio
-                    criterion and reciprocal consistency check.
-                </p>
-
-                <div class="tech-specs">
-
-                    <div>
-                        <span>
-                            DISTANCE
-                        </span>
-
-                        <strong>
-                            EUCLIDEAN
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>
-                            RATIO
-                        </span>
-
-                        <strong>
-                            0.76
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>
-                            FILTER
-                        </span>
-
-                        <strong>
-                            RECIPROCAL
-                        </strong>
-                    </div>
-
-                </div>
-
-            </article>
-
-
-            <!-- RANSAC -->
-
-            <article class="tech-card card">
-
-                <div class="tech-number">
-                    04
-                </div>
-
-                <div class="tech-tag">
-                    GEOMETRIC VERIFICATION
-                </div>
-
-                <h3>
-                    RANSAC
-                </h3>
-
-                <p class="muted">
-                    Random Sample Consensus estimates a geometric
-                    relationship while rejecting correspondences
-                    that do not agree with the dominant transformation.
-                </p>
-
-                <div class="tech-specs">
-
-                    <div>
-                        <span>
-                            MODEL
-                        </span>
-
-                        <strong>
-                            HOMOGRAPHY
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>
-                            THRESHOLD
-                        </span>
-
-                        <strong>
-                            5 px
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>
-                            PURPOSE
-                        </span>
-
-                        <strong>
-                            OUTLIER REJECTION
-                        </strong>
-                    </div>
-
-                </div>
-
-            </article>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================================================
-         WHY NOT LLM
-    ========================================================== -->
-
-    <section class="comparison-section card">
-
-        <div class="comparison-head">
-
-            <div>
-
-                <div class="eyebrow">
-                    DESIGN DECISION
-                </div>
-
-                <h2>
-                    Why not simply use
-                    <span class="gradient">an LLM?</span>
-                </h2>
-
-            </div>
-
-        </div>
-
-
-        <div class="comparison-grid">
-
-            <div class="comparison-column">
-
-                <span class="comparison-label">
-                    LUNARMATCH
-                </span>
-
-                <h3>
-                    Measurable image evidence
-                </h3>
-
-                <ul>
-
-                    <li>
-                        Detects local visual features.
-                    </li>
-
-                    <li>
-                        Produces numerical descriptors.
-                    </li>
-
-                    <li>
-                        Measures candidate correspondences.
-                    </li>
-
-                    <li>
-                        Applies geometric verification.
-                    </li>
-
-                    <li>
-                        Exposes inliers and outliers.
-                    </li>
-
-                    <li>
-                        Can preserve machine-readable metadata.
-                    </li>
-
-                </ul>
-
-            </div>
-
-
-            <div class="comparison-divider">
-                VS
-            </div>
-
-
-            <div class="comparison-column">
-
-                <span class="comparison-label">
-                    GENERAL LLM
-                </span>
-
-                <h3>
-                    Semantic reasoning
-                </h3>
-
-                <ul>
-
-                    <li>
-                        Excellent for language and explanation.
-                    </li>
-
-                    <li>
-                        Useful for documentation and interpretation.
-                    </li>
-
-                    <li>
-                        Not inherently a calibrated image
-                        correspondence engine.
-                    </li>
-
-                    <li>
-                        Does not replace geometric verification.
-                    </li>
-
-                    <li>
-                        Cannot manufacture ground truth from
-                        an unsupported image.
-                    </li>
-
-                </ul>
-
-            </div>
-
-        </div>
-
-
-        <div class="comparison-note">
-
-            <strong>
-                DESIGN PRINCIPLE
-            </strong>
-
-            <p class="muted">
-                LunarMatch uses deterministic computer-vision
-                measurements for correspondence and can use
-                higher-level AI systems as complementary tools
-                for explanation, assistance or future extensions.
-                The two roles should not be conflated.
-            </p>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================================================
-         OGC / STANDARDS
-    ========================================================== -->
-
-    <section class="standards-section">
-
-        <div class="section-mini-head">
-
-            <div>
-
-                <div class="eyebrow">
-                    INTEROPERABILITY
-                </div>
-
-                <h2>
-                    Standards &
-                    <span class="gradient">data language.</span>
-                </h2>
-
-            </div>
-
-        </div>
-
-
-        <div class="standards-grid">
-
-            <article class="standard-card card">
-
-                <div class="standard-code">
-                    OGC
-                </div>
-
-                <h3>
-                    Open Geospatial Consortium
-                </h3>
-
-                <p class="muted">
-                    OGC develops open standards for geospatial
-                    information and services. A production
-                    LunarMatch ecosystem can use compatible
-                    geospatial standards to exchange imagery,
-                    coordinates and spatial reference information.
-                </p>
-
-                <div class="standard-status">
-                    <span>
-                        ROLE
-                    </span>
-
-                    <strong>
-                        GEOSPATIAL INTEROPERABILITY
-                    </strong>
-                </div>
-
-            </article>
-
-
-            <article class="standard-card card">
-
-                <div class="standard-code">
-                    CRS
-                </div>
-
-                <h3>
-                    Coordinate Reference System
-                </h3>
-
-                <p class="muted">
-                    Coordinates have meaning only within an
-                    appropriate reference system. LunarMatch
-                    therefore reports CRS, projection and datum
-                    information when it is available.
-                </p>
-
-                <div class="standard-status">
-                    <span>
-                        ROLE
-                    </span>
-
-                    <strong>
-                        SPATIAL CONTEXT
-                    </strong>
-                </div>
-
-            </article>
-
-
-            <article class="standard-card card">
-
-                <div class="standard-code">
-                    GEO
-                </div>
-
-                <h3>
-                    Geospatial Metadata
-                </h3>
-
-                <p class="muted">
-                    Acquisition information, image identifiers,
-                    instrument names and coordinate information can
-                    provide evidence beyond pixel-level matching.
-                </p>
-
-                <div class="standard-status">
-                    <span>
-                        ROLE
-                    </span>
-
-                    <strong>
-                        SOURCE VALIDATION
-                    </strong>
-                </div>
-
-            </article>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================================================
-         SCIENTIFIC VALIDATION
-    ========================================================== -->
-
-    <section class="validation-tech card">
-
-        <div>
-
-            <div class="eyebrow">
-                SCIENTIFIC VALIDATION
-            </div>
-
-            <h2>
-                Correspondence is only
-                <span class="gradient">one layer.</span>
-            </h2>
-
-            <p class="muted">
-                The platform keeps image-level evidence separate from
-                mission-level evidence. This prevents a mathematically
-                strong image match from being incorrectly presented as
-                absolute geographic truth.
-            </p>
-
-        </div>
-
-
-        <div class="validation-tech-grid">
-
-            <div>
-                <span>
-                    OHRC
-                </span>
-
-                <strong>
-                    Instrument evidence
-                </strong>
-
-                <small>
-                    Requires supporting metadata/reference evidence.
-                </small>
-            </div>
-
-
-            <div>
-                <span>
-                    TMC
-                </span>
-
-                <strong>
-                    Terrain mapping evidence
-                </strong>
-
-                <small>
-                    Requires supporting metadata/reference evidence.
-                </small>
-            </div>
-
-
-            <div>
-                <span>
-                    IIRS
-                </span>
-
-                <strong>
-                    Spectral evidence
-                </strong>
-
-                <small>
-                    Requires supporting metadata/reference evidence.
-                </small>
-            </div>
-
-
-            <div>
-                <span>
-                    LAT / LON
-                </span>
-
-                <strong>
-                    Coordinate evidence
-                </strong>
-
-                <small>
-                    Displayed only when genuinely supported.
-                </small>
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================================================
-         ENGINE CONFIGURATION
-    ========================================================== -->
-
-    <section class="configuration-section">
-
-        <div class="section-mini-head">
-
-            <div>
-
-                <div class="eyebrow">
-                    ENGINE CONFIGURATION
-                </div>
-
-                <h2>
-                    Transparent
-                    <span class="gradient">parameters.</span>
-                </h2>
-
-            </div>
-
-        </div>
-
-
-        <div class="configuration-grid">
-
-            <div class="config-item">
-                <span>MAX IMAGE DIMENSION</span>
-                <strong>1600 px</strong>
-            </div>
-
-            <div class="config-item">
-                <span>MAX SIFT FEATURES</span>
-                <strong>5000</strong>
-            </div>
-
-            <div class="config-item">
-                <span>LOWE RATIO</span>
-                <strong>0.76</strong>
-            </div>
-
-            <div class="config-item">
-                <span>RANSAC THRESHOLD</span>
-                <strong>5 px</strong>
-            </div>
-
-            <div class="config-item">
-                <span>PREPROCESSING</span>
-                <strong>CLAHE</strong>
-            </div>
-
-            <div class="config-item">
-                <span>MATCHER</span>
-                <strong>BF / L2</strong>
-            </div>
-
-            <div class="config-item">
-                <span>GEOMETRIC MODEL</span>
-                <strong>HOMOGRAPHY</strong>
-            </div>
-
-            <div class="config-item">
-                <span>VERIFICATION</span>
-                <strong>RANSAC</strong>
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================================================
-         FINAL PIPELINE
-    ========================================================== -->
-
-    <section class="final-pipeline">
+    <div>
 
         <div class="eyebrow">
-            LUNARMATCH COMPUTATIONAL MODEL
+            STAGE 03
         </div>
 
         <h2>
-            Pixels → Features →
-            <span class="gradient">
-                Correspondence → Geometry → Evidence.
-            </span>
+            SIFT feature extraction
         </h2>
 
-        <p class="muted">
-            The system is designed so that every major conclusion
-            can be traced back to an observable computational or
-            metadata-based evidence source.
-        </p>
+    </div>
 
-        <div class="technology-actions">
+    <span class="tech-stage">
+        LOCAL FEATURES
+    </span>
 
-            <a href="/analyze"
-               class="btn primary">
-                RUN THE ENGINE →
-            </a>
+</div>
 
-            <a href="/validation"
-               class="btn">
-                OPEN VALIDATION CENTER
-            </a>
 
-            <a href="/stress"
-               class="btn">
-                TEST ROBUSTNESS
-            </a>
+<div class="tech-detail-grid">
 
+    <article class="card">
+
+        <div class="tech-number">
+            01
         </div>
 
-    </section>
+        <h3>
+            KEYPOINTS
+        </h3>
+
+        <p class="muted">
+            SIFT identifies distinctive local image structures and
+            represents their positions and scales.
+        </p>
+
+    </article>
+
+
+    <article class="card">
+
+        <div class="tech-number">
+            02
+        </div>
+
+        <h3>
+            DESCRIPTORS
+        </h3>
+
+        <p class="muted">
+            Each detected feature is represented by a descriptor that
+            can be compared against features in another observation.
+        </p>
+
+    </article>
+
+
+    <article class="card">
+
+        <div class="tech-number">
+            03
+        </div>
+
+        <h3>
+            SCALE AWARENESS
+        </h3>
+
+        <p class="muted">
+            SIFT is designed to maintain useful local feature
+            representations across changes in image scale and
+            orientation.
+        </p>
+
+    </article>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     MATCHING
+========================================================= -->
+
+<section class="tech-dark-section reveal">
+
+```
+<div class="eyebrow">
+    STAGE 04
+</div>
+
+<h2>
+    Matching is filtered twice.
+</h2>
+
+<p class="tech-dark-lead">
+    A descriptor being close to another descriptor is not sufficient.
+    LUNARMATCH applies multiple consistency checks before geometric
+    verification.
+</p>
+
+
+<div class="tech-formula">
+
+    <div>
+        <span>DESCRIPTOR A</span>
+        <strong>↔</strong>
+        <span>DESCRIPTOR B</span>
+    </div>
+
+    <div class="formula-arrow">
+        ↓
+    </div>
+
+    <div>
+        <span>LOWE RATIO</span>
+    </div>
+
+    <div class="formula-arrow">
+        ↓
+    </div>
+
+    <div>
+        <span>RECIPROCAL CONSISTENCY</span>
+    </div>
+
+    <div class="formula-arrow">
+        ↓
+    </div>
+
+    <div class="formula-result">
+        CANDIDATE CORRESPONDENCE
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     RANSAC
+========================================================= -->
+
+<section class="split-section reveal">
+
+```
+<div class="geometry-visual">
+
+    <div class="geometry-grid"></div>
+
+    <div class="geometry-point p1"></div>
+    <div class="geometry-point p2"></div>
+    <div class="geometry-point p3"></div>
+    <div class="geometry-point p4"></div>
+    <div class="geometry-point p5"></div>
+
+    <div class="geometry-line line1"></div>
+    <div class="geometry-line line2"></div>
+    <div class="geometry-line line3"></div>
+
+    <span class="geometry-label">
+        GEOMETRIC CONSISTENCY
+    </span>
+
+</div>
+
+
+<div class="split-copy">
+
+    <div class="eyebrow">
+        STAGE 05
+    </div>
+
+    <h2>
+        RANSAC asks whether
+        the matches agree.
+    </h2>
+
+    <p class="muted">
+        Descriptor similarity can contain false positives.
+        RANSAC estimates a geometric transformation from candidate
+        correspondences while rejecting points that do not agree
+        with the model.
+    </p>
+
+    <div class="technical-callout">
+
+        <span>
+            CURRENT CONFIGURATION
+        </span>
+
+        <strong>
+            RANSAC THRESHOLD · 5 PX
+        </strong>
+
+    </div>
+
+    <p class="muted">
+        The resulting inlier set provides a stronger geometric
+        indicator than raw descriptor matches alone.
+    </p>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     CONFIGURATION
+========================================================= -->
+
+<section class="reveal">
+
+```
+<div class="section-head">
+
+    <div>
+
+        <div class="eyebrow">
+            ENGINE CONFIGURATION
+        </div>
+
+        <h2>
+            Reproducible parameters.
+        </h2>
+
+    </div>
+
+    <p class="section-intro">
+        The following parameters define the current V2 processing
+        configuration.
+    </p>
+
+</div>
+
+
+<div class="configuration-table">
+
+    <div class="config-row config-head">
+
+        <span>
+            PARAMETER
+        </span>
+
+        <span>
+            VALUE
+        </span>
+
+        <span>
+            PURPOSE
+        </span>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            MAX IMAGE DIMENSION
+        </span>
+
+        <strong>
+            1600 PX
+        </strong>
+
+        <small>
+            Controls processing size and resource use
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            MAX SIFT FEATURES
+        </span>
+
+        <strong>
+            5000
+        </strong>
+
+        <small>
+            Upper feature extraction limit
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            SIFT CONTRAST THRESHOLD
+        </span>
+
+        <strong>
+            0.018
+        </strong>
+
+        <small>
+            Controls low-contrast feature response
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            SIFT EDGE THRESHOLD
+        </span>
+
+        <strong>
+            10
+        </strong>
+
+        <small>
+            Suppresses unstable edge responses
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            LOWE RATIO
+        </span>
+
+        <strong>
+            0.76
+        </strong>
+
+        <small>
+            Candidate descriptor filtering
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            RANSAC THRESHOLD
+        </span>
+
+        <strong>
+            5.0 PX
+        </strong>
+
+        <small>
+            Geometric inlier tolerance
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            PREPROCESSING
+        </span>
+
+        <strong>
+            CLAHE
+        </strong>
+
+        <small>
+            Local contrast enhancement
+        </small>
+
+    </div>
+
+
+    <div class="config-row">
+
+        <span>
+            DESCRIPTOR DISTANCE
+        </span>
+
+        <strong>
+            L2
+        </strong>
+
+        <small>
+            SIFT descriptor distance
+        </small>
+
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     GEO / OGC / CRS
+========================================================= -->
+
+<section class="reveal">
+
+```
+<div class="section-head">
+
+    <div>
+
+        <div class="eyebrow">
+            GEOSPATIAL INTEROPERABILITY
+        </div>
+
+        <h2>
+            Where do CRS and OGC fit?
+        </h2>
+
+    </div>
+
+    <p class="section-intro">
+        Spatial metadata is useful only when the image or reference
+        source actually provides it. The system therefore reports
+        spatial-reference information rather than assuming it.
+    </p>
+
+</div>
+
+
+<div class="grid grid-3">
+
+    <article class="card standard-card">
+
+        <span class="standard-code">
+            CRS
+        </span>
+
+        <h3>
+            Coordinate Reference System
+        </h3>
+
+        <p class="muted">
+            Defines how spatial coordinates are represented and
+            interpreted.
+        </p>
+
+    </article>
+
+
+    <article class="card standard-card">
+
+        <span class="standard-code">
+            OGC
+        </span>
+
+        <h3>
+            Open Geospatial Consortium
+        </h3>
+
+        <p class="muted">
+            Provides widely used geospatial standards and interfaces.
+            LUNARMATCH treats OGC terminology as an interoperability
+            context rather than claiming certification.
+        </p>
+
+    </article>
+
+
+    <article class="card standard-card">
+
+        <span class="standard-code">
+            GEO
+        </span>
+
+        <h3>
+            Projection + Datum
+        </h3>
+
+        <p class="muted">
+            Additional spatial-reference information can determine
+            how reported coordinates should be interpreted.
+        </p>
+
+    </article>
+
+</div>
+
+
+<div class="technical-callout wide">
+
+    <span>
+        IMPORTANT
+    </span>
+
+    <strong>
+        OGC terminology does not by itself prove that an image
+        has valid coordinates.
+    </strong>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     SCIENTIFIC VALIDATION
+========================================================= -->
+
+<section class="validation-method reveal">
+
+```
+<div>
+
+    <div class="eyebrow">
+        VALIDATION MODEL
+    </div>
+
+    <h2>
+        Four evidence layers.
+    </h2>
+
+</div>
+
+
+<div class="validation-method-grid">
+
+    <div>
+
+        <span>01</span>
+
+        <strong>
+            COMPUTATIONAL
+        </strong>
+
+        <p>
+            Feature and descriptor correspondence.
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <span>02</span>
+
+        <strong>
+            GEOMETRIC
+        </strong>
+
+        <p>
+            RANSAC-supported spatial consistency.
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <span>03</span>
+
+        <strong>
+            METADATA
+        </strong>
+
+        <p>
+            Mission, instrument and image information.
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <span>04</span>
+
+        <strong>
+            REFERENCE
+        </strong>
+
+        <p>
+            Independent ground truth or legitimate reference data,
+            when available.
+        </p>
+
+    </div>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     PAYLOAD CONTEXT
+========================================================= -->
+
+<section class="reveal">
+
+```
+<div class="section-head">
+
+    <div>
+
+        <div class="eyebrow">
+            CHANDRAYAAN DATA CONTEXT
+        </div>
+
+        <h2>
+            OHRC · TMC · IIRS
+        </h2>
+
+    </div>
+
+    <p class="section-intro">
+        These instruments are represented in the validation layer
+        as possible mission-data contexts. Identity must be supported
+        by metadata or reference evidence.
+    </p>
+
+</div>
+
+
+<div class="grid grid-3">
+
+    <article class="card payload-card">
+
+        <span class="payload-code">
+            OHRC
+        </span>
+
+        <h3>
+            Orbiter High Resolution Camera
+        </h3>
+
+        <p class="muted">
+            High-resolution orbital imaging context.
+        </p>
+
+        <span class="payload-status">
+            METADATA DEPENDENT
+        </span>
+
+    </article>
+
+
+    <article class="card payload-card">
+
+        <span class="payload-code">
+            TMC
+        </span>
+
+        <h3>
+            Terrain Mapping Camera
+        </h3>
+
+        <p class="muted">
+            Terrain and mapping observation context.
+        </p>
+
+        <span class="payload-status">
+            METADATA DEPENDENT
+        </span>
+
+    </article>
+
+
+    <article class="card payload-card">
+
+        <span class="payload-code">
+            IIRS
+        </span>
+
+        <h3>
+            Imaging Infrared Spectrometer
+        </h3>
+
+        <p class="muted">
+            Infrared and spectral observation context.
+        </p>
+
+        <span class="payload-status">
+            METADATA DEPENDENT
+        </span>
+
+    </article>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     LIMITATIONS
+========================================================= -->
+
+<section class="notice-card reveal">
+
+```
+<div class="notice-icon">
+    !
+</div>
+
+<div>
+
+    <div class="eyebrow">
+        TECHNICAL LIMITATION
+    </div>
+
+    <h3>
+        What the engine does not claim.
+    </h3>
+
+    <p class="muted">
+        A high correspondence score does not independently prove
+        lunar coordinates, mission identity or ground-truth accuracy.
+        Those claims require supporting metadata, calibration or
+        independent reference information.
+    </p>
+
+</div>
+```
+
+</section>
+
+<!-- =========================================================
+     NAVIGATION
+========================================================= -->
+
+<section class="page-navigation reveal">
+
+```
+<a
+    class="btn"
+    href="/validation"
+>
+    ← VALIDATION
+</a>
+
+<div class="actions">
+
+    <a
+        class="btn"
+        href="/stress"
+    >
+        STRESS LAB
+    </a>
+
+    <a
+        class="btn primary"
+        href="/analyze"
+    >
+        RUN ANALYSIS →
+    </a>
+
+</div>
+```
 
 </section>
 
