@@ -2621,3 +2621,48 @@ body.lm-leaving #page-transition .transition-line {
   }
 
 }
+/* =========================================================
+   FIX — VISIBLE SLOW LUNAR ROTATION
+   ========================================================= */
+
+.hero-visual .moon-surface {
+  animation: lunar-real-rotation 42s linear infinite !important;
+  transform-origin: center center;
+  backface-visibility: visible;
+  will-change: transform;
+}
+
+@keyframes lunar-real-rotation {
+  0% {
+    transform: rotateY(0deg) rotateZ(0deg) scale(1.01);
+  }
+
+  25% {
+    transform: rotateY(90deg) rotateZ(.15deg) scale(1.015);
+  }
+
+  50% {
+    transform: rotateY(180deg) rotateZ(0deg) scale(1.01);
+  }
+
+  75% {
+    transform: rotateY(270deg) rotateZ(-.15deg) scale(1.015);
+  }
+
+  100% {
+    transform: rotateY(360deg) rotateZ(0deg) scale(1.01);
+  }
+}
+.hero-visual .planet-stage {
+  perspective: 1000px;
+  perspective-origin: 50% 50%;
+}
+
+.hero-visual .moon {
+  transform-style: preserve-3d;
+  isolation: isolate;
+}
+
+.hero-visual .moon-surface {
+  transform-style: preserve-3d;
+}
