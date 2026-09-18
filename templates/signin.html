@@ -1,1 +1,126 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">ACCOUNT</div><h1>Sign <span class="gradient">In</span></h1></div><form class="form card" data-auth="/api/signin"><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" required><button class="btn primary">SIGN IN</button><p id="msg" class="muted"></p><p class="muted">New researcher? <a href="/signup">Create an account.</a></p></form>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · Sign In{% endblock %}
+
+{% block content %}
+
+<section class="signin-page">
+
+  <div class="signin-shell reveal">
+
+    <!-- LEFT -->
+    <div class="signin-intro">
+
+      <div class="signin-kicker">
+        <span class="status-dot"></span>
+        LUNARMATCH / SECURE ACCESS
+      </div>
+
+      <h1>Welcome<br><span class="gradient">back.</span></h1>
+
+      <p>
+        Access your LUNARMATCH workspace and continue planetary
+        image analysis, correspondence and validation workflows.
+      </p>
+
+      <div class="signin-readout">
+
+        <div>
+          <span>PLATFORM</span>
+          <strong>LUNARMATCH V2</strong>
+        </div>
+
+        <div>
+          <span>ACCESS</span>
+          <strong>RESEARCHER</strong>
+        </div>
+
+        <div>
+          <span>STATUS</span>
+          <strong>SECURE</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- FORM -->
+    <div class="signin-card">
+
+      <div class="signin-card-head">
+        <div>
+          <div class="eyebrow">ACCOUNT ACCESS</div>
+          <h2>Sign in</h2>
+        </div>
+
+        <div class="signin-lock">
+          <span></span>
+        </div>
+      </div>
+
+
+      <form class="signin-form form" data-auth="/api/signin">
+
+        <div class="signin-field">
+          <label for="signin-email">Email</label>
+          <input
+            id="signin-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            required
+          >
+        </div>
+
+
+        <div class="signin-field">
+          <div class="signin-label-row">
+            <label for="signin-password">Password</label>
+          </div>
+
+          <input
+            id="signin-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            required
+          >
+        </div>
+
+
+        <button class="btn primary signin-submit" type="submit">
+          SIGN IN
+          <span>→</span>
+        </button>
+
+        <p id="msg" class="signin-message muted"></p>
+
+      </form>
+
+
+      <div class="signin-divider">
+        <span>NEW TO LUNARMATCH?</span>
+      </div>
+
+
+      <a class="signin-signup" href="/signup">
+        <span>Create a researcher account</span>
+        <strong>↗</strong>
+      </a>
+
+    </div>
+
+  </div>
+
+
+  <div class="signin-footer reveal delay-1">
+    <span>COMPARE · CORRESPOND · VERIFY · LOCALIZE</span>
+    <span>LUNARMATCH V2 / SECURE PLATFORM ACCESS</span>
+  </div>
+
+</section>
+
+{% endblock %}
