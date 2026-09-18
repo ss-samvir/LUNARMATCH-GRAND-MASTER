@@ -108,3 +108,82 @@ document.addEventListener("DOMContentLoaded", lmSmoothNavigation);
 requestAnimationFrame(()=>{
   document.body.classList.add("lm-ready");
 });
+/* =========================================================
+   LUNARMATCH — MOBILE NAVIGATION
+   ========================================================= */
+
+function lmMobileNavigation() {
+
+  const toggle = document.querySelector(".mobile-menu-toggle");
+  const menu = document.querySelector("#mobile-navigation");
+
+  if (!toggle || !menu) return;
+
+  function openMenu() {
+
+    toggle.classList.add("is-open");
+    menu.classList.add("is-open");
+
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-label", "Close navigation");
+
+    menu.setAttribute("aria-hidden", "false");
+
+    document.body.classList.add("mobile-nav-open");
+  }
+
+  function closeMenu() {
+
+    toggle.classList.remove("is-open");
+    menu.classList.remove("is-open");
+
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open navigation");
+
+    menu.setAttribute("aria-hidden", "true");
+
+    document.body.classList.remove("mobile-nav-open");
+  }
+
+  toggle.addEventListener("click", () => {
+
+    if (menu.classList.contains("is-open")) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+
+  });
+
+  menu.querySelectorAll("a").forEach(link => {
+
+    link.addEventListener("click", () => {
+      closeMenu();
+    });
+
+  });
+
+  document.addEventListener("keydown", event => {
+
+    if (event.key === "Escape" && menu.classList.contains("is-open")) {
+      closeMenu();
+    }
+
+  });
+
+  window.addEventListener("resize", () => {
+
+    if (window.innerWidth > 850 && menu.classList.contains("is-open")) {
+      closeMenu();
+    }
+
+  });
+
+}
+
+
+/* INITIALIZE MOBILE NAVIGATION */
+
+document.addEventListener("DOMContentLoaded", () => {
+  lmMobileNavigation();
+});
