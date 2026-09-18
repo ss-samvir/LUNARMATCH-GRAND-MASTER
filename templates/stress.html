@@ -1,1 +1,291 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">04 · ROBUSTNESS</div><h1>Stress <span class="gradient">Lab</span></h1><p class="lead">Deliberately challenge the correspondence pipeline instead of hiding failure cases.</p></div><div class="grid">{% for x in ['Rotation','Scale variation','Illumination','Noise / compression','Blur','Partial overlap','Low texture','Unrelated images'] %}<div class="card"><h3>{{x}}</h3><p class="muted">Benchmark category reserved for controlled perturbation and repeatable evaluation.</p></div>{% endfor %}</div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · Stress Lab{% endblock %}
+
+{% block content %}
+
+<section class="stress-page">
+
+  <!-- HERO -->
+  <section class="stress-hero reveal">
+
+    <div class="stress-kicker">
+      <span class="status-dot"></span>
+      04 · ROBUSTNESS / BENCHMARK LAB
+    </div>
+
+    <div class="stress-hero-grid">
+
+      <div class="stress-hero-copy">
+        <h1>Stress the <span class="gradient">system.</span></h1>
+
+        <p class="stress-lead">
+          Deliberately challenge the correspondence pipeline under controlled
+          image perturbations instead of hiding failure cases.
+        </p>
+
+        <div class="stress-tags">
+          <span>CONTROLLED PERTURBATION</span>
+          <span>REPEATABLE TESTING</span>
+          <span>FAILURE ANALYSIS</span>
+        </div>
+      </div>
+
+      <div class="stress-status-panel">
+
+        <div class="stress-status-top">
+          <span>BENCHMARK CORE</span>
+          <span class="stress-live">
+            <i></i> READY
+          </span>
+        </div>
+
+        <div class="stress-radar">
+          <div class="stress-radar-ring ring-one"></div>
+          <div class="stress-radar-ring ring-two"></div>
+          <div class="stress-radar-ring ring-three"></div>
+          <div class="stress-radar-cross cross-h"></div>
+          <div class="stress-radar-cross cross-v"></div>
+          <div class="stress-radar-core">
+            <span>LM</span>
+          </div>
+          <div class="stress-radar-node node-a"></div>
+          <div class="stress-radar-node node-b"></div>
+          <div class="stress-radar-node node-c"></div>
+        </div>
+
+        <div class="stress-readout">
+          <div>
+            <small>TEST SUITE</small>
+            <strong>ROBUSTNESS / 04</strong>
+          </div>
+          <div>
+            <small>MODE</small>
+            <strong>CONTROLLED</strong>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- BENCHMARK CONSOLE -->
+  <section class="stress-console reveal delay-1">
+
+    <div class="stress-console-head">
+
+      <div>
+        <div class="eyebrow">BENCHMARK CONSOLE</div>
+        <h2>Challenge conditions.</h2>
+      </div>
+
+      <div class="stress-console-state">
+        <span class="status-ring"></span>
+        <div>
+          <small>PIPELINE</small>
+          <strong>STANDBY</strong>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="stress-console-body">
+
+      <div class="stress-flow">
+
+        <div class="stress-flow-line"></div>
+
+        <div class="stress-flow-node">
+          <span>01</span>
+          <strong>IMAGE</strong>
+          <small>INPUT PAIR</small>
+        </div>
+
+        <div class="stress-flow-node">
+          <span>02</span>
+          <strong>PERTURB</strong>
+          <small>CONTROLLED CHANGE</small>
+        </div>
+
+        <div class="stress-flow-node">
+          <span>03</span>
+          <strong>CORRESPOND</strong>
+          <small>FEATURE MATCH</small>
+        </div>
+
+        <div class="stress-flow-node">
+          <span>04</span>
+          <strong>VERIFY</strong>
+          <small>GEOMETRIC CHECK</small>
+        </div>
+
+      </div>
+
+      <div class="stress-console-data">
+
+        <div class="console-data-row">
+          <span>TEST TYPE</span>
+          <strong>PERTURBATION ANALYSIS</strong>
+        </div>
+
+        <div class="console-data-row">
+          <span>REPEATABILITY</span>
+          <strong>REQUIRED</strong>
+        </div>
+
+        <div class="console-data-row">
+          <span>GROUND TRUTH</span>
+          <strong>REFERENCE DEPENDENT</strong>
+        </div>
+
+        <div class="console-data-row">
+          <span>FAILURE REPORTING</span>
+          <strong>ENABLED</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- STRESS MATRIX -->
+  <section class="stress-matrix-section reveal delay-2">
+
+    <div class="stress-section-heading">
+
+      <div>
+        <div class="eyebrow">PERTURBATION MATRIX / 008</div>
+        <h2>Eight ways to <span class="gradient">challenge</span> correspondence.</h2>
+      </div>
+
+      <p>
+        Each category represents a controlled condition that can be used to
+        evaluate robustness, repeatability and failure behaviour.
+      </p>
+
+    </div>
+
+
+    <div class="stress-matrix">
+
+      {% set tests = [
+        ('01','Rotation','GEOMETRIC'),
+        ('02','Scale variation','GEOMETRIC'),
+        ('03','Illumination','RADIOMETRIC'),
+        ('04','Noise / compression','SIGNAL'),
+        ('05','Blur','SIGNAL'),
+        ('06','Partial overlap','OCCLUSION'),
+        ('07','Low texture','FEATURE'),
+        ('08','Unrelated images','NEGATIVE')
+      ] %}
+
+      {% for id, name, type in tests %}
+
+      <article class="stress-test-card reveal">
+
+        <div class="stress-card-top">
+          <span class="stress-index">{{ id }}</span>
+          <span class="stress-type">{{ type }}</span>
+        </div>
+
+        <div class="stress-card-visual">
+          <div class="stress-mini-orbit"></div>
+          <div class="stress-mini-core"></div>
+          <div class="stress-mini-scan"></div>
+        </div>
+
+        <div class="stress-card-content">
+          <h3>{{ name }}</h3>
+
+          <p>
+            Benchmark category reserved for controlled perturbation
+            and repeatable evaluation.
+          </p>
+        </div>
+
+        <div class="stress-card-footer">
+          <span>STATUS</span>
+          <strong>READY FOR TEST</strong>
+        </div>
+
+      </article>
+
+      {% endfor %}
+
+    </div>
+
+  </section>
+
+
+  <!-- SCIENTIFIC PRINCIPLE -->
+  <section class="stress-principle reveal">
+
+    <div class="stress-principle-visual">
+      <div class="principle-orbit orbit-a"></div>
+      <div class="principle-orbit orbit-b"></div>
+      <div class="principle-core">!</div>
+
+      <span class="principle-node p1"></span>
+      <span class="principle-node p2"></span>
+      <span class="principle-node p3"></span>
+    </div>
+
+    <div class="stress-principle-copy">
+
+      <div class="eyebrow">ROBUSTNESS PRINCIPLE / 001</div>
+
+      <h2>Failure is <span class="gradient">evidence.</span></h2>
+
+      <p>
+        A robust correspondence system should not only demonstrate successful
+        matches. Controlled stress testing helps expose the conditions under
+        which correspondence becomes unstable, ambiguous or unsupported.
+      </p>
+
+      <div class="principle-terminal">
+
+        <div>
+          <span>SUCCESS</span>
+          <strong>MEASURE</strong>
+        </div>
+
+        <div>
+          <span>FAILURE</span>
+          <strong>REPORT</strong>
+        </div>
+
+        <div>
+          <span>UNKNOWN</span>
+          <strong>DO NOT GUESS</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FOOTER READOUT -->
+  <section class="stress-closing reveal">
+
+    <div class="closing-line"></div>
+
+    <p>
+      STRESS · MEASURE · VERIFY
+    </p>
+
+    <span>
+      LUNARMATCH V2 / ROBUSTNESS &amp; FAILURE ANALYSIS
+    </span>
+
+  </section>
+
+</section>
+
+{% endblock %}
