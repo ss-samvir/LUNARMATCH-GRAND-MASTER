@@ -1,384 +1,499 @@
 /* =========================================================
-   LUNARMATCH V2
-   GLOBAL LIVE SPACE ENVIRONMENT
-   APPEARANCE ONLY
-   ========================================================= */
+LUNARMATCH V2
+GLOBAL VISUAL FOUNDATION
+STEP 1 — APPEARANCE ONLY
+========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* =========================================================
+RESET
+========================================================= */
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  }
+
+html {
+scroll-behavior: smooth;
+background: #03040a;
 }
 
-html,
 body {
-    width: 100%;
-    min-height: 100%;
+min-height: 100vh;
+background: #03040a;
+color: #f5f7ff;
+font-family: "Inter", sans-serif;
+overflow-x: hidden;
+-webkit-font-smoothing: antialiased;
 }
-
-body {
-    background: #02030a;
-    color: white;
-    font-family: Arial, Helvetica, sans-serif;
-    overflow-x: hidden;
-}
-
 
 /* =========================================================
-   SPACE ENVIRONMENT
-   ========================================================= */
+LIVE SPACE ENVIRONMENT
+========================================================= */
 
 #space-environment {
-    position: fixed;
-    inset: 0;
-    z-index: -10;
-    overflow: hidden;
-    background:
-        radial-gradient(
-            circle at 50% 40%,
-            rgba(35, 60, 110, 0.18),
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 15% 80%,
-            rgba(20, 90, 150, 0.10),
-            transparent 35%
-        ),
-        #02030a;
+position: fixed;
+inset: 0;
+z-index: -100;
+overflow: hidden;
+background:
+radial-gradient(
+ellipse at 50% 20%,
+rgba(53, 77, 150, 0.14),
+transparent 45%
+),
+radial-gradient(
+ellipse at 10% 70%,
+rgba(38, 101, 166, 0.10),
+transparent 38%
+),
+radial-gradient(
+ellipse at 90% 80%,
+rgba(85, 55, 160, 0.09),
+transparent 40%
+),
+#03040a;
 }
 
-
 /* =========================================================
-   NEBULA
-   ========================================================= */
+ATMOSPHERIC NEBULAE
+========================================================= */
 
 .nebula {
-    position: absolute;
-    width: 65vw;
-    height: 65vw;
-
-    border-radius: 50%;
-
-    filter: blur(90px);
-
-    opacity: 0.20;
-
-    pointer-events: none;
+position: absolute;
+width: 70vw;
+height: 70vw;
+border-radius: 50%;
+pointer-events: none;
+filter: blur(110px);
+mix-blend-mode: screen;
 }
 
 .nebula-one {
-    top: -25%;
-    left: -20%;
+top: -35%;
+left: -25%;
 
-    background:
-        radial-gradient(
-            circle,
-            rgba(80, 110, 255, 0.55),
-            transparent 65%
-        );
+```
+background:
+    radial-gradient(
+        circle,
+        rgba(71, 104, 255, 0.22) 0%,
+        rgba(50, 83, 190, 0.08) 35%,
+        transparent 70%
+    );
 
-    animation: nebulaFloatOne 18s ease-in-out infinite alternate;
+animation:
+    nebula-drift-one 28s ease-in-out infinite alternate;
+```
+
 }
 
 .nebula-two {
-    right: -25%;
-    bottom: -30%;
+right: -30%;
+bottom: -35%;
 
-    background:
-        radial-gradient(
-            circle,
-            rgba(0, 190, 255, 0.45),
-            transparent 65%
-        );
+```
+background:
+    radial-gradient(
+        circle,
+        rgba(0, 194, 255, 0.17) 0%,
+        rgba(83, 62, 190, 0.08) 40%,
+        transparent 72%
+    );
 
-    animation: nebulaFloatTwo 23s ease-in-out infinite alternate;
+animation:
+    nebula-drift-two 34s ease-in-out infinite alternate;
+```
+
 }
 
+@keyframes nebula-drift-one {
 
-@keyframes nebulaFloatOne {
-
-    from {
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-
-    to {
-        transform: translate3d(8vw, 5vh, 0) scale(1.15);
-    }
+```
+0% {
+    transform:
+        translate3d(0, 0, 0)
+        scale(1);
 }
 
+100% {
+    transform:
+        translate3d(12vw, 7vh, 0)
+        scale(1.18);
+}
+```
 
-@keyframes nebulaFloatTwo {
-
-    from {
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-
-    to {
-        transform: translate3d(-7vw, -5vh, 0) scale(1.18);
-    }
 }
 
+@keyframes nebula-drift-two {
+
+```
+0% {
+    transform:
+        translate3d(0, 0, 0)
+        scale(1);
+}
+
+100% {
+    transform:
+        translate3d(-10vw, -8vh, 0)
+        scale(1.2);
+}
+```
+
+}
 
 /* =========================================================
-   STAR LAYERS
-   ========================================================= */
+STAR FIELD
+========================================================= */
 
 .stars {
-    position: absolute;
-    inset: -20%;
-
-    background-repeat: repeat;
-
-    pointer-events: none;
+position: absolute;
+inset: -30%;
+pointer-events: none;
+background-repeat: repeat;
+will-change: transform;
 }
 
-
-/* BACK */
+/* distant */
 
 .stars-back {
+opacity: 0.28;
 
-    opacity: 0.30;
+```
+background-image:
+    radial-gradient(
+        circle,
+        rgba(255,255,255,0.8) 0 0.8px,
+        transparent 1px
+    );
 
-    background-image:
-        radial-gradient(circle, white 1px, transparent 1.5px);
+background-size: 145px 145px;
 
-    background-size: 120px 120px;
+animation:
+    stars-back-drift 140s linear infinite;
+```
 
-    animation: starMoveBack 100s linear infinite;
 }
 
-
-/* MID */
+/* medium */
 
 .stars-mid {
+opacity: 0.38;
 
-    opacity: 0.45;
+```
+background-image:
+    radial-gradient(
+        circle,
+        rgba(220,235,255,0.9) 0 1px,
+        transparent 1.3px
+    );
 
-    background-image:
-        radial-gradient(circle, white 1px, transparent 1.5px);
+background-size: 95px 95px;
 
-    background-size: 85px 85px;
+animation:
+    stars-mid-drift 90s linear infinite;
+```
 
-    animation: starMoveMid 65s linear infinite;
 }
 
-
-/* FRONT */
+/* near */
 
 .stars-front {
+opacity: 0.48;
 
-    opacity: 0.70;
+```
+background-image:
+    radial-gradient(
+        circle,
+        rgba(255,255,255,0.95) 0 1.2px,
+        transparent 1.8px
+    );
 
-    background-image:
-        radial-gradient(circle, white 1.3px, transparent 1.8px);
+background-size: 180px 180px;
 
-    background-size: 150px 150px;
+animation:
+    stars-front-drift 65s linear infinite;
+```
 
-    animation: starMoveFront 45s linear infinite;
 }
 
+@keyframes stars-back-drift {
 
-@keyframes starMoveBack {
-
-    from {
-        transform: translate3d(0, 0, 0);
-    }
-
-    to {
-        transform: translate3d(120px, 80px, 0);
-    }
+```
+from {
+    transform: translate3d(0, 0, 0);
 }
 
+to {
+    transform: translate3d(100px, 70px, 0);
+}
+```
 
-@keyframes starMoveMid {
-
-    from {
-        transform: translate3d(0, 0, 0);
-    }
-
-    to {
-        transform: translate3d(-180px, 120px, 0);
-    }
 }
 
+@keyframes stars-mid-drift {
 
-@keyframes starMoveFront {
-
-    from {
-        transform: translate3d(0, 0, 0);
-    }
-
-    to {
-        transform: translate3d(220px, -140px, 0);
-    }
+```
+from {
+    transform: translate3d(0, 0, 0);
 }
 
+to {
+    transform: translate3d(-150px, 100px, 0);
+}
+```
+
+}
+
+@keyframes stars-front-drift {
+
+```
+from {
+    transform: translate3d(0, 0, 0);
+}
+
+to {
+    transform: translate3d(180px, -110px, 0);
+}
+```
+
+}
 
 /* =========================================================
-   CENTRAL SPACE GLOW
-   ========================================================= */
+CENTRAL ATMOSPHERIC GLOW
+========================================================= */
 
 .space-glow {
+position: absolute;
 
-    position: absolute;
+```
+width: 65vw;
+height: 65vw;
 
-    width: 55vw;
-    height: 55vw;
+left: 50%;
+top: 45%;
 
-    left: 50%;
-    top: 50%;
+transform: translate(-50%, -50%);
 
-    transform: translate(-50%, -50%);
+border-radius: 50%;
 
-    border-radius: 50%;
+background:
+    radial-gradient(
+        circle,
+        rgba(73, 112, 255, 0.055) 0%,
+        rgba(40, 100, 180, 0.025) 32%,
+        transparent 70%
+    );
 
-    background:
-        radial-gradient(
-            circle,
-            rgba(70, 120, 255, 0.08),
-            transparent 65%
-        );
+filter: blur(35px);
 
-    filter: blur(30px);
+animation:
+    space-breathe 10s ease-in-out infinite alternate;
+```
 
-    animation: centralPulse 7s ease-in-out infinite alternate;
 }
 
+@keyframes space-breathe {
 
-@keyframes centralPulse {
-
-    from {
-        opacity: 0.45;
-        transform: translate(-50%, -50%) scale(0.95);
-    }
-
-    to {
-        opacity: 0.90;
-        transform: translate(-50%, -50%) scale(1.08);
-    }
+```
+from {
+    opacity: 0.45;
+    transform:
+        translate(-50%, -50%)
+        scale(0.94);
 }
 
+to {
+    opacity: 0.95;
+    transform:
+        translate(-50%, -50%)
+        scale(1.08);
+}
+```
+
+}
 
 /* =========================================================
-   CURSOR LIGHT
-   ========================================================= */
+CURSOR ATMOSPHERE
+========================================================= */
 
 #cursor-glow {
+position: fixed;
 
-    position: fixed;
+```
+width: 420px;
+height: 420px;
 
-    width: 320px;
-    height: 320px;
+left: 50%;
+top: 50%;
 
-    border-radius: 50%;
+transform: translate(-50%, -50%);
 
-    pointer-events: none;
+pointer-events: none;
 
-    z-index: -2;
+z-index: -5;
 
-    background:
-        radial-gradient(
-            circle,
-            rgba(80, 150, 255, 0.08),
-            transparent 65%
-        );
+border-radius: 50%;
 
-    transform: translate(-50%, -50%);
+background:
+    radial-gradient(
+        circle,
+        rgba(75, 125, 255, 0.065) 0%,
+        rgba(75, 125, 255, 0.025) 28%,
+        transparent 68%
+    );
 
-    filter: blur(20px);
+filter: blur(18px);
 
-    transition:
-        left 0.15s ease-out,
-        top 0.15s ease-out;
+will-change: left, top;
+```
+
 }
 
-
 /* =========================================================
-   MAIN CONTENT
-   ========================================================= */
+CONTENT LAYER
+========================================================= */
 
 #page-content {
-
-    position: relative;
-
-    min-height: 100vh;
-
-    isolation: isolate;
+position: relative;
+min-height: 100vh;
 }
 
-
 /* =========================================================
-   PREMIUM GLASS BASE
-   ========================================================= */
+TYPOGRAPHY FOUNDATION
+========================================================= */
 
-.glass {
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(255,255,255,0.075),
-            rgba(255,255,255,0.025)
-        );
-
-    border: 1px solid rgba(255,255,255,0.10);
-
-    box-shadow:
-        0 20px 60px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.08);
-
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
-
-    border-radius: 24px;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+font-family: "Space Grotesk", sans-serif;
+letter-spacing: -0.025em;
 }
 
+p {
+color: rgba(229, 235, 250, 0.68);
+line-height: 1.75;
+}
 
 /* =========================================================
-   SMOOTH SELECTION
-   ========================================================= */
+GRADIENT TEXT
+========================================================= */
+
+.gradient {
+background:
+linear-gradient(
+100deg,
+#ffffff 0%,
+#a9c7ff 38%,
+#6b9cff 70%,
+#75e4ff 100%
+);
+
+```
+-webkit-background-clip: text;
+background-clip: text;
+
+-webkit-text-fill-color: transparent;
+```
+
+}
+
+/* =========================================================
+GLASS SYSTEM
+========================================================= */
+
+.glass,
+.card {
+
+```
+background:
+    linear-gradient(
+        145deg,
+        rgba(255,255,255,0.075),
+        rgba(255,255,255,0.025)
+    );
+
+border: 1px solid rgba(255,255,255,0.085);
+
+box-shadow:
+    0 30px 80px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+
+backdrop-filter: blur(24px) saturate(130%);
+-webkit-backdrop-filter: blur(24px) saturate(130%);
+
+border-radius: 24px;
+```
+
+}
+
+/* =========================================================
+SELECTION
+========================================================= */
 
 ::selection {
-    background: rgba(90, 150, 255, 0.35);
+background: rgba(94, 143, 255, 0.35);
+color: white;
 }
 
-
 /* =========================================================
-   SCROLLBAR
-   ========================================================= */
+SCROLLBAR
+========================================================= */
 
 ::-webkit-scrollbar {
-    width: 7px;
+width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #02030a;
+background: #03040a;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.18);
-    border-radius: 20px;
+background:
+linear-gradient(
+180deg,
+rgba(107,156,255,0.35),
+rgba(255,255,255,0.12)
+);
+
+```
+border-radius: 20px;
+```
+
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.32);
+background:
+linear-gradient(
+180deg,
+rgba(107,156,255,0.60),
+rgba(255,255,255,0.22)
+);
 }
 
-
 /* =========================================================
-   MOBILE
-   ========================================================= */
+MOBILE
+========================================================= */
 
 @media (max-width: 768px) {
 
-    .nebula {
-        width: 100vw;
-        height: 100vw;
+```
+.nebula {
+    width: 120vw;
+    height: 120vw;
+    filter: blur(85px);
+}
 
-        filter: blur(70px);
-    }
-
-    #cursor-glow {
-        display: none;
-    }
+#cursor-glow {
+    display: none;
+}
+```
 
 }
