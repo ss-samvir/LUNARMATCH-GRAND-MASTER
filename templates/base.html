@@ -104,23 +104,94 @@
       </nav>
 
 
-      <div class="nav-actions">
+     <div class="nav-actions">
 
-        {% if logged_in %}
-          <span class="user-pill">{{ user_name }}</span>
-        {% else %}
-          <a class="nav-login" href="/signin">SIGN IN</a>
-        {% endif %}
+  {% if logged_in %}
+    <span class="user-pill">{{ user_name }}</span>
+  {% else %}
+    <a class="nav-login" href="/signin">SIGN IN</a>
+  {% endif %}
 
-        <a class="nav-cta" href="/analyze">
-          LAUNCH <span aria-hidden="true">↗</span>
-        </a>
+  <a class="nav-cta" href="/analyze">
+    LAUNCH <span aria-hidden="true">↗</span>
+  </a>
 
-      </div>
+  <button
+    class="mobile-menu-toggle"
+    type="button"
+    aria-label="Open navigation"
+    aria-expanded="false"
+    aria-controls="mobile-navigation"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
 
+</div>
+  </header>
+  <!-- MOBILE NAVIGATION -->
+<div id="mobile-navigation" class="mobile-navigation" aria-hidden="true">
+
+  <div class="mobile-navigation-inner">
+
+    <div class="mobile-nav-label">
+      <span class="status-dot"></span>
+      LUNARMATCH / NAVIGATION
     </div>
 
-  </header>
+    <nav aria-label="Mobile navigation">
+
+      <a href="/">
+        <span>HOME</span>
+        <small>01</small>
+      </a>
+
+      <a href="/analyze">
+        <span>ANALYZE</span>
+        <small>02</small>
+      </a>
+
+      <a href="/results">
+        <span>RESULTS</span>
+        <small>03</small>
+      </a>
+
+      <a href="/validation">
+        <span>VALIDATION</span>
+        <small>04</small>
+      </a>
+
+      <a href="/stress">
+        <span>STRESS LAB</span>
+        <small>05</small>
+      </a>
+
+      <a href="/technology">
+        <span>TECHNOLOGY</span>
+        <small>06</small>
+      </a>
+
+      <a href="/about">
+        <span>ABOUT</span>
+        <small>07</small>
+      </a>
+
+      <a href="/contact">
+        <span>CONTACT</span>
+        <small>08</small>
+      </a>
+
+    </nav>
+
+    <div class="mobile-nav-footer">
+      <span>PLANETARY IMAGE CORRESPONDENCE</span>
+      <span>V2.0</span>
+    </div>
+
+  </div>
+
+</div>
 
 
   <!-- =====================================================
