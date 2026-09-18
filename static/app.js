@@ -105,6 +105,3 @@ function lmSmoothNavigation(){
 
 
 document.addEventListener("DOMContentLoaded", lmSmoothNavigation);
-window.addEventListener("load",()=>{
-  document.body.classList.add("lm-ready");
-});
