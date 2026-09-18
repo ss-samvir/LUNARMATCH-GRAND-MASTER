@@ -105,3 +105,6 @@ function lmSmoothNavigation(){
 
 
 document.addEventListener("DOMContentLoaded", lmSmoothNavigation);
+requestAnimationFrame(()=>{
+  document.body.classList.add("lm-ready");
+});
