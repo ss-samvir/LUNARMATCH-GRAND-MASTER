@@ -2462,3 +2462,162 @@ body.lm-leaving #page-transition .transition-line {
   }
 
 }
+/* =========================================================
+   LUNARMATCH — HOME MOON / 3D SURFACE ROTATION
+   ========================================================= */
+
+.hero-visual .moon {
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+/* The actual lunar surface */
+.hero-visual .moon-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+
+  transform-style: preserve-3d;
+  transform-origin: center center;
+
+  animation: lunar-surface-rotation 28s linear infinite;
+
+  box-shadow:
+    inset 18px 12px 25px rgba(255,255,255,.08),
+    inset -30px -20px 42px rgba(0,0,0,.42);
+}
+
+/* Make the texture travel with the rotating surface */
+.hero-visual .moon-surface .moon-texture {
+  animation:
+    lunar-surface-drift 18s linear infinite,
+    lunar-texture-breathe 6s ease-in-out infinite;
+}
+
+/* Craters belong to the rotating surface */
+.hero-visual .moon-surface .crater {
+  transform: translateZ(4px);
+}
+
+/* Stable lighting layer — does NOT rotate */
+.hero-visual .moon-light {
+  z-index: 5;
+}
+
+/* Extra spherical rim */
+.hero-visual .moon-rim {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 7;
+
+  background:
+    radial-gradient(
+      circle at 31% 25%,
+      transparent 0 52%,
+      rgba(255,255,255,.06) 67%,
+      rgba(125,220,255,.13) 76%,
+      rgba(0,0,0,.48) 94%,
+      rgba(0,0,0,.75) 100%
+    );
+
+  box-shadow:
+    inset 8px 5px 14px rgba(255,255,255,.10),
+    inset -14px -12px 26px rgba(0,0,0,.55),
+    0 0 35px rgba(125,220,255,.08);
+}
+
+/* Slow planetary rotation */
+@keyframes lunar-surface-rotation {
+
+  0% {
+    transform:
+      rotateY(-7deg)
+      rotateZ(0deg)
+      scale(1.01);
+  }
+
+  25% {
+    transform:
+      rotateY(7deg)
+      rotateZ(.3deg)
+      scale(1.015);
+  }
+
+  50% {
+    transform:
+      rotateY(-7deg)
+      rotateZ(0deg)
+      scale(1.01);
+  }
+
+  75% {
+    transform:
+      rotateY(7deg)
+      rotateZ(-.3deg)
+      scale(1.015);
+  }
+
+  100% {
+    transform:
+      rotateY(-7deg)
+      rotateZ(0deg)
+      scale(1.01);
+  }
+}
+
+@keyframes lunar-texture-breathe {
+
+  0%,100% {
+    opacity: .54;
+  }
+
+  50% {
+    opacity: .68;
+  }
+}
+
+/* Slightly stronger depth when viewed */
+.hero-visual .moon::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  z-index: -1;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(125,220,255,.14) 0%,
+      rgba(109,141,255,.08) 38%,
+      transparent 70%
+    );
+
+  filter: blur(18px);
+  opacity: .7;
+  animation: moon-aura 7s ease-in-out infinite;
+}
+
+@keyframes moon-aura {
+
+  0%,100% {
+    transform: scale(.96);
+    opacity: .55;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: .85;
+  }
+}
+
+/* Mobile */
+@media(max-width:700px) {
+
+  .hero-visual .moon-surface {
+    animation-duration: 32s;
+  }
+
+}
