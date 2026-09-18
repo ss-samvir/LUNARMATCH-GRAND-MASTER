@@ -2666,3 +2666,81 @@ body.lm-leaving #page-transition .transition-line {
 .hero-visual .moon-surface {
   transform-style: preserve-3d;
 }
+/* =========================================================
+   LUNARMATCH — TRUE 3D LUNAR SPHERE
+   ========================================================= */
+
+.hero-visual .moon-3d {
+  position: relative;
+
+  width: 390px;
+  height: 390px;
+
+  display: grid;
+  place-items: center;
+
+  transform-style: preserve-3d;
+
+  filter:
+    drop-shadow(0 30px 45px rgba(0,0,0,.55))
+    drop-shadow(0 0 32px rgba(125,220,255,.08));
+}
+
+.hero-visual #lunar-canvas {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  z-index: 2;
+
+  outline: none;
+}
+
+.hero-visual .moon-3d-glow {
+  position: absolute;
+
+  width: 92%;
+  height: 92%;
+
+  border-radius: 50%;
+
+  z-index: 1;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(125,220,255,.10) 0%,
+      rgba(109,141,255,.06) 38%,
+      transparent 69%
+    );
+
+  filter: blur(24px);
+
+  animation: lunar-glow-pulse 7s ease-in-out infinite;
+}
+
+@keyframes lunar-glow-pulse {
+  0%,100% {
+    transform: scale(.96);
+    opacity: .55;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: .9;
+  }
+}
+
+@media(max-width:700px) {
+
+  .hero-visual .moon-3d {
+    width: min(390px, 78vw);
+    height: min(390px, 78vw);
+  }
+
+}
