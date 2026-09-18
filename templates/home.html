@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}LUNARMATCH · Planetary Image Analysis{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy reveal">
+    <div class="eyebrow"><span class="status-dot"></span> PLANETARY IMAGE ANALYSIS PLATFORM</div>
+    <h1>COMPARE.<br><span class="gradient">CORRESPOND.</span><br>VERIFY.<br><span class="soft">LOCALIZE.</span></h1>
+    <p class="lead">LUNARMATCH is a research-oriented platform for comparing lunar imagery, measuring feature correspondence, checking geometric consistency, and exposing available metadata as scientific evidence.</p>
+    <div class="actions"><a class="btn primary" href="/analyze">START ANALYSIS <span>→</span></a><a class="btn ghost" href="/science">HOW IT WORKS <span>↗</span></a></div>
+    <div class="proof-row"><span><b>SIFT</b> FEATURE DETECTION</span><span><b>RANSAC</b> GEOMETRIC VERIFICATION</span><span><b>EXIF</b> METADATA EVIDENCE</span></div>
+  </div>
+
+  <div class="hero-visual reveal delay-1">
+    <div class="visual-caption top"><span>LIVE ANALYSIS FIELD</span><i>SYS / 02</i></div>
+    <div class="planet-stage">
+      <div class="planet-haze"></div>
+      <div class="orbit-ring ring-1"></div><div class="orbit-ring ring-2"></div><div class="orbit-ring ring-3"></div>
+      <div class="orbit-node node-1"></div><div class="orbit-node node-2"></div><div class="orbit-node node-3"></div>
+      <div class="moon">
+        <div class="moon-texture"></div><div class="crater c1"></div><div class="crater c2"></div><div class="crater c3"></div><div class="crater c4"></div><div class="moon-light"></div>
+      </div>
+      <div class="scan-line"></div>
+      <div class="hud hud-a"><span>OBSERVATION</span><b>CHANDRAYAAN-2</b><small>ORBITAL IMAGERY</small></div>
+      <div class="hud hud-b"><span>GEOMETRY</span><b>RANSAC / INLIERS</b><small>CONSISTENCY CHECK</small></div>
+      <div class="hud hud-c"><span>METADATA</span><b>EXIF / GPS</b><small>WHEN AVAILABLE</small></div>
+    </div>
+    <div class="visual-caption bottom"><span>FEATURE CORRESPONDENCE</span><span>◉  LIVE FIELD</span></div>
+  </div>
+</section>
+
+<section class="section platform reveal">
+  <div class="section-head"><div><div class="eyebrow">THE PLATFORM</div><h2>From two images to <span class="gradient">defensible evidence.</span></h2></div><p>Each stage is separated so the result can be interpreted according to what the data actually supports.</p></div>
+  <div class="feature-grid">
+    <article class="feature-card"><div class="card-index">01</div><div class="feature-icon">◈</div><h3>Image Correspondence</h3><p>Detect local visual features and search for consistent correspondences between observations.</p><div class="tags"><span>SIFT</span><span>BFMATCHER</span><span>LOWE RATIO</span></div></article>
+    <article class="feature-card"><div class="card-index">02</div><div class="feature-icon">⌁</div><h3>Geometric Verification</h3><p>Test candidate correspondences using homography estimation and RANSAC inliers.</p><div class="tags"><span>HOMOGRAPHY</span><span>RANSAC</span><span>INLIERS</span></div></article>
+    <article class="feature-card"><div class="card-index">03</div><div class="feature-icon">◎</div><h3>Metadata Validation</h3><p>Inspect coordinates, acquisition information, instrument identity and projection when supported.</p><div class="tags"><span>EXIF</span><span>GPS</span><span>PROVENANCE</span></div></article>
+    <article class="feature-card"><div class="card-index">04</div><div class="feature-icon">⟡</div><h3>Evidence Visualization</h3><p>Visualize matching features and geometric relationships behind the computational result.</p><div class="tags"><span>MATCH MAP</span><span>INLIERS</span><span>REPORT</span></div></article>
+  </div>
+</section>
+
+<section class="section workflow reveal">
+  <div class="section-head"><div><div class="eyebrow">WORKFLOW</div><h2>A simple interface. <span class="soft">A deeper analysis.</span></h2></div><p>Move from acquisition to interpretation without hiding the computational trail.</p></div>
+  <div class="pipeline">
+    <div class="step"><span>01</span><div><small>INPUT</small><h3>Two Observations</h3><p>Upload or drop two lunar images.</p></div></div><div class="pipeline-line"></div>
+    <div class="step"><span>02</span><div><small>PROCESS</small><h3>Feature Correspondence</h3><p>Extract, match and filter visual features.</p></div></div><div class="pipeline-line"></div>
+    <div class="step"><span>03</span><div><small>VERIFY</small><h3>Evidence Analysis</h3><p>Examine matches, inliers and metadata.</p></div></div><div class="pipeline-line"></div>
+    <div class="step"><span>04</span><div><small>RESULT</small><h3>Interpretation</h3><p>Review transparent supporting evidence.</p></div></div>
+  </div>
+</section>
+
+<section class="section split-section reveal">
+  <div class="research-panel"><div class="eyebrow">RESEARCH CAPABILITIES</div><h2>Built for exploration, <span class="gradient">not black-box answers.</span></h2><p>Lunar imagery can contain repeated geology, illumination changes, scale changes and imaging artifacts. LUNARMATCH exposes the evidence instead of reducing everything to one unexplained number.</p><div class="mini-grid"><div><b>COMPUTATIONAL</b><span>Feature matches · reciprocal consistency · RANSAC</span></div><div><b>METADATA-AWARE</b><span>Mission · instrument · acquisition evidence</span></div><div><b>COORDINATE-AWARE</b><span>Coordinates only when genuine metadata exists</span></div><div><b>REPORTABLE</b><span>Results designed for inspection and reporting</span></div></div></div>
+  <div class="terminal-card"><div class="terminal-top"><span>ANALYSIS / READY</span><i>● ● ●</i></div><div class="terminal-body"><div><span>INPUT_A</span><b>CH2_OBS_014</b></div><div><span>INPUT_B</span><b>CH2_OBS_027</b></div><div><span>FEATURES</span><b>LOCAL KEYPOINTS</b></div><div><span>GEOMETRY</span><b>RANSAC CHECK</b></div><div><span>METADATA</span><b>EXIF / CONDITIONAL</b></div><div class="terminal-result"><span>STATUS</span><strong>READY FOR CORRESPONDENCE</strong></div></div></div>
+</section>
+
+<section class="cta reveal"><div><div class="eyebrow">READY TO EXPLORE?</div><h2>Put two lunar observations <span class="gradient">to the test.</span></h2><p>Upload your images and let the correspondence engine examine the evidence.</p></div><a class="btn primary large" href="/analyze">RUN CORRESPONDENCE <span>→</span></a></section>
+{% endblock %}

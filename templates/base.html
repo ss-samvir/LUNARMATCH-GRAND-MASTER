@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#02040b">
+  <title>{% block title %}LUNARMATCH V2{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div id="space-environment" aria-hidden="true">
+    <div class="space-vignette"></div>
+    <div class="nebula nebula-a"></div>
+    <div class="nebula nebula-b"></div>
+    <div class="nebula nebula-c"></div>
+    <div class="star-layer star-layer-a"></div>
+    <div class="star-layer star-layer-b"></div>
+    <div class="star-layer star-layer-c"></div>
+    <div class="dust-layer"></div>
+    <div class="ambient-orbit ambient-orbit-a"></div>
+    <div class="ambient-orbit ambient-orbit-b"></div>
+  </div>
+  <div id="cursor-glow" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="navin">
+      <a class="brand" href="/" aria-label="LunarMatch home">
+        <span class="brandmark"><span></span></span>
+        <span class="brandword"><b>LUNAR</b><em>MATCH</em></span>
+      </a>
+      <nav class="links" aria-label="Primary navigation">
+        <a href="/">HOME</a><a href="/analyze">ANALYZE</a><a href="/results">RESULTS</a><a href="/validation">VALIDATION</a><a href="/stress">STRESS LAB</a><a href="/technology">TECHNOLOGY</a><a href="/about">ABOUT</a><a href="/contact">CONTACT</a>
+      </nav>
+      <div class="nav-actions">
+        {% if logged_in %}<span class="user-pill">{{user_name}}</span>{% else %}<a class="nav-login" href="/signin">SIGN IN</a>{% endif %}
+        <a class="nav-cta" href="/analyze">LAUNCH <span>↗</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">{% block content %}{% endblock %}</main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div><strong>LUNARMATCH</strong><span>Planetary Image Correspondence & Validation Platform</span></div>
+      <div>Research prototype · Evidence first · Coordinates only when genuinely available</div>
+    </div>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
