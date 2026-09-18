@@ -1538,3 +1538,34 @@ input[type="submit"]:hover,
   }
 
 }
+ /* =========================================================
+    LUNARMATCH — SMOOTH PAGE TRANSITION
+    ========================================================= */
+
+body {
+  animation: lmPageEnter .32s ease-out both;
+}
+
+@keyframes lmPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Keep the fixed space environment visually present */
+#space-environment {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Prevent accidental horizontal movement during transition */
+html,
+body {
+  overflow-x: hidden;
+}
