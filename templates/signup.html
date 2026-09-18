@@ -1,1 +1,177 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">ACCOUNT</div><h1>Sign <span class="gradient">Up</span></h1></div><form class="form card" data-auth="/api/signup"><label>Name</label><input name="name" required><label>Email</label><input name="email" type="email" required><label>Password</label><input name="password" type="password" minlength="8" required><button class="btn primary">CREATE ACCOUNT</button><p id="msg" class="muted"></p></form>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · Create Account{% endblock %}
+
+{% block content %}
+
+<section class="signup-page">
+
+  <div class="signup-shell reveal">
+
+    <!-- INTRODUCTION -->
+
+    <div class="signup-intro">
+
+      <div class="signup-kicker">
+        <span class="status-dot"></span>
+        LUNARMATCH / RESEARCHER REGISTRATION
+      </div>
+
+      <h1>Enter the<br><span class="gradient">mission.</span></h1>
+
+      <p>
+        Create a LUNARMATCH account to access the planetary image
+        analysis and validation workspace.
+      </p>
+
+      <div class="signup-profile">
+
+        <div class="signup-profile-head">
+          <span>ACCOUNT PROFILE</span>
+          <strong>INITIAL SETUP</strong>
+        </div>
+
+        <div class="signup-profile-row">
+          <span>IDENTITY</span>
+          <strong>RESEARCHER</strong>
+        </div>
+
+        <div class="signup-profile-row">
+          <span>PLATFORM</span>
+          <strong>LUNARMATCH V2</strong>
+        </div>
+
+        <div class="signup-profile-row">
+          <span>ACCESS LEVEL</span>
+          <strong>STANDARD</strong>
+        </div>
+
+      </div>
+
+      <div class="signup-note">
+        <span>i</span>
+        <p>
+          Additional research and institutional details can be introduced
+          later as the platform evolves.
+        </p>
+      </div>
+
+    </div>
+
+
+    <!-- REGISTRATION FORM -->
+
+    <div class="signup-card">
+
+      <div class="signup-card-head">
+
+        <div>
+          <div class="eyebrow">CREATE ACCOUNT</div>
+          <h2>Register</h2>
+        </div>
+
+        <div class="signup-step">
+          <span>01</span>
+          <small>/ 01</small>
+        </div>
+
+      </div>
+
+
+      <form class="signup-form form" data-auth="/api/signup">
+
+        <div class="signup-field">
+
+          <label for="signup-name">Name</label>
+
+          <input
+            id="signup-name"
+            name="name"
+            type="text"
+            autocomplete="name"
+            placeholder="Your name"
+            required
+          >
+
+        </div>
+
+
+        <div class="signup-field">
+
+          <label for="signup-email">Email</label>
+
+          <input
+            id="signup-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            required
+          >
+
+        </div>
+
+
+        <div class="signup-field">
+
+          <label for="signup-password">Password</label>
+
+          <input
+            id="signup-password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="Minimum 8 characters"
+            required
+          >
+
+          <small class="signup-helper">
+            Use a password with at least 8 characters.
+          </small>
+
+        </div>
+
+
+        <button class="btn primary signup-submit" type="submit">
+
+          CREATE ACCOUNT
+
+          <span>→</span>
+
+        </button>
+
+        <p id="msg" class="signup-message muted"></p>
+
+      </form>
+
+
+      <div class="signup-divider">
+        <span>ALREADY REGISTERED?</span>
+      </div>
+
+
+      <a class="signup-signin" href="/signin">
+
+        <span>Return to sign in</span>
+
+        <strong>↗</strong>
+
+      </a>
+
+    </div>
+
+  </div>
+
+
+  <div class="signup-footer reveal delay-1">
+
+    <span>ACCOUNT INITIALIZATION / 01</span>
+
+    <span>LUNARMATCH V2 / RESEARCH PLATFORM</span>
+
+  </div>
+
+</section>
+
+{% endblock %}
