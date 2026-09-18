@@ -1733,3 +1733,380 @@ body.lm-leaving #page-transition .transition-line {
   }
 
 }
+/* =========================================================
+   LUNARMATCH — RESPONSIVE NAVIGATION SYSTEM
+   ========================================================= */
+
+.mobile-menu-toggle {
+  display: none;
+  position: relative;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(180, 210, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(8, 14, 28, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  transition:
+    border-color .25s ease,
+    background .25s ease,
+    transform .25s ease;
+}
+
+.mobile-menu-toggle:hover {
+  border-color: rgba(125, 220, 255, 0.42);
+  background: rgba(15, 25, 45, 0.82);
+}
+
+.mobile-menu-toggle:active {
+  transform: scale(.94);
+}
+
+.mobile-menu-toggle span {
+  display: block;
+  width: 17px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: #dcecff;
+  transition:
+    transform .3s ease,
+    opacity .25s ease,
+    width .3s ease;
+}
+
+/* HAMBURGER → X */
+
+.mobile-menu-toggle.is-open span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.mobile-menu-toggle.is-open span:nth-child(2) {
+  opacity: 0;
+  width: 0;
+}
+
+.mobile-menu-toggle.is-open span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+
+/* =========================================================
+   MOBILE NAVIGATION PANEL
+   ========================================================= */
+
+.mobile-navigation {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+
+  display: none;
+
+  padding: 105px 22px 28px;
+
+  background:
+    radial-gradient(
+      circle at 80% 12%,
+      rgba(109, 141, 255, .13),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 20% 70%,
+      rgba(125, 220, 255, .08),
+      transparent 32%
+    ),
+    rgba(2, 4, 10, .94);
+
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transform: translateY(-12px);
+
+  transition:
+    opacity .28s ease,
+    visibility .28s ease,
+    transform .32s cubic-bezier(.2,.8,.2,1);
+}
+
+.mobile-navigation.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.mobile-navigation-inner {
+  width: min(100%, 620px);
+  max-height: calc(100vh - 133px);
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+
+  border: 1px solid rgba(180, 210, 255, .12);
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13, 22, 42, .72),
+      rgba(4, 8, 18, .62)
+    );
+
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, .48),
+    inset 0 1px 0 rgba(255,255,255,.04);
+
+  overflow: hidden;
+}
+
+
+/* LABEL */
+
+.mobile-nav-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 19px 20px 15px;
+
+  color: #7f8da5;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .16em;
+
+  border-bottom: 1px solid rgba(180, 210, 255, .08);
+}
+
+.mobile-nav-label .status-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+}
+
+
+/* LINKS */
+
+.mobile-navigation nav {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+}
+
+.mobile-navigation nav a {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 53px;
+  padding: 0 13px;
+
+  color: #c9d5e8;
+  text-decoration: none;
+
+  border-radius: 12px;
+
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .13em;
+
+  transition:
+    color .2s ease,
+    background .2s ease,
+    transform .2s ease;
+}
+
+.mobile-navigation nav a:hover {
+  color: #ffffff;
+  background: rgba(125, 220, 255, .065);
+  transform: translateX(4px);
+}
+
+.mobile-navigation nav a::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+
+  border-radius: 3px;
+
+  background: var(--cyan);
+
+  transform: translateY(-50%);
+
+  transition: height .2s ease;
+}
+
+.mobile-navigation nav a:hover::before {
+  height: 24px;
+}
+
+.mobile-navigation nav a small {
+  color: #58677f;
+  font-size: 9px;
+  letter-spacing: .12em;
+  transition: color .2s ease;
+}
+
+.mobile-navigation nav a:hover small {
+  color: var(--cyan);
+}
+
+
+/* FOOTER */
+
+.mobile-nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 20px;
+
+  border-top: 1px solid rgba(180, 210, 255, .08);
+
+  color: #53627a;
+  font-size: 8px;
+  letter-spacing: .13em;
+}
+
+
+/* =========================================================
+   RESPONSIVE NAVIGATION
+   ========================================================= */
+
+/*
+   The navigation responds to AVAILABLE SPACE,
+   not to a specific device.
+*/
+
+@media (max-width: 1050px) {
+
+  .navin {
+    gap: 16px;
+  }
+
+  .brand {
+    min-width: auto;
+  }
+
+  .links {
+    gap: 10px;
+  }
+
+  .links a {
+    font-size: 9px;
+    letter-spacing: .10em;
+  }
+
+  .nav-actions {
+    gap: 7px;
+  }
+
+  .nav-login,
+  .nav-cta {
+    padding: 9px 11px;
+    font-size: 9px;
+  }
+
+}
+
+
+@media (max-width: 850px) {
+
+  .links {
+    display: none;
+  }
+
+  .nav-login {
+    display: inline-flex;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  .nav-actions {
+    margin-left: auto;
+  }
+
+}
+
+
+@media (max-width: 560px) {
+
+  .navin {
+    min-height: 70px;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .brandword {
+    font-size: 13px;
+    letter-spacing: .10em;
+  }
+
+  .brandmark {
+    width: 31px;
+    height: 31px;
+  }
+
+  .nav-login {
+    display: none;
+  }
+
+  .nav-cta {
+    padding: 9px 12px;
+  }
+
+  .mobile-navigation {
+    padding:
+      88px
+      12px
+      18px;
+  }
+
+  .mobile-navigation-inner {
+    border-radius: 20px;
+    max-height: calc(100vh - 106px);
+  }
+
+}
+
+
+@media (max-width: 390px) {
+
+  .brandword {
+    font-size: 12px;
+  }
+
+  .brandmark {
+    width: 29px;
+    height: 29px;
+  }
+
+  .nav-cta {
+    font-size: 8px;
+    padding: 8px 10px;
+  }
+
+  .mobile-menu-toggle {
+    width: 39px;
+    height: 39px;
+  }
+
+}
