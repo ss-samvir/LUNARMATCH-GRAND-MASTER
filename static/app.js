@@ -5,5 +5,104 @@ function renderResult(){const box=document.querySelector('#result');if(!box)retu
 function parallax(){const back=document.querySelector('.star-layer-a'),mid=document.querySelector('.star-layer-b'),front=document.querySelector('.star-layer-c');if(!back)return;let tx=0,ty=0,cx=0,cy=0;window.addEventListener('pointermove',e=>{tx=(e.clientX/window.innerWidth-.5)*2;ty=(e.clientY/window.innerHeight-.5)*2});function frame(){cx+=(tx-cx)*.035;cy+=(ty-cy)*.035;back.style.transform=`translate3d(${cx*5}px,${cy*5}px,0)`;mid.style.transform=`translate3d(${cx*11}px,${cy*11}px,0)`;front.style.transform=`translate3d(${cx*18}px,${cy*18}px,0)`;requestAnimationFrame(frame)}frame()}
 function cursor(){const g=document.querySelector('#cursor-glow');if(!g)return;let x=innerWidth/2,y=innerHeight/2,cx=x,cy=y;addEventListener('pointermove',e=>{x=e.clientX;y=e.clientY});function f(){cx+=(x-cx)*.07;cy+=(y-cy)*.07;g.style.left=cx+'px';g.style.top=cy+'px';requestAnimationFrame(f)}f()}
 document.addEventListener('DOMContentLoaded',()=>{wireAuth();wireAnalyze();renderResult();parallax();cursor()});
+function lmSmoothNavigation(){
 
+  async function loadPage(url, push=true){
+
+    try{
+
+      const response = await fetch(url, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+
+      if(!response.ok){
+        window.location.href = url;
+        return;
+      }
+
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      const newContent = doc.querySelector("#page-content");
+      const currentContent = document.querySelector("#page-content");
+
+      if(!newContent || !currentContent){
+        window.location.href = url;
+        return;
+      }
+
+      currentContent.innerHTML = newContent.innerHTML;
+
+      document.title = doc.title;
+
+      if(push){
+        history.pushState({}, "", url);
+      }
+
+      window.scrollTo(0, 0);
+
+      wireAuth();
+      wireAnalyze();
+      renderResult();
+
+      document.querySelectorAll(".reveal").forEach((el, index)=>{
+        el.style.animationDelay = `${index * 70}ms`;
+        el.classList.add("is-visible");
+      });
+
+    }catch(error){
+
+      window.location.href = url;
+
+    }
+
+  }
+
+
+  document.addEventListener("click", e=>{
+
+    const link = e.target.closest("a[href]");
+
+    if(!link) return;
+
+    const href = link.getAttribute("href");
+
+    if(
+      !href ||
+      href.startsWith("#") ||
+      href.startsWith("http") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:") ||
+      link.target === "_blank" ||
+      link.hasAttribute("download")
+    ){
+      return;
+    }
+
+    const url = new URL(href, window.location.origin);
+
+    if(url.origin !== window.location.origin){
+      return;
+    }
+
+    e.preventDefault();
+
+    loadPage(url.href);
+
+  });
+
+
+  window.addEventListener("popstate", ()=>{
+
+    loadPage(window.location.href, false);
+
+  });
+
+}
+
+
+document.addEventListener("DOMContentLoaded", lmSmoothNavigation);
     
