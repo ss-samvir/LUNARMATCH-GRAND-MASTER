@@ -344,3 +344,669 @@ input[type="submit"]:hover,
 
 }
 ```
+/* =========================================================
+   LUNARMATCH V2 — ANALYZE LAB
+   PAGE-SPECIFIC VISUAL SYSTEM
+   ========================================================= */
+
+.lm-analyze-page {
+  position: relative;
+  padding-top: 125px;
+  padding-bottom: 100px;
+}
+
+/* ---------- Header ---------- */
+
+.lm-analyze-header {
+  max-width: 900px;
+  padding: 28px 0 55px;
+}
+
+.lm-analyze-header h1 {
+  margin: 18px 0 22px;
+  font-size: clamp(52px, 7vw, 88px);
+  line-height: .9;
+  letter-spacing: -.055em;
+}
+
+.lm-analyze-header .lead {
+  max-width: 720px;
+  font-size: 14px;
+}
+
+.lm-analysis-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 22px;
+  padding: 8px 12px;
+  border: 1px solid rgba(130,244,192,.12);
+  border-radius: 999px;
+  background: rgba(130,244,192,.035);
+  color: #7fae9c;
+  font-size: 8px;
+  letter-spacing: .14em;
+}
+
+.lm-analysis-status .status {
+  width: 5px;
+  height: 5px;
+  padding: 0;
+  border: 0;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+}
+
+
+/* ---------- Upload stage ---------- */
+
+.lm-upload-stage {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 90px minmax(0,1fr);
+  align-items: center;
+  gap: 20px;
+}
+
+
+/* ---------- Upload cards ---------- */
+
+.lm-upload-card {
+  position: relative;
+  display: block;
+  min-height: 455px;
+  padding: 18px;
+  border-radius: 24px;
+  overflow: hidden;
+  cursor: pointer;
+
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(77,126,255,.085),
+      transparent 45%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(17,28,48,.82),
+      rgba(4,9,19,.88)
+    );
+
+  border: 1px solid rgba(180,210,255,.13);
+
+  box-shadow:
+    0 35px 100px rgba(0,0,0,.34),
+    inset 0 1px rgba(255,255,255,.055);
+
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  transition:
+    transform .35s ease,
+    border-color .35s ease,
+    box-shadow .35s ease;
+}
+
+.lm-upload-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(125,220,255,.34);
+
+  box-shadow:
+    0 45px 120px rgba(0,0,0,.42),
+    0 0 55px rgba(85,145,255,.07),
+    inset 0 1px rgba(255,255,255,.08);
+}
+
+
+/* Hide native file input */
+
+.lm-upload-card > input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+
+/* ---------- Card header ---------- */
+
+.lm-upload-top {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 2px 2px 16px;
+
+  border-bottom: 1px solid rgba(180,210,255,.07);
+}
+
+.lm-image-number {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: .12em;
+}
+
+.lm-image-label {
+  color: #63748c;
+  font-size: 8px;
+  letter-spacing: .16em;
+}
+
+
+/* ---------- Upload visual ---------- */
+
+.lm-upload-visual {
+  position: relative;
+  min-height: 350px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border: 1px dashed rgba(125,220,255,.18);
+  border-radius: 17px;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(100,150,255,.075),
+      transparent 48%
+    ),
+    rgba(2,7,16,.48);
+}
+
+
+/* ---------- Corner HUD ---------- */
+
+.lm-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(125,220,255,.42);
+  pointer-events: none;
+}
+
+.lm-corner-tl {
+  top: 12px;
+  left: 12px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.lm-corner-tr {
+  top: 12px;
+  right: 12px;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+.lm-corner-bl {
+  bottom: 12px;
+  left: 12px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+.lm-corner-br {
+  bottom: 12px;
+  right: 12px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+
+/* ---------- Orbital upload graphic ---------- */
+
+.lm-upload-orbit {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+}
+
+.lm-upload-ring {
+  position: absolute;
+  border: 1px solid rgba(125,220,255,.18);
+  border-radius: 50%;
+}
+
+.ring-a {
+  width: 150px;
+  height: 150px;
+  transform: rotate(35deg) scaleY(.45);
+  animation: lmOrbitA 9s linear infinite;
+}
+
+.ring-b {
+  width: 115px;
+  height: 115px;
+  transform: rotate(-35deg) scaleY(.5);
+  border-color: rgba(180,140,255,.18);
+  animation: lmOrbitB 7s linear infinite;
+}
+
+@keyframes lmOrbitA {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes lmOrbitB {
+  to {
+    rotate: -360deg;
+  }
+}
+
+.lm-upload-core {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+
+  display: grid;
+  place-items: center;
+
+  color: var(--cyan);
+  font-size: 28px;
+  font-weight: 300;
+
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      rgba(255,255,255,.18),
+      rgba(82,126,255,.08) 45%,
+      rgba(3,9,20,.9) 75%
+    );
+
+  border: 1px solid rgba(125,220,255,.28);
+
+  box-shadow:
+    0 0 35px rgba(125,220,255,.09),
+    inset 0 0 20px rgba(125,220,255,.05);
+}
+
+
+/* ---------- Upload copy ---------- */
+
+.lm-upload-copy {
+  position: relative;
+  z-index: 2;
+
+  text-align: center;
+}
+
+.lm-upload-copy strong {
+  display: block;
+  color: #dce8f7;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 16px;
+  letter-spacing: .03em;
+}
+
+.lm-upload-copy span {
+  display: block;
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+
+/* ---------- Browse button ---------- */
+
+.lm-file-browse {
+  position: relative;
+  z-index: 3;
+
+  margin-top: 17px;
+  padding: 9px 13px;
+
+  border: 1px solid rgba(125,220,255,.18);
+  border-radius: 8px;
+
+  background: rgba(125,220,255,.035);
+
+  color: #9cc9e4;
+  font-size: 8px;
+  letter-spacing: .15em;
+
+  transition: .25s;
+}
+
+.lm-file-browse span {
+  margin-left: 7px;
+  font-size: 12px;
+}
+
+.lm-upload-card:hover .lm-file-browse {
+  border-color: rgba(125,220,255,.38);
+  background: rgba(125,220,255,.07);
+}
+
+
+/* ---------- Footer ---------- */
+
+.lm-upload-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 13px 2px 0;
+
+  color: #52647c;
+  font-size: 7px;
+  letter-spacing: .14em;
+}
+
+
+/* ---------- Central correspondence link ---------- */
+
+.lm-correspondence-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+}
+
+.lm-link-line {
+  width: 1px;
+  height: 65px;
+  background:
+    linear-gradient(
+      180deg,
+      transparent,
+      rgba(125,220,255,.3),
+      transparent
+    );
+}
+
+.lm-link-core {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(125,220,255,.2);
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(125,220,255,.09),
+      rgba(5,10,20,.8)
+    );
+
+  color: var(--cyan);
+  font-size: 18px;
+
+  box-shadow:
+    0 0 30px rgba(125,220,255,.08);
+}
+
+.lm-link-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+
+  color: #52647c;
+  font-size: 7px;
+  letter-spacing: .18em;
+}
+
+
+/* ---------- Action ---------- */
+
+.lm-analysis-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+
+  margin-top: 24px;
+  padding: 24px 27px;
+
+  border: 1px solid rgba(180,210,255,.1);
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      110deg,
+      rgba(10,18,32,.76),
+      rgba(4,8,17,.55)
+    );
+
+  box-shadow:
+    0 25px 70px rgba(0,0,0,.2),
+    inset 0 1px rgba(255,255,255,.04);
+
+  backdrop-filter: blur(18px);
+}
+
+.lm-action-info p {
+  margin: 8px 0 0;
+  color: #62728a;
+  font-size: 10px;
+}
+
+.lm-run-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 15px 20px;
+
+  border: 1px solid rgba(125,220,255,.28);
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      110deg,
+      rgba(92,119,255,.95),
+      rgba(99,208,255,.9)
+    );
+
+  color: #03101a;
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+
+  box-shadow:
+    0 15px 45px rgba(80,130,255,.16);
+
+  transition: .3s;
+}
+
+.lm-run-button:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 20px 55px rgba(80,130,255,.25);
+}
+
+.lm-run-icon {
+  font-size: 15px;
+}
+
+
+/* ---------- Message ---------- */
+
+.lm-analysis-message {
+  margin: 12px 0 0;
+  min-height: 18px;
+}
+
+
+/* ---------- Pipeline ---------- */
+
+.lm-pipeline-section {
+  margin-top: 115px;
+}
+
+.lm-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 50px;
+  margin-bottom: 35px;
+}
+
+.lm-section-heading h2 {
+  margin: 13px 0 0;
+  font-size: clamp(36px,4.5vw,60px);
+  line-height: .94;
+  letter-spacing: -.045em;
+}
+
+.lm-section-heading > p {
+  max-width: 420px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.lm-pipeline {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 1px;
+
+  border: 1px solid rgba(180,210,255,.1);
+  border-radius: 18px;
+  overflow: hidden;
+
+  background: rgba(180,210,255,.08);
+
+  box-shadow:
+    0 30px 90px rgba(0,0,0,.24);
+}
+
+.lm-pipeline-step {
+  position: relative;
+  min-height: 180px;
+  padding: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13,22,38,.82),
+      rgba(5,10,19,.78)
+    );
+
+  transition: .3s;
+}
+
+.lm-pipeline-step:hover {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(19,32,54,.9),
+      rgba(6,12,23,.84)
+    );
+}
+
+.lm-step-number {
+  display: block;
+  margin-bottom: 35px;
+
+  color: #6686a7;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 20px;
+}
+
+.lm-pipeline-step small {
+  color: #658db4;
+  font-size: 7px;
+  letter-spacing: .16em;
+}
+
+.lm-pipeline-step h3 {
+  margin: 7px 0 8px;
+  font-size: 16px;
+}
+
+.lm-pipeline-step p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 950px) {
+
+  .lm-upload-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .lm-correspondence-link {
+    flex-direction: row;
+  }
+
+  .lm-link-line {
+    width: 80px;
+    height: 1px;
+  }
+
+  .lm-link-label {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+
+  .lm-pipeline {
+    grid-template-columns: 1fr 1fr;
+  }
+
+}
+
+@media (max-width: 700px) {
+
+  .lm-analyze-page {
+    padding-top: 105px;
+  }
+
+  .lm-analyze-header {
+    padding-bottom: 35px;
+  }
+
+  .lm-analyze-header h1 {
+    font-size: clamp(43px,13vw,65px);
+  }
+
+  .lm-upload-card {
+    min-height: 400px;
+  }
+
+  .lm-upload-visual {
+    min-height: 300px;
+  }
+
+  .lm-analysis-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lm-run-button {
+    justify-content: center;
+  }
+
+  .lm-section-heading {
+    display: block;
+  }
+
+  .lm-section-heading > p {
+    margin-top: 18px;
+  }
+
+  .lm-pipeline {
+    grid-template-columns: 1fr;
+  }
+
+}
