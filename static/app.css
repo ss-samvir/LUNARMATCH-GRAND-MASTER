@@ -1569,3 +1569,167 @@ html,
 body {
   overflow-x: hidden;
 }
+/* =========================================================
+   LUNARMATCH — CINEMATIC PAGE TRANSITION
+   ========================================================= */
+
+#page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(40,70,130,.16),
+      transparent 38%
+    ),
+    #02040a;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    opacity .28s ease,
+    visibility 0s linear .28s;
+}
+
+#page-transition span {
+  position: relative;
+  z-index: 2;
+
+  color: rgba(190,220,255,.72);
+
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+
+  letter-spacing: .38em;
+
+  transform: translateY(8px);
+  opacity: 0;
+
+  transition:
+    opacity .22s ease .05s,
+    transform .22s ease .05s;
+}
+
+#page-transition .transition-line {
+  position: absolute;
+
+  width: 120px;
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--cyan),
+      transparent
+    );
+
+  box-shadow: 0 0 20px rgba(125,220,255,.35);
+
+  transform: scaleX(0);
+}
+
+#page-transition .transition-grid {
+  position: absolute;
+  inset: 0;
+
+  opacity: .08;
+
+  background-image:
+    linear-gradient(
+      rgba(125,220,255,.15) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(125,220,255,.15) 1px,
+      transparent 1px
+    );
+
+  background-size: 70px 70px;
+
+  mask-image: radial-gradient(
+    circle at center,
+    black,
+    transparent 72%
+  );
+}
+
+
+/* Entering page */
+
+body {
+  animation: lmDocumentEnter .32s ease-out both;
+}
+
+@keyframes lmDocumentEnter {
+
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+
+/* Leaving page */
+
+body.lm-leaving #page-transition {
+  opacity: 1;
+  visibility: visible;
+
+  transition:
+    opacity .22s ease,
+    visibility 0s;
+}
+
+body.lm-leaving #page-transition span {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.lm-leaving #page-transition .transition-line {
+  animation: lmTransitionLine .25s ease-out forwards;
+}
+
+@keyframes lmTransitionLine {
+
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+
+}
+
+
+/* Respect reduced-motion settings */
+
+@media (prefers-reduced-motion: reduce) {
+
+  body {
+    animation: none;
+  }
+
+  #page-transition {
+    transition: none;
+  }
+
+}
