@@ -1805,7 +1805,7 @@ body.lm-leaving #page-transition .transition-line {
   inset: 0;
   z-index: 45;
 
-  display: none;
+  display: flex;
 
   padding: 105px 22px 28px;
 
