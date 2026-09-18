@@ -1,1 +1,429 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">05 · TECHNOLOGY</div><h1>Under the <span class="gradient">hood.</span></h1></div><div class="card"><h2>Current V2 engine</h2><p class="muted">SIFT feature detection and description → BFMatcher → Lowe's ratio test → reciprocal matching → RANSAC homography verification. The resulting score is a deterministic correspondence/reliability indicator, not a trained-model probability.</p></div><br><div class="grid"><div class="card"><h3>Interoperability</h3><p class="muted">V2 is designed to become standards-aware for planetary/geospatial imagery, with CRS/projection/datum fields preserved rather than guessed.</p></div><div class="card"><h3>Future standards</h3><p class="muted">OGC and relevant planetary data conventions will be integrated only where technically appropriate and documented.</p></div><div class="card"><h3>Architecture</h3><p class="muted">Flask API · OpenCV · SQLite · browser UI · result persistence.</p></div></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · Technology{% endblock %}
+
+{% block content %}
+
+<section class="technology-page">
+
+  <!-- HERO -->
+  <section class="technology-hero reveal">
+
+    <div class="technology-kicker">
+      <span class="status-dot"></span>
+      05 · TECHNOLOGY / COMPUTATIONAL STACK
+    </div>
+
+    <div class="technology-hero-grid">
+
+      <div>
+        <h1>
+          The engine
+          <span class="gradient">beneath.</span>
+        </h1>
+
+        <p class="technology-lead">
+          LUNARMATCH V2 combines classical computer vision,
+          geometric verification and evidence-aware metadata
+          handling into a deterministic planetary image
+          correspondence pipeline.
+        </p>
+      </div>
+
+      <div class="engine-status">
+        <div class="engine-status-top">
+          <span>ENGINE STATUS</span>
+          <i></i>
+        </div>
+
+        <strong>OPERATIONAL</strong>
+
+        <div class="engine-readout">
+          <span>VISION</span>
+          <b>CV / FEATURE BASED</b>
+        </div>
+
+        <div class="engine-readout">
+          <span>VERIFY</span>
+          <b>RANSAC</b>
+        </div>
+
+        <div class="engine-readout">
+          <span>OUTPUT</span>
+          <b>EVIDENCE</b>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- PIPELINE -->
+  <section class="technology-pipeline reveal delay-1">
+
+    <div class="tech-section-heading">
+      <div>
+        <div class="eyebrow">CORE PIPELINE</div>
+        <h2>From pixels to <span class="gradient">correspondence.</span></h2>
+      </div>
+
+      <p>
+        Each stage contributes a measurable step toward
+        determining whether two observations contain
+        geometrically consistent visual structure.
+      </p>
+    </div>
+
+
+    <div class="pipeline-visual">
+
+      <div class="pipeline-line"></div>
+
+      <article class="pipeline-node active">
+        <span class="pipeline-number">01</span>
+        <div class="pipeline-icon">◉</div>
+        <small>DETECT</small>
+        <h3>SIFT</h3>
+        <p>
+          Scale and rotation-resistant local features
+          are detected and described.
+        </p>
+      </article>
+
+
+      <article class="pipeline-node">
+        <span class="pipeline-number">02</span>
+        <div class="pipeline-icon">⌁</div>
+        <small>COMPARE</small>
+        <h3>MATCHER</h3>
+        <p>
+          Feature descriptors are compared to identify
+          candidate correspondences.
+        </p>
+      </article>
+
+
+      <article class="pipeline-node">
+        <span class="pipeline-number">03</span>
+        <div class="pipeline-icon">◇</div>
+        <small>FILTER</small>
+        <h3>RATIO TEST</h3>
+        <p>
+          Lowe's ratio criterion removes ambiguous
+          descriptor matches.
+        </p>
+      </article>
+
+
+      <article class="pipeline-node">
+        <span class="pipeline-number">04</span>
+        <div class="pipeline-icon">◎</div>
+        <small>VERIFY</small>
+        <h3>RANSAC</h3>
+        <p>
+          Geometric consistency is tested against
+          an estimated transformation.
+        </p>
+      </article>
+
+
+      <article class="pipeline-node">
+        <span class="pipeline-number">05</span>
+        <div class="pipeline-icon">✦</div>
+        <small>REPORT</small>
+        <h3>EVIDENCE</h3>
+        <p>
+          Correspondence metrics and available source
+          metadata are presented for interpretation.
+        </p>
+      </article>
+
+    </div>
+
+  </section>
+
+
+  <!-- ENGINE CORE -->
+  <section class="technology-core reveal">
+
+    <div class="core-visual">
+
+      <div class="core-grid"></div>
+
+      <div class="core-orbit core-orbit-a"></div>
+      <div class="core-orbit core-orbit-b"></div>
+      <div class="core-orbit core-orbit-c"></div>
+
+      <div class="core-sphere">
+        <span>LM</span>
+      </div>
+
+      <div class="core-data data-a">FEATURE FIELD</div>
+      <div class="core-data data-b">GEOMETRY</div>
+      <div class="core-data data-c">EVIDENCE</div>
+
+    </div>
+
+
+    <div class="core-content">
+
+      <div class="eyebrow">CURRENT V2 ENGINE</div>
+
+      <h2>
+        Classical vision.
+        <span class="gradient">Deterministic evidence.</span>
+      </h2>
+
+      <p>
+        The current correspondence engine is based on established
+        computer-vision methods rather than a trained black-box
+        probability model.
+      </p>
+
+      <p>
+        The resulting correspondence/reliability indicator should
+        therefore be interpreted as computational evidence from
+        the pipeline, not as a trained-model probability or
+        independently established ground-truth accuracy.
+      </p>
+
+
+      <div class="tech-spec-panel">
+
+        <div class="tech-spec">
+          <span>FEATURE DETECTION</span>
+          <strong>SIFT</strong>
+        </div>
+
+        <div class="tech-spec">
+          <span>DESCRIPTOR MATCHING</span>
+          <strong>BFMatcher</strong>
+        </div>
+
+        <div class="tech-spec">
+          <span>MATCH FILTER</span>
+          <strong>LOWE RATIO</strong>
+        </div>
+
+        <div class="tech-spec">
+          <span>GEOMETRIC TEST</span>
+          <strong>RANSAC</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ARCHITECTURE -->
+  <section class="technology-architecture reveal">
+
+    <div class="tech-section-heading">
+      <div>
+        <div class="eyebrow">SYSTEM ARCHITECTURE</div>
+        <h2>Built as a <span class="soft">layered system.</span></h2>
+      </div>
+
+      <p>
+        The platform separates interface, application logic,
+        image processing and persistence so individual components
+        can evolve independently.
+      </p>
+    </div>
+
+
+    <div class="architecture-grid">
+
+      <article class="architecture-card architecture-large">
+
+        <div class="architecture-top">
+          <span>01</span>
+          <b>APPLICATION</b>
+        </div>
+
+        <h3>Flask API</h3>
+
+        <p>
+          Handles requests, analysis flow, authentication-related
+          interfaces and communication between the browser and
+          processing layer.
+        </p>
+
+        <div class="architecture-code">
+          <span>REQUEST</span>
+          <span>→</span>
+          <span>ANALYSIS</span>
+          <span>→</span>
+          <span>RESULT</span>
+        </div>
+
+      </article>
+
+
+      <article class="architecture-card">
+
+        <div class="architecture-top">
+          <span>02</span>
+          <b>VISION</b>
+        </div>
+
+        <h3>OpenCV</h3>
+
+        <p>
+          Provides the image-processing and feature-correspondence
+          operations used by the current engine.
+        </p>
+
+      </article>
+
+
+      <article class="architecture-card">
+
+        <div class="architecture-top">
+          <span>03</span>
+          <b>PERSISTENCE</b>
+        </div>
+
+        <h3>SQLite</h3>
+
+        <p>
+          Provides lightweight persistence for application
+          data and stored analysis information.
+        </p>
+
+      </article>
+
+
+      <article class="architecture-card">
+
+        <div class="architecture-top">
+          <span>04</span>
+          <b>INTERFACE</b>
+        </div>
+
+        <h3>Browser UI</h3>
+
+        <p>
+          Presents uploads, correspondence results, validation
+          evidence and platform information through the web interface.
+        </p>
+
+      </article>
+
+    </div>
+
+  </section>
+
+
+  <!-- INTEROPERABILITY -->
+  <section class="technology-interoperability reveal">
+
+    <div class="interop-content">
+
+      <div class="eyebrow">PLANETARY DATA / INTEROPERABILITY</div>
+
+      <h2>
+        Preserve the evidence.
+        <span class="gradient">Never guess it.</span>
+      </h2>
+
+      <p>
+        Planetary and geospatial imagery can carry information
+        about coordinate reference systems, projections, datums,
+        acquisition conditions, mission identity and instruments.
+      </p>
+
+      <p>
+        LUNARMATCH is designed so such fields can be preserved
+        and surfaced when genuinely supplied by the source.
+        Missing information remains explicitly unavailable.
+      </p>
+
+    </div>
+
+
+    <div class="interop-stack">
+
+      <div class="interop-row">
+        <span>CRS</span>
+        <b>SOURCE PROVIDED</b>
+        <i>01</i>
+      </div>
+
+      <div class="interop-row">
+        <span>PROJECTION</span>
+        <b>SOURCE PROVIDED</b>
+        <i>02</i>
+      </div>
+
+      <div class="interop-row">
+        <span>DATUM</span>
+        <b>SOURCE PROVIDED</b>
+        <i>03</i>
+      </div>
+
+      <div class="interop-row">
+        <span>MISSION / SENSOR</span>
+        <b>METADATA DEPENDENT</b>
+        <i>04</i>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FUTURE -->
+  <section class="technology-future reveal">
+
+    <div class="future-header">
+
+      <div>
+        <div class="eyebrow">DEVELOPMENT HORIZON</div>
+        <h2>Designed to <span class="gradient">evolve.</span></h2>
+      </div>
+
+      <div class="future-line"></div>
+
+    </div>
+
+
+    <div class="future-grid">
+
+      <div class="future-item">
+        <span>01</span>
+        <h3>Standards-aware imagery</h3>
+        <p>
+          Expand structured handling of planetary and geospatial
+          imagery conventions where technically appropriate.
+        </p>
+      </div>
+
+      <div class="future-item">
+        <span>02</span>
+        <h3>Benchmark validation</h3>
+        <p>
+          Introduce reference datasets with known correspondences
+          and localization information for measurable evaluation.
+        </p>
+      </div>
+
+      <div class="future-item">
+        <span>03</span>
+        <h3>Evidence-rich localization</h3>
+        <p>
+          Surface exact coordinate information when supported by
+          authentic metadata or explicit reference data.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+</section>
+
+{% endblock %}
