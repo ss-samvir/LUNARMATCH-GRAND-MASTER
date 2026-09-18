@@ -112,6 +112,10 @@ requestAnimationFrame(()=>{
    LUNARMATCH — MOBILE NAVIGATION
    ========================================================= */
 
+/* =========================================================
+   LUNARMATCH — MOBILE NAVIGATION
+   ========================================================= */
+
 function lmMobileNavigation() {
 
   const toggle = document.querySelector(".mobile-menu-toggle");
@@ -119,8 +123,12 @@ function lmMobileNavigation() {
 
   if (!toggle || !menu) return;
 
-  function openMenu() {
+  /* Prevent duplicate event listeners */
+  if (toggle.dataset.mobileReady === "true") return;
 
+  toggle.dataset.mobileReady = "true";
+
+  function openMenu() {
     toggle.classList.add("is-open");
     menu.classList.add("is-open");
 
@@ -133,7 +141,6 @@ function lmMobileNavigation() {
   }
 
   function closeMenu() {
-
     toggle.classList.remove("is-open");
     menu.classList.remove("is-open");
 
@@ -145,7 +152,10 @@ function lmMobileNavigation() {
     document.body.classList.remove("mobile-nav-open");
   }
 
-  toggle.addEventListener("click", () => {
+  toggle.addEventListener("click", function(event) {
+
+    event.preventDefault();
+    event.stopPropagation();
 
     if (menu.classList.contains("is-open")) {
       closeMenu();
@@ -165,15 +175,10 @@ function lmMobileNavigation() {
 
   document.addEventListener("keydown", event => {
 
-    if (event.key === "Escape" && menu.classList.contains("is-open")) {
-      closeMenu();
-    }
-
-  });
-
-  window.addEventListener("resize", () => {
-
-    if (window.innerWidth > 850 && menu.classList.contains("is-open")) {
+    if (
+      event.key === "Escape" &&
+      menu.classList.contains("is-open")
+    ) {
       closeMenu();
     }
 
@@ -182,7 +187,7 @@ function lmMobileNavigation() {
 }
 
 
-/* INITIALIZE MOBILE NAVIGATION */
+/* INITIAL LOAD */
 
 document.addEventListener("DOMContentLoaded", () => {
   lmMobileNavigation();
