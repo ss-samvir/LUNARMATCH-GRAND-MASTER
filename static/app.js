@@ -192,3 +192,523 @@ function lmMobileNavigation() {
 document.addEventListener("DOMContentLoaded", () => {
   lmMobileNavigation();
 });
+/* =========================================================
+   LUNARMATCH — TRUE 3D LUNAR SPHERE
+   ========================================================= */
+
+let lunarThreeModule = null;
+let lunarSceneInstance = null;
+
+async function loadLunarThree() {
+  if (lunarThreeModule) return lunarThreeModule;
+
+  lunarThreeModule = await import(
+    "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"
+  );
+
+  return lunarThreeModule;
+}
+
+
+function createLunarTexture(THREE) {
+
+  const width = 1024;
+  const height = 512;
+
+  const canvas = document.createElement("canvas");
+
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+
+  /*
+   * Base lunar surface.
+   */
+  const gradient = ctx.createLinearGradient(
+    0,
+    0,
+    width,
+    height
+  );
+
+  gradient.addColorStop(0, "#aeb5bd");
+  gradient.addColorStop(.35, "#737b84");
+  gradient.addColorStop(.65, "#969da5");
+  gradient.addColorStop(1, "#555d67");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+
+  /*
+   * Fine lunar surface noise.
+   */
+  const image = ctx.getImageData(
+    0,
+    0,
+    width,
+    height
+  );
+
+  const data = image.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+
+    const noise =
+      (Math.random() - 0.5) * 30;
+
+    data[i] =
+      Math.max(0, Math.min(255, data[i] + noise));
+
+    data[i + 1] =
+      Math.max(0, Math.min(255, data[i + 1] + noise));
+
+    data[i + 2] =
+      Math.max(0, Math.min(255, data[i + 2] + noise));
+  }
+
+  ctx.putImageData(image, 0, 0);
+
+
+  /*
+   * Lunar craters.
+   */
+  const craterCount = 115;
+
+  for (let i = 0; i < craterCount; i++) {
+
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+
+    const radius =
+      3 + Math.random() * 20;
+
+    const crater =
+      ctx.createRadialGradient(
+        x - radius * .25,
+        y - radius * .25,
+        radius * .08,
+        x,
+        y,
+        radius
+      );
+
+    crater.addColorStop(
+      0,
+      "rgba(220,225,230,.28)"
+    );
+
+    crater.addColorStop(
+      .35,
+      "rgba(65,70,76,.18)"
+    );
+
+    crater.addColorStop(
+      .72,
+      "rgba(25,29,34,.32)"
+    );
+
+    crater.addColorStop(
+      1,
+      "rgba(0,0,0,0)"
+    );
+
+    ctx.fillStyle = crater;
+
+    ctx.beginPath();
+    ctx.arc(
+      x,
+      y,
+      radius,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+
+    /*
+     * Crater rim.
+     */
+    ctx.strokeStyle =
+      "rgba(220,225,230,.10)";
+
+    ctx.lineWidth =
+      Math.max(1, radius * .08);
+
+    ctx.beginPath();
+
+    ctx.arc(
+      x - radius * .08,
+      y - radius * .08,
+      radius * .72,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.stroke();
+  }
+
+
+  /*
+   * Larger maria / dark lunar regions.
+   */
+  for (let i = 0; i < 18; i++) {
+
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+
+    const rx = 25 + Math.random() * 75;
+    const ry = 12 + Math.random() * 45;
+
+    ctx.save();
+
+    ctx.translate(x, y);
+
+    ctx.rotate(
+      Math.random() * Math.PI
+    );
+
+    const maria =
+      ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        rx
+      );
+
+    maria.addColorStop(
+      0,
+      "rgba(35,39,44,.25)"
+    );
+
+    maria.addColorStop(
+      1,
+      "rgba(35,39,44,0)"
+    );
+
+    ctx.fillStyle = maria;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      0,
+      rx,
+      ry,
+      0,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+
+  const texture =
+    new THREE.CanvasTexture(canvas);
+
+  texture.colorSpace =
+    THREE.SRGBColorSpace;
+
+  texture.anisotropy = 4;
+
+  return texture;
+}
+
+
+async function initLunar3D() {
+
+  const canvas =
+    document.querySelector("#lunar-canvas");
+
+  if (!canvas) return;
+
+  /*
+   * Don't create another renderer when
+   * navigating back to Home.
+   */
+  if (canvas.dataset.lunarReady === "true") {
+    return;
+  }
+
+  canvas.dataset.lunarReady = "true";
+
+  try {
+
+    const THREE =
+      await loadLunarThree();
+
+
+    const container =
+      canvas.parentElement;
+
+
+    /*
+     * Scene
+     */
+    const scene =
+      new THREE.Scene();
+
+
+    /*
+     * Camera
+     */
+    const camera =
+      new THREE.PerspectiveCamera(
+        32,
+        1,
+        0.1,
+        100
+      );
+
+    camera.position.set(
+      0,
+      0,
+      3.25
+    );
+
+
+    /*
+     * Renderer
+     */
+    const renderer =
+      new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+    renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+
+    renderer.toneMappingExposure =
+      1.05;
+
+
+    /*
+     * Moon group
+     */
+    const moonGroup =
+      new THREE.Group();
+
+    scene.add(moonGroup);
+
+
+    /*
+     * Actual spherical geometry.
+     */
+    const geometry =
+      new THREE.SphereGeometry(
+        1.18,
+        128,
+        128
+      );
+
+
+    /*
+     * Procedural lunar surface.
+     */
+    const texture =
+      createLunarTexture(THREE);
+
+
+    const material =
+      new THREE.MeshStandardMaterial({
+        map: texture,
+
+        roughness: 1.0,
+        metalness: 0.0,
+
+        bumpMap: texture,
+        bumpScale: 0.055
+      });
+
+
+    const moon =
+      new THREE.Mesh(
+        geometry,
+        material
+      );
+
+    moonGroup.add(moon);
+
+
+    /*
+     * Main sunlight.
+     */
+    const keyLight =
+      new THREE.DirectionalLight(
+        0xe9f1ff,
+        3.4
+      );
+
+    keyLight.position.set(
+      -3,
+      1.7,
+      4
+    );
+
+    scene.add(keyLight);
+
+
+    /*
+     * Soft fill.
+     */
+    const fillLight =
+      new THREE.HemisphereLight(
+        0x9fc8ff,
+        0x080b12,
+        .55
+      );
+
+    scene.add(fillLight);
+
+
+    /*
+     * Cool rim light.
+     */
+    const rimLight =
+      new THREE.PointLight(
+        0x7ddcff,
+        1.15,
+        7
+      );
+
+    rimLight.position.set(
+      2.7,
+      .2,
+      -2.5
+    );
+
+    scene.add(rimLight);
+
+
+    /*
+     * Resize.
+     */
+    function resize() {
+
+      const width =
+        container.clientWidth;
+
+      const height =
+        container.clientHeight;
+
+      const size =
+        Math.min(width, height);
+
+      renderer.setSize(
+        size,
+        size,
+        false
+      );
+
+      camera.aspect = 1;
+
+      camera.updateProjectionMatrix();
+    }
+
+
+    resize();
+
+
+    /*
+     * Slow genuine rotation.
+     */
+    let lastTime =
+      performance.now();
+
+    function animate(now) {
+
+      if (!document.body.contains(canvas)) {
+        renderer.dispose();
+        texture.dispose();
+        geometry.dispose();
+        material.dispose();
+        return;
+      }
+
+      const delta =
+        Math.min(
+          (now - lastTime) / 1000,
+          .05
+        );
+
+      lastTime = now;
+
+
+      /*
+       * Full spherical rotation.
+       */
+      moon.rotation.y +=
+        delta * 0.055;
+
+
+      /*
+       * Tiny natural axial movement.
+       */
+      moon.rotation.x =
+        Math.sin(now * 0.00012) * 0.018;
+
+
+      renderer.render(
+        scene,
+        camera
+      );
+
+      requestAnimationFrame(
+        animate
+      );
+    }
+
+    requestAnimationFrame(
+      animate
+    );
+
+
+    /*
+     * Responsive resize.
+     */
+    const observer =
+      new ResizeObserver(resize);
+
+    observer.observe(container);
+
+    lunarSceneInstance = {
+      renderer,
+      observer,
+      texture,
+      geometry,
+      material
+    };
+
+  } catch (error) {
+
+    console.error(
+      "LUNARMATCH 3D Moon failed:",
+      error
+    );
+
+    canvas.dataset.lunarReady =
+      "false";
+  }
+}
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    initLunar3D();
+  }
+);
