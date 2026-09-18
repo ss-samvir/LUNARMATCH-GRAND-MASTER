@@ -1,1 +1,334 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">03 · VALIDATION</div><h1>Ground <span class="gradient">Truth Lab</span></h1><p class="lead">A future-ready validation layer for known correspondences, coordinate evidence and benchmark datasets.</p></div><div class="grid"><div class="card"><h3>Ground-truth pairs</h3><p class="muted">Maintain reference image pairs with known corresponding regions and coordinates.</p></div><div class="card"><h3>Metrics</h3><p class="muted">Precision, recall, false-match rate, localization error, verified-match rate and processing time.</p></div><div class="card"><h3>Metadata evidence</h3><p class="muted">Display latitude/longitude, altitude, acquisition time, CRS, projection, datum, mission and instrument when supplied by the source.</p></div></div><br><div class="card"><h2>Scientific rule</h2><p>Coordinates are never fabricated. If an image does not contain usable geospatial metadata or an explicit reference sidecar, LunarMatch reports “Not available”. A correspondence score is not presented as ground-truth accuracy.</p></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · Validation Lab{% endblock %}
+
+{% block content %}
+
+<section class="validation-page">
+
+  <!-- HEADER -->
+  <div class="validation-hero reveal">
+
+    <div class="validation-kicker">
+      <span class="status-dot"></span>
+      VALIDATION / EVIDENCE CONTROL
+    </div>
+
+    <div class="validation-title-row">
+
+      <div>
+        <h1>
+          Ground
+          <span class="gradient">Truth Lab</span>
+        </h1>
+
+        <p class="validation-lead">
+          A scientific validation layer for correspondence results,
+          geospatial evidence, benchmark datasets and image provenance.
+        </p>
+      </div>
+
+      <div class="validation-status">
+        <span class="status-ring"></span>
+        <div>
+          <small>SYSTEM STATE</small>
+          <strong>READY</strong>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- EVIDENCE OVERVIEW -->
+  <section class="validation-overview reveal delay-1">
+
+    <div class="validation-overview-card">
+      <span class="overview-number">01</span>
+      <div>
+        <small>REFERENCE DATA</small>
+        <strong>GROUND-TRUTH PAIRS</strong>
+        <p>
+          Reference observations with known corresponding regions,
+          coordinates or benchmark annotations.
+        </p>
+      </div>
+      <span class="overview-state">DATASET</span>
+    </div>
+
+
+    <div class="validation-overview-card">
+      <span class="overview-number">02</span>
+      <div>
+        <small>COMPUTATIONAL</small>
+        <strong>VALIDATION METRICS</strong>
+        <p>
+          Precision, recall, false-match rate, localization error,
+          verified-match rate and processing time.
+        </p>
+      </div>
+      <span class="overview-state">METRICS</span>
+    </div>
+
+
+    <div class="validation-overview-card">
+      <span class="overview-number">03</span>
+      <div>
+        <small>SOURCE EVIDENCE</small>
+        <strong>METADATA VALIDATION</strong>
+        <p>
+          Mission, instrument, acquisition information,
+          coordinates and projection data when supplied.
+        </p>
+      </div>
+      <span class="overview-state">EVIDENCE</span>
+    </div>
+
+  </section>
+
+
+  <!-- SCIENTIFIC RULE -->
+  <section class="validation-rule reveal delay-2">
+
+    <div class="rule-visual">
+
+      <div class="rule-orbit orbit-a"></div>
+      <div class="rule-orbit orbit-b"></div>
+
+      <div class="rule-core">
+        <span>LM</span>
+      </div>
+
+      <div class="rule-node node-a"></div>
+      <div class="rule-node node-b"></div>
+      <div class="rule-node node-c"></div>
+
+    </div>
+
+
+    <div class="rule-content">
+
+      <div class="eyebrow">
+        SCIENTIFIC RULE / 001
+      </div>
+
+      <h2>
+        Evidence before
+        <span class="gradient">assumption.</span>
+      </h2>
+
+      <p>
+        Coordinates are never fabricated. If an image does not contain
+        usable geospatial metadata or an explicit reference sidecar,
+        LUNARMATCH reports the value as
+        <strong>Not available</strong>.
+      </p>
+
+      <p>
+        A correspondence score represents computational evidence.
+        It is not presented as ground-truth accuracy without an
+        appropriate reference dataset.
+      </p>
+
+
+      <div class="rule-terminal">
+
+        <div class="terminal-line">
+          <span>COORDINATES</span>
+          <b>ONLY WHEN SUPPORTED</b>
+        </div>
+
+        <div class="terminal-line">
+          <span>GROUND TRUTH</span>
+          <b>REFERENCE REQUIRED</b>
+        </div>
+
+        <div class="terminal-line">
+          <span>PROVENANCE</span>
+          <b>SOURCE DEPENDENT</b>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- EVIDENCE MATRIX -->
+  <section class="validation-matrix reveal">
+
+    <div class="section-head">
+
+      <div>
+        <div class="eyebrow">
+          EVIDENCE MATRIX
+        </div>
+
+        <h2>
+          What can actually be
+          <span class="soft">verified?</span>
+        </h2>
+      </div>
+
+      <p>
+        Validation depends on the evidence available from the
+        observation and its reference data.
+      </p>
+
+    </div>
+
+
+    <div class="matrix-grid">
+
+      <article class="matrix-card">
+
+        <div class="matrix-icon">◎</div>
+
+        <div class="matrix-label">
+          GEOSPATIAL
+        </div>
+
+        <h3>Latitude / Longitude</h3>
+
+        <p>
+          Coordinates are displayed when genuine metadata or an
+          explicit reference source provides them.
+        </p>
+
+        <div class="matrix-status">
+          <span class="status-dot"></span>
+          CONDITIONAL
+        </div>
+
+      </article>
+
+
+      <article class="matrix-card">
+
+        <div class="matrix-icon">⌁</div>
+
+        <div class="matrix-label">
+          GEOMETRY
+        </div>
+
+        <h3>Correspondence Consistency</h3>
+
+        <p>
+          Candidate matches can be examined through geometric
+          verification and inlier relationships.
+        </p>
+
+        <div class="matrix-status">
+          <span class="status-dot"></span>
+          COMPUTATIONAL
+        </div>
+
+      </article>
+
+
+      <article class="matrix-card">
+
+        <div class="matrix-icon">◈</div>
+
+        <div class="matrix-label">
+          PROVENANCE
+        </div>
+
+        <h3>Mission &amp; Instrument</h3>
+
+        <p>
+          Acquisition and instrument information can be surfaced
+          when supplied by the source.
+        </p>
+
+        <div class="matrix-status">
+          <span class="status-dot"></span>
+          SOURCE DEPENDENT
+        </div>
+
+      </article>
+
+
+      <article class="matrix-card">
+
+        <div class="matrix-icon">⟡</div>
+
+        <div class="matrix-label">
+          BENCHMARK
+        </div>
+
+        <h3>Ground-Truth Accuracy</h3>
+
+        <p>
+          Accuracy metrics require reference observations with
+          known correspondence or localization information.
+        </p>
+
+        <div class="matrix-status">
+          <span class="status-dot"></span>
+          REFERENCE REQUIRED
+        </div>
+
+      </article>
+
+    </div>
+
+  </section>
+
+
+  <!-- VALIDATION PIPELINE -->
+  <section class="validation-pipeline reveal">
+
+    <div class="eyebrow">
+      VALIDATION PIPELINE
+    </div>
+
+    <div class="validation-track">
+
+      <div class="validation-step active">
+        <span>01</span>
+        <div>
+          <small>INPUT</small>
+          <strong>OBSERVATION</strong>
+        </div>
+      </div>
+
+      <div class="validation-connector"></div>
+
+      <div class="validation-step">
+        <span>02</span>
+        <div>
+          <small>SOURCE</small>
+          <strong>METADATA</strong>
+        </div>
+      </div>
+
+      <div class="validation-connector"></div>
+
+      <div class="validation-step">
+        <span>03</span>
+        <div>
+          <small>COMPARE</small>
+          <strong>REFERENCE</strong>
+        </div>
+      </div>
+
+      <div class="validation-connector"></div>
+
+      <div class="validation-step">
+        <span>04</span>
+        <div>
+          <small>OUTPUT</small>
+          <strong>EVIDENCE</strong>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+</section>
+
+{% endblock %}
