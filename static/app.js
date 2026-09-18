@@ -192,3 +192,387 @@ function lmMobileNavigation() {
 document.addEventListener("DOMContentLoaded", () => {
   lmMobileNavigation();
 });
+/* =========================================================
+   LUNARMATCH — PROCEDURAL LUNAR SPHERE
+   ========================================================= */
+
+function initProceduralMoon() {
+
+  const canvas =
+    document.getElementById("lunar-surface-canvas");
+
+  if (!canvas) return;
+
+  if (canvas.dataset.ready === "true") return;
+
+  canvas.dataset.ready = "true";
+
+  const ctx =
+    canvas.getContext("2d");
+
+  const container =
+    canvas.parentElement;
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+
+  let rotation = 0;
+
+  const craters = [];
+
+  /*
+   * Generate stable lunar terrain.
+   */
+  for (let i = 0; i < 95; i++) {
+
+    craters.push({
+      longitude: Math.random() * Math.PI * 2,
+      latitude:
+        (Math.random() - .5) * Math.PI,
+
+      radius:
+        .012 + Math.random() * .045,
+
+      depth:
+        .25 + Math.random() * .65
+    });
+  }
+
+
+  function resize() {
+
+    const rect =
+      container.getBoundingClientRect();
+
+    const size =
+      Math.max(
+        120,
+        Math.min(rect.width, rect.height)
+      );
+
+    dpr =
+      Math.min(
+        window.devicePixelRatio || 1,
+        2
+      );
+
+    width = size;
+    height = size;
+
+    canvas.width =
+      Math.floor(size * dpr);
+
+    canvas.height =
+      Math.floor(size * dpr);
+
+    canvas.style.width =
+      size + "px";
+
+    canvas.style.height =
+      size + "px";
+
+    ctx.setTransform(
+      dpr,
+      0,
+      0,
+      dpr,
+      0,
+      0
+    );
+  }
+
+
+  function draw(now) {
+
+    const size =
+      Math.min(width, height);
+
+    const cx =
+      size / 2;
+
+    const cy =
+      size / 2;
+
+    const radius =
+      size * .495;
+
+
+    ctx.clearRect(
+      0,
+      0,
+      width,
+      height
+    );
+
+
+    /*
+     * Base spherical shading.
+     */
+    const sphere =
+      ctx.createRadialGradient(
+        cx - radius * .30,
+        cy - radius * .32,
+        radius * .04,
+
+        cx,
+        cy,
+        radius * 1.05
+      );
+
+    sphere.addColorStop(
+      0,
+      "#d8dce1"
+    );
+
+    sphere.addColorStop(
+      .34,
+      "#a1a7ae"
+    );
+
+    sphere.addColorStop(
+      .68,
+      "#666e78"
+    );
+
+    sphere.addColorStop(
+      .88,
+      "#343c47"
+    );
+
+    sphere.addColorStop(
+      1,
+      "#0d131c"
+    );
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+      cx,
+      cy,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fillStyle =
+      sphere;
+
+    ctx.fill();
+
+
+    /*
+     * Rotating lunar terrain.
+     */
+    ctx.save();
+
+    ctx.beginPath();
+
+    ctx.arc(
+      cx,
+      cy,
+      radius * .995,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.clip();
+
+
+    for (const crater of craters) {
+
+      const longitude =
+        crater.longitude +
+        rotation;
+
+      /*
+       * Project longitude onto
+       * visible spherical hemisphere.
+       */
+      const x =
+        Math.sin(longitude) *
+        Math.cos(crater.latitude);
+
+      const z =
+        Math.cos(longitude) *
+        Math.cos(crater.latitude);
+
+      /*
+       * Don't draw the far side.
+       */
+      if (z < -0.05) continue;
+
+
+      const y =
+        Math.sin(crater.latitude);
+
+
+      const px =
+        cx + x * radius * .94;
+
+      const py =
+        cy - y * radius * .94;
+
+
+      const perspective =
+        .72 + z * .28;
+
+      const craterRadius =
+        radius *
+        crater.radius *
+        perspective;
+
+
+      const gradient =
+        ctx.createRadialGradient(
+          px - craterRadius * .25,
+          py - craterRadius * .25,
+          craterRadius * .05,
+
+          px,
+          py,
+          craterRadius
+        );
+
+
+      gradient.addColorStop(
+        0,
+        `rgba(225,229,234,${.08 * crater.depth})`
+      );
+
+      gradient.addColorStop(
+        .45,
+        `rgba(55,61,68,${.22 * crater.depth})`
+      );
+
+      gradient.addColorStop(
+        .78,
+        `rgba(20,25,31,${.34 * crater.depth})`
+      );
+
+      gradient.addColorStop(
+        1,
+        "rgba(0,0,0,0)"
+      );
+
+
+      ctx.fillStyle =
+        gradient;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        px,
+        py,
+        craterRadius,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+
+
+      /*
+       * Small crater rim.
+       */
+      ctx.strokeStyle =
+        `rgba(220,225,230,${.08 * crater.depth})`;
+
+      ctx.lineWidth =
+        Math.max(
+          .5,
+          craterRadius * .055
+        );
+
+      ctx.beginPath();
+
+      ctx.arc(
+        px - craterRadius * .10,
+        py - craterRadius * .10,
+        craterRadius * .68,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+
+    /*
+     * Fine spherical grain.
+     */
+    const grain =
+      ctx.createRadialGradient(
+        cx - radius * .18,
+        cy - radius * .20,
+        radius * .05,
+        cx,
+        cy,
+        radius
+      );
+
+    grain.addColorStop(
+      0,
+      "rgba(255,255,255,.035)"
+    );
+
+    grain.addColorStop(
+      .55,
+      "rgba(255,255,255,.01)"
+    );
+
+    grain.addColorStop(
+      1,
+      "rgba(0,0,0,.08)"
+    );
+
+    ctx.beginPath();
+
+    ctx.arc(
+      cx,
+      cy,
+      radius,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fillStyle =
+      grain;
+
+    ctx.fill();
+
+
+    /*
+     * Very slow rotation.
+     */
+    rotation += .00075;
+
+
+    requestAnimationFrame(draw);
+  }
+
+
+  resize();
+
+  window.addEventListener(
+    "resize",
+    resize,
+    { passive: true }
+  );
+
+  requestAnimationFrame(draw);
+}
+
+
+/*
+ * Start on initial page load.
+ */
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    initProceduralMoon();
+  }
+);
