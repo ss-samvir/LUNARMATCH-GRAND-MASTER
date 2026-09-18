@@ -2,13 +2,19 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <style>
+<style>
   html {
     background: #02040a;
   }
 
   body {
     background: #02040a;
+    opacity: 0;
+  }
+
+  body.lm-ready {
+    opacity: 1;
+    transition: opacity .18s ease;
   }
 </style>
   <meta charset="utf-8">
