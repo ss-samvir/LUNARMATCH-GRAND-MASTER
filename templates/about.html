@@ -1,1 +1,289 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">06 · ABOUT</div><h1>Built to <span class="gradient">measure.</span></h1><p class="lead">LunarMatch V2 is the continuation of the original prototype, redesigned around reproducibility, validation and transparent failure reporting.</p></div><div class="card"><h2>V1 → V2</h2><p class="muted">V1 demonstrated feasibility. V2 adds a proper backend analysis API, metadata-aware evidence, persistent results, authentication foundations and dedicated validation/stress-test surfaces.</p></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH · About{% endblock %}
+
+{% block content %}
+
+<section class="about-page">
+
+  <!-- HERO -->
+  <section class="about-hero reveal">
+
+    <div class="about-kicker">
+      <span class="status-dot"></span>
+      06 · ABOUT / MISSION PROFILE
+    </div>
+
+    <div class="about-hero-grid">
+
+      <div>
+        <h1>
+          Built to
+          <span class="gradient">measure.</span>
+        </h1>
+
+        <p class="about-lead">
+          LUNARMATCH V2 is the continuation of an experimental
+          planetary-image correspondence system, redesigned around
+          reproducibility, validation and transparent evidence.
+        </p>
+      </div>
+
+      <div class="mission-orb">
+
+        <div class="mission-orbit orbit-one"></div>
+        <div class="mission-orbit orbit-two"></div>
+        <div class="mission-orbit orbit-three"></div>
+
+        <div class="mission-core">
+          <span>LM</span>
+        </div>
+
+        <i class="mission-node mission-node-a"></i>
+        <i class="mission-node mission-node-b"></i>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- MISSION STATEMENT -->
+  <section class="about-mission reveal delay-1">
+
+    <div class="mission-label">
+      <span>MISSION / 001</span>
+      <i></i>
+    </div>
+
+    <div class="mission-grid">
+
+      <div>
+        <div class="eyebrow">WHY LUNARMATCH</div>
+
+        <h2>
+          From visual similarity
+          to <span class="gradient">defensible evidence.</span>
+        </h2>
+      </div>
+
+      <div>
+        <p>
+          Comparing planetary imagery is not only about finding
+          visual similarity. A useful system must also communicate
+          how a correspondence was obtained, what evidence supports
+          it and where the available data ends.
+        </p>
+
+        <p>
+          LUNARMATCH follows that principle by separating
+          computational correspondence from ground-truth validation
+          and by refusing to invent unavailable metadata.
+        </p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- V1 → V2 -->
+  <section class="about-evolution reveal">
+
+    <div class="about-section-heading">
+
+      <div>
+        <div class="eyebrow">PROJECT EVOLUTION</div>
+        <h2>V1 <span>→</span> V2</h2>
+      </div>
+
+      <p>
+        The second version extends the original feasibility
+        demonstration into a more structured research platform.
+      </p>
+
+    </div>
+
+
+    <div class="evolution-track">
+
+      <article class="evolution-card">
+
+        <div class="evolution-top">
+          <span>01</span>
+          <b>ORIGINAL PROTOTYPE</b>
+        </div>
+
+        <div class="evolution-mark">V1</div>
+
+        <h3>Demonstrate feasibility.</h3>
+
+        <p>
+          Established the basic concept of comparing lunar imagery
+          using computer-vision feature correspondence.
+        </p>
+
+        <div class="evolution-tags">
+          <span>IMAGE INPUT</span>
+          <span>FEATURE MATCHING</span>
+          <span>PROTOTYPE</span>
+        </div>
+
+      </article>
+
+
+      <div class="evolution-arrow">→</div>
+
+
+      <article class="evolution-card evolution-current">
+
+        <div class="evolution-top">
+          <span>02</span>
+          <b>CURRENT PLATFORM</b>
+        </div>
+
+        <div class="evolution-mark">V2</div>
+
+        <h3>Measure, validate, explain.</h3>
+
+        <p>
+          Adds structured analysis, evidence-aware metadata,
+          persistent results and dedicated validation and
+          stress-testing surfaces.
+        </p>
+
+        <div class="evolution-tags">
+          <span>ANALYSIS API</span>
+          <span>VALIDATION</span>
+          <span>EVIDENCE</span>
+        </div>
+
+      </article>
+
+    </div>
+
+  </section>
+
+
+  <!-- PRINCIPLES -->
+  <section class="about-principles reveal">
+
+    <div class="eyebrow">DESIGN PRINCIPLES</div>
+
+    <div class="principles-grid">
+
+      <article class="principle-card">
+        <span>01</span>
+        <div class="principle-icon">◎</div>
+        <h3>Reproducibility</h3>
+        <p>
+          Analysis should follow an explicit pipeline whose
+          computational steps can be inspected and repeated.
+        </p>
+      </article>
+
+
+      <article class="principle-card">
+        <span>02</span>
+        <div class="principle-icon">◇</div>
+        <h3>Transparency</h3>
+        <p>
+          Results should distinguish computational indicators
+          from independently established ground truth.
+        </p>
+      </article>
+
+
+      <article class="principle-card">
+        <span>03</span>
+        <div class="principle-icon">⌁</div>
+        <h3>Evidence</h3>
+        <p>
+          Coordinates and source information are surfaced only
+          when supported by authentic available data.
+        </p>
+      </article>
+
+
+      <article class="principle-card">
+        <span>04</span>
+        <div class="principle-icon">✦</div>
+        <h3>Extensibility</h3>
+        <p>
+          The platform is structured so future datasets,
+          standards and validation methods can be integrated.
+        </p>
+      </article>
+
+    </div>
+
+  </section>
+
+
+  <!-- IDENTITY -->
+  <section class="about-identity reveal">
+
+    <div class="identity-main">
+
+      <div class="eyebrow">PLATFORM IDENTITY</div>
+
+      <h2>
+        A research interface for
+        <span class="gradient">planetary vision.</span>
+      </h2>
+
+      <p>
+        LUNARMATCH is being developed as a bridge between image
+        correspondence, geospatial evidence and scientific
+        validation — beginning with lunar imagery and designed
+        with broader planetary-imaging use cases in mind.
+      </p>
+
+    </div>
+
+    <div class="identity-readout">
+
+      <div>
+        <span>DOMAIN</span>
+        <strong>PLANETARY VISION</strong>
+      </div>
+
+      <div>
+        <span>FOCUS</span>
+        <strong>IMAGE CORRESPONDENCE</strong>
+      </div>
+
+      <div>
+        <span>APPROACH</span>
+        <strong>EVIDENCE-AWARE</strong>
+      </div>
+
+      <div>
+        <span>STATUS</span>
+        <strong>EVOLVING PLATFORM</strong>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CLOSING -->
+  <section class="about-closing reveal">
+
+    <div class="closing-line"></div>
+
+    <p>
+      COMPARE. CORRESPOND. VERIFY. LOCALIZE.
+    </p>
+
+    <span>
+      LUNARMATCH V2 / PLANETARY IMAGE CORRESPONDENCE &amp; VALIDATION
+    </span>
+
+  </section>
+
+</section>
+
+{% endblock %}
