@@ -1,1 +1,256 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">01 · ANALYSIS</div><h1>Correspondence <span class="gradient">Lab</span></h1><p class="lead">Upload two observations. LunarMatch will extract features, match descriptors, verify geometry and preserve available metadata.</p></div><form id="analyzeForm"><div class="uploadgrid"><label class="card drop">IMAGE A<input required type="file" name="image_a" accept="image/*"><span class="muted">Choose a lunar image</span></label><label class="card drop">IMAGE B<input required type="file" name="image_b" accept="image/*"><span class="muted">Choose a comparison image</span></label></div><br><button class="btn primary" type="submit">RUN CORRESPONDENCE ANALYSIS</button><p id="analysisMsg" class="status"></p></form><br><div class="card"><h3>Pipeline</h3><p class="muted">Acquire → Preprocess → SIFT Features → Lowe Ratio Test → Reciprocal Matching → RANSAC → Reliability → Metadata Validation</p></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH V2 — Correspondence Lab{% endblock %}
+
+{% block content %}
+
+<section class="lm-analyze-page">
+
+  <!-- PAGE INTRO -->
+  <div class="lm-analyze-header reveal">
+    <div class="eyebrow">
+      <span class="status-dot"></span>
+      01 · CORRESPONDENCE LAB
+    </div>
+
+    <h1>
+      Compare.
+      <span class="gradient">Correspond.</span>
+      Localize.
+    </h1>
+
+    <p class="lead">
+      Upload two lunar observations and let LunarMatch investigate
+      visual correspondence through feature extraction, descriptor
+      matching, geometric verification and available metadata.
+    </p>
+
+    <div class="lm-analysis-status">
+      <span class="status"></span>
+      ANALYSIS ENGINE READY
+    </div>
+  </div>
+
+
+  <!-- IMAGE COMPARISON AREA -->
+  <form id="analyzeForm" class="lm-analysis-form">
+
+    <div class="lm-upload-stage">
+
+      <!-- IMAGE A -->
+      <label class="lm-upload-card reveal delay-1">
+
+        <input
+          required
+          type="file"
+          name="image_a"
+          accept="image/*"
+        >
+
+        <div class="lm-upload-top">
+          <span class="lm-image-number">01</span>
+          <span class="lm-image-label">REFERENCE OBSERVATION</span>
+        </div>
+
+        <div class="lm-upload-visual">
+
+          <div class="lm-corner lm-corner-tl"></div>
+          <div class="lm-corner lm-corner-tr"></div>
+          <div class="lm-corner lm-corner-bl"></div>
+          <div class="lm-corner lm-corner-br"></div>
+
+          <div class="lm-upload-orbit">
+            <div class="lm-upload-ring ring-a"></div>
+            <div class="lm-upload-ring ring-b"></div>
+
+            <div class="lm-upload-core">
+              <span>+</span>
+            </div>
+          </div>
+
+          <div class="lm-upload-copy">
+            <strong>DROP IMAGE A</strong>
+            <span>or select a lunar observation</span>
+          </div>
+
+          <div class="lm-file-browse">
+            SELECT FILE
+            <span>↗</span>
+          </div>
+
+        </div>
+
+        <div class="lm-upload-footer">
+          <span>INPUT A</span>
+          <span>IMAGE / MAX 25 MB</span>
+        </div>
+
+      </label>
+
+
+      <!-- CONNECTION -->
+      <div class="lm-correspondence-link" aria-hidden="true">
+
+        <div class="lm-link-line"></div>
+
+        <div class="lm-link-core">
+          <span>⇄</span>
+        </div>
+
+        <div class="lm-link-label">
+          CORRESPONDENCE
+        </div>
+
+        <div class="lm-link-line"></div>
+
+      </div>
+
+
+      <!-- IMAGE B -->
+      <label class="lm-upload-card reveal delay-1">
+
+        <input
+          required
+          type="file"
+          name="image_b"
+          accept="image/*"
+        >
+
+        <div class="lm-upload-top">
+          <span class="lm-image-number">02</span>
+          <span class="lm-image-label">COMPARISON OBSERVATION</span>
+        </div>
+
+        <div class="lm-upload-visual">
+
+          <div class="lm-corner lm-corner-tl"></div>
+          <div class="lm-corner lm-corner-tr"></div>
+          <div class="lm-corner lm-corner-bl"></div>
+          <div class="lm-corner lm-corner-br"></div>
+
+          <div class="lm-upload-orbit">
+            <div class="lm-upload-ring ring-a"></div>
+            <div class="lm-upload-ring ring-b"></div>
+
+            <div class="lm-upload-core">
+              <span>+</span>
+            </div>
+          </div>
+
+          <div class="lm-upload-copy">
+            <strong>DROP IMAGE B</strong>
+            <span>or select a comparison observation</span>
+          </div>
+
+          <div class="lm-file-browse">
+            SELECT FILE
+            <span>↗</span>
+          </div>
+
+        </div>
+
+        <div class="lm-upload-footer">
+          <span>INPUT B</span>
+          <span>IMAGE / MAX 25 MB</span>
+        </div>
+
+      </label>
+
+    </div>
+
+
+    <!-- ACTION -->
+    <div class="lm-analysis-action reveal">
+
+      <div class="lm-action-info">
+        <span class="eyebrow">READY STATE</span>
+        <p>
+          Two observations required to initiate correspondence analysis.
+        </p>
+      </div>
+
+      <button
+        class="lm-run-button"
+        type="submit"
+      >
+        <span class="lm-run-icon">↗</span>
+        <span>RUN CORRESPONDENCE ANALYSIS</span>
+      </button>
+
+    </div>
+
+    <p id="analysisMsg" class="status lm-analysis-message"></p>
+
+  </form>
+
+
+  <!-- PIPELINE -->
+  <section class="lm-pipeline-section reveal">
+
+    <div class="lm-section-heading">
+      <div>
+        <span class="eyebrow">PROCESS ARCHITECTURE</span>
+        <h2>From observation<br><span class="gradient">to evidence.</span></h2>
+      </div>
+
+      <p>
+        Every correspondence passes through a sequence of
+        computational and geometric verification stages.
+      </p>
+    </div>
+
+
+    <div class="lm-pipeline">
+
+      <div class="lm-pipeline-step">
+        <span class="lm-step-number">01</span>
+        <div>
+          <small>INPUT</small>
+          <h3>Acquire</h3>
+          <p>Load and inspect both observations.</p>
+        </div>
+      </div>
+
+      <div class="lm-pipeline-step">
+        <span class="lm-step-number">02</span>
+        <div>
+          <small>VISION</small>
+          <h3>Extract</h3>
+          <p>SIFT identifies distinctive visual features.</p>
+        </div>
+      </div>
+
+      <div class="lm-pipeline-step">
+        <span class="lm-step-number">03</span>
+        <div>
+          <small>MATCHING</small>
+          <h3>Correspond</h3>
+          <p>Descriptors are compared and filtered.</p>
+        </div>
+      </div>
+
+      <div class="lm-pipeline-step">
+        <span class="lm-step-number">04</span>
+        <div>
+          <small>GEOMETRY</small>
+          <h3>Verify</h3>
+          <p>RANSAC tests geometric consistency.</p>
+        </div>
+      </div>
+
+      <div class="lm-pipeline-step">
+        <span class="lm-step-number">05</span>
+        <div>
+          <small>VALIDATION</small>
+          <h3>Localize</h3>
+          <p>Reliability and available metadata are preserved.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+</section>
+
+{% endblock %}
