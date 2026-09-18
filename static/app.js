@@ -712,3 +712,6 @@ document.addEventListener(
     initLunar3D();
   }
 );
+document.addEventListener("DOMContentLoaded", () => {
+  initLunar3D();
+});
