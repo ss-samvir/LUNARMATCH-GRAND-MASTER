@@ -1,1 +1,63 @@
-{% extends 'base.html' %}{% block content %}<div class="pagehead"><div class="eyebrow">02 · RESULTS</div><h1>Evidence, not <span class="gradient">guesswork.</span></h1></div><div id="result"></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}LUNARMATCH V2 — Analysis Results{% endblock %}
+
+{% block content %}
+
+<section class="lm-results-page">
+
+  <!-- HEADER -->
+  <div class="lm-results-header reveal">
+
+    <div class="eyebrow">
+      <span class="status-dot"></span>
+      02 · EVIDENCE CONSOLE
+    </div>
+
+    <h1>
+      Evidence,
+      <span class="gradient">not guesswork.</span>
+    </h1>
+
+    <p class="lead">
+      Review correspondence strength, geometric consistency,
+      verification metrics and available observation metadata.
+    </p>
+
+    <div class="lm-results-state">
+      <span></span>
+      ANALYSIS OUTPUT · EVIDENCE VIEW
+    </div>
+
+  </div>
+
+
+  <!-- APP.JS INJECTS ALL REAL RESULTS HERE -->
+  <div id="result" class="lm-result-console"></div>
+
+
+  <!-- STATIC EXPLANATION -->
+  <section class="lm-results-principle reveal">
+
+    <div class="lm-principle-line"></div>
+
+    <div>
+      <span class="eyebrow">EVIDENCE PRINCIPLE</span>
+
+      <h2>
+        A correspondence is only useful
+        when the <span class="gradient">geometry agrees.</span>
+      </h2>
+    </div>
+
+    <p>
+      LunarMatch does not treat visual similarity alone as proof.
+      Feature matches are filtered and geometrically verified before
+      reliability is reported.
+    </p>
+
+  </section>
+
+</section>
+
+{% endblock %}
