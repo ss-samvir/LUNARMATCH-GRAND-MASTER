@@ -1,7 +1,10 @@
 import math
-import numpy as np
-import cv2
+from pathlib import Path
 
+import cv2
+import numpy as np
+
+# Original LunarMatch configuration recovered from the browser engine.
 MAX_FEATURES = 500
 PATCH_RADIUS = 5
 MATCH_RATIO = 0.78
@@ -11,7 +14,7 @@ RANSAC_THRESHOLD = 10.0
 
 def calculate_quality(gray):
     h, w = gray.shape
-    gray_f = gray.astype(np.float32)
+    gray_f = gray.astype(np.float32, copy=False)
     mean = float(np.mean(gray_f))
     variance = max(0.0, float(np.mean(gray_f * gray_f) - mean * mean))
     contrast = math.sqrt(variance)
@@ -32,10 +35,15 @@ def calculate_quality(gray):
 
 
 def detect_features(gray):
+    # IMPORTANT: the original browser engine used Float32Array.
+    # Keeping this float32 avoids uint8 subtraction overflow and preserves
+    # the original gradient/corner detector behaviour.
+    gray = gray.astype(np.float32, copy=False)
     h, w = gray.shape
     candidates = []
     border = 8
     step = max(2, int(min(w, h) / 180))
+
     for y in range(border, h - border, step):
         for x in range(border, w - border, step):
             gx = float(gray[y, x + 1] - gray[y, x - 1])
@@ -47,10 +55,12 @@ def detect_features(gray):
             gyy = float(gray[y + 1, x] + gray[y - 1, x] - 2.0 * gray[y, x])
             corner = abs(gxx * gyy)
             candidates.append({"x": x, "y": y, "score": g * 0.7 + corner * 0.3})
+
     candidates.sort(key=lambda p: p["score"], reverse=True)
     selected = []
     min_distance = max(8.0, min(w, h) / 35.0)
     min_dist_sq = min_distance * min_distance
+
     for point in candidates:
         valid = True
         for chosen in selected:
@@ -63,23 +73,28 @@ def detect_features(gray):
             selected.append(point)
         if len(selected) >= MAX_FEATURES:
             break
+
     return selected
 
 
 def describe_feature(gray, point):
+    gray = gray.astype(np.float32, copy=False)
     h, w = gray.shape
-    descriptor = []
     r = PATCH_RADIUS
+    descriptor = np.empty((2 * r + 1) ** 2, dtype=np.float32)
+    k = 0
+
     for dy in range(-r, r + 1):
         for dx in range(-r, r + 1):
             x = min(w - 1, max(0, int(round(point["x"] + dx))))
             y = min(h - 1, max(0, int(round(point["y"] + dy))))
-            descriptor.append(float(gray[y, x]))
-    desc = np.asarray(descriptor, dtype=np.float32)
-    desc -= float(np.mean(desc))
-    std = math.sqrt(float(np.mean(desc * desc))) or 1.0
-    desc /= std
-    return desc
+            descriptor[k] = gray[y, x]
+            k += 1
+
+    descriptor -= float(np.mean(descriptor))
+    std = math.sqrt(float(np.mean(descriptor * descriptor))) or 1.0
+    descriptor /= std
+    return descriptor
 
 
 def build_descriptors(gray, features):
@@ -89,42 +104,65 @@ def build_descriptors(gray, features):
     ]
 
 
-def descriptor_distance(a, b):
-    d = a - b
-    return math.sqrt(float(np.dot(d, d)))
+def _descriptor_matrix(features):
+    if not features:
+        return np.empty((0, (2 * PATCH_RADIUS + 1) ** 2), dtype=np.float32)
+    return np.stack([f["descriptor"] for f in features]).astype(np.float32, copy=False)
 
 
-def match_features(features_a, features_b):
-    forward = []
+def _distance_matrix(features_a, features_b):
+    a = _descriptor_matrix(features_a)
+    b = _descriptor_matrix(features_b)
+    if not len(a) or not len(b):
+        return np.empty((len(a), len(b)), dtype=np.float32)
+    a2 = np.sum(a * a, axis=1, keepdims=True)
+    b2 = np.sum(b * b, axis=1, keepdims=True).T
+    distances_sq = a2 + b2 - 2.0 * (a @ b.T)
+    np.maximum(distances_sq, 0.0, out=distances_sq)
+    return np.sqrt(distances_sq, dtype=np.float32)
+
+
+def match_features(features_a, features_b, distances=None):
     if not features_a or not features_b:
-        return forward
-    for i, feature_a in enumerate(features_a):
-        best = None
-        second = None
-        for j, feature_b in enumerate(features_b):
-            distance = descriptor_distance(feature_a["descriptor"], feature_b["descriptor"])
-            if best is None or distance < best["distance"]:
-                second = best
-                best = {"a": i, "b": j, "distance": distance}
-            elif second is None or distance < second["distance"]:
-                second = {"a": i, "b": j, "distance": distance}
-        if best and second and best["distance"] < second["distance"] * MATCH_RATIO:
-            forward.append(best)
-    return forward
+        return []
+    distances = _distance_matrix(features_a, features_b) if distances is None else distances
+    if distances.shape[1] < 2:
+        return []
+
+    order = np.argpartition(distances, kth=1, axis=1)[:, :2]
+    best_first = order[:, 0]
+    best_second = order[:, 1]
+    d_first = distances[np.arange(len(features_a)), best_first]
+    d_second = distances[np.arange(len(features_a)), best_second]
+
+    # Re-order the two selected entries because argpartition does not sort them.
+    swap = d_second < d_first
+    chosen_b = best_first.copy()
+    chosen_b[swap] = best_second[swap]
+    chosen_second = best_second.copy()
+    chosen_second[swap] = best_first[swap]
+    best_distance = d_first.copy()
+    best_distance[swap] = d_second[swap]
+    second_distance = d_second.copy()
+    second_distance[swap] = d_first[swap]
+
+    matches = []
+    for i in range(len(features_a)):
+        if best_distance[i] < second_distance[i] * MATCH_RATIO:
+            matches.append({
+                "a": int(i),
+                "b": int(chosen_b[i]),
+                "distance": float(best_distance[i]),
+            })
+    return matches
 
 
-def reciprocal_matches(features_a, features_b, matches):
-    reverse_best = {}
-    for j, feature_b in enumerate(features_b):
-        best_index = -1
-        best_distance = float("inf")
-        for i, feature_a in enumerate(features_a):
-            distance = descriptor_distance(feature_b["descriptor"], feature_a["descriptor"])
-            if distance < best_distance:
-                best_distance = distance
-                best_index = i
-        reverse_best[j] = best_index
-    return [m for m in matches if reverse_best.get(m["b"]) == m["a"]]
+def reciprocal_matches(features_a, features_b, matches, distances=None):
+    if not matches or not features_a or not features_b:
+        return []
+    distances = _distance_matrix(features_a, features_b) if distances is None else distances
+    reverse_best = np.argmin(distances, axis=0)
+    return [m for m in matches if int(reverse_best[m["b"]]) == m["a"]]
 
 
 def solve_affine(p1, p2, p3, q1, q2, q3):
@@ -165,15 +203,24 @@ def affine_to_homography(model):
 
 def verify_geometry(features_a, features_b, matches):
     if len(matches) < 3:
-        return {"model": None, "inlier_indices": [], "reprojection_errors": [], "ratio": 0.0, "consistency": 0.0}
+        return {
+            "model": None,
+            "inlier_indices": [],
+            "reprojection_errors": [],
+            "ratio": 0.0,
+            "consistency": 0.0,
+        }
+
     rng = np.random.default_rng(42)
     best_model = None
     best_inliers = []
+
     for _ in range(RANSAC_ITERATIONS):
         try:
             indices = rng.choice(len(matches), size=3, replace=False).tolist()
         except ValueError:
             break
+
         model = solve_affine(
             features_a[matches[indices[0]]["a"]],
             features_a[matches[indices[1]]["a"]],
@@ -184,6 +231,7 @@ def verify_geometry(features_a, features_b, matches):
         )
         if model is None:
             continue
+
         inliers = []
         for i, match in enumerate(matches):
             projected = transform_point(model, features_a[match["a"]])
@@ -191,15 +239,20 @@ def verify_geometry(features_a, features_b, matches):
             error = math.hypot(projected["x"] - target["x"], projected["y"] - target["y"])
             if error <= RANSAC_THRESHOLD:
                 inliers.append(i)
+
         if len(inliers) > len(best_inliers):
             best_model = model
             best_inliers = inliers
+
     reprojection_errors = []
     if best_model is not None:
         for match in matches:
             projected = transform_point(best_model, features_a[match["a"]])
             target = features_b[match["b"]]
-            reprojection_errors.append(math.hypot(projected["x"] - target["x"], projected["y"] - target["y"]))
+            reprojection_errors.append(
+                math.hypot(projected["x"] - target["x"], projected["y"] - target["y"])
+            )
+
     ratio = len(best_inliers) / max(1, len(matches))
     return {
         "model": best_model,
@@ -251,12 +304,18 @@ def confidence_label(score):
 
 
 def run(gray_a, gray_b):
+    # Cache one symmetric descriptor-distance matrix. This preserves the
+    # original nearest/second-nearest logic while removing the expensive
+    # Python O(N^2) descriptor loop from both directions.
+    gray_a = gray_a.astype(np.float32, copy=False)
+    gray_b = gray_b.astype(np.float32, copy=False)
     quality_a = calculate_quality(gray_a)
     quality_b = calculate_quality(gray_b)
     features_a = build_descriptors(gray_a, detect_features(gray_a))
     features_b = build_descriptors(gray_b, detect_features(gray_b))
-    raw = match_features(features_a, features_b)
-    reciprocal = reciprocal_matches(features_a, features_b, raw)
+    distances = _distance_matrix(features_a, features_b)
+    raw = match_features(features_a, features_b, distances=distances)
+    reciprocal = reciprocal_matches(features_a, features_b, raw, distances=distances)
     geometry = verify_geometry(features_a, features_b, reciprocal)
     inlier_matches = [reciprocal[i] for i in geometry["inlier_indices"]]
     coverage = calculate_coverage(features_a, inlier_matches)
