@@ -66,20 +66,41 @@ def detect_features(gray):
     min_dist_sq = min_distance * min_distance
 
     selected = []
+    # Spatial hash for exact-equivalent minimum-distance suppression.
+    # Because candidates are processed in descending score order, checking
+    # the current bucket and its 8 neighbors is sufficient to reproduce the
+    # original pairwise distance rule while avoiding O(candidates * 500).
+    cell_size = min_distance
+    buckets = {}
+
     for idx in order:
         x = int(xs[xx[idx]])
         y = int(ys[yy[idx]])
+        cx = int(np.floor(x / cell_size))
+        cy = int(np.floor(y / cell_size))
         valid = True
-        for chosen in selected:
-            dx = x - chosen["x"]
-            dy = y - chosen["y"]
-            if dx * dx + dy * dy < min_dist_sq:
-                valid = False
+
+        for by in range(cy - 1, cy + 2):
+            for bx in range(cx - 1, cx + 2):
+                for chosen_index in buckets.get((bx, by), ()): 
+                    chosen = selected[chosen_index]
+                    dx = x - chosen["x"]
+                    dy = y - chosen["y"]
+                    if dx * dx + dy * dy < min_dist_sq:
+                        valid = False
+                        break
+                if not valid:
+                    break
+            if not valid:
                 break
+
         if valid:
             selected.append({"x": x, "y": y, "score": float(scores[idx])})
+            bucket = buckets.setdefault((cx, cy), [])
+            bucket.append(len(selected) - 1)
             if len(selected) >= MAX_FEATURES:
                 break
+
     return selected
 
 
