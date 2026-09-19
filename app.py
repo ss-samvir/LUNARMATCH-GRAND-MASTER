@@ -968,10 +968,7 @@ def draw_correspondence(
 
     draw_matches = list(matches)
 
-    flags = (
-        cv2.DrawMatchesFlags
-        .NOT_DRAW_SINGLE_POINTS
-    )
+    flags = cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
 
     canvas = cv2.drawMatches(
         a_gray,
@@ -1344,10 +1341,7 @@ def analyze(a_path, b_path):
             kb,
             candidate_matches,
             None,
-            flags=(
-                cv2.DrawMatchesFlags
-                .NOT_DRAW_SINGLE_POINTS
-            ),
+            flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
         )
 
         cv2.rectangle(
