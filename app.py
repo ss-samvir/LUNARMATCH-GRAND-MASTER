@@ -757,11 +757,17 @@ def analyze(a_path, b_path):
             "feature_coverage_percent": round(feature_coverage, 2),
             "correspondence_strength": round(correspondence_strength, 2),
             "spatial_distribution": spatial,
-            "duplicate_match_detection": {
-                "status": "CHECKED",
-                "duplicate_query_indices": len(ka) - len({m.queryIdx for m in reciprocal}),
-                "duplicate_reference_indices": len(kb) - len({m.trainIdx for m in reciprocal}),
-            },
+"duplicate_match_detection": {
+    "status": "CHECKED",
+    "duplicate_query_indices": max(
+        0,
+        len(reciprocal) - len({m.queryIdx for m in reciprocal})
+    ),
+    "duplicate_reference_indices": max(
+        0,
+        len(reciprocal) - len({m.trainIdx for m in reciprocal})
+    ),
+},
         },
         "geometric_verification": {
             "verification_status": verification_status,
