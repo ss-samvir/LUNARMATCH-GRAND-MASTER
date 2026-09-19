@@ -243,7 +243,12 @@ def image_info(path):
     channels = 1 if im.ndim == 2 else im.shape[2]
     color_mode = "GRAYSCALE" if channels == 1 else f"{channels}-CHANNEL"
 
-    gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY) if im.ndim == 3 else im
+    if im.ndim == 2:
+    gray = im
+elif im.shape[2] == 4:
+    gray = cv2.cvtColor(im, cv2.COLOR_BGRA2GRAY)
+else:
+    gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
     return {
         "image": im,
