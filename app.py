@@ -594,131 +594,205 @@ def resize_once(gray):
 # =========================================================
 
 def match_and_verify(ka, da, kb, db):
-    bf = cv2.BFMatcher(
-        cv2.NORM_L2
-    )
+    """
+    Robust SIFT correspondence and geometric verification.
 
-    raw_knn = []
-    ratio_matches = []
+    Reciprocal Lowe-ratio matches are treated as strong evidence,
+    but they are NOT a hard gate for geometric verification.
+    Lowe-ratio candidates are allowed into RANSAC so that a valid
+    geometric relationship can still be discovered when reciprocal
+    filtering is too strict for small or difficult images.
+    """
 
-    if (
-        da is not None
-        and db is not None
-        and len(da) >= 2
-        and len(db) >= 2
-    ):
-        raw_knn = bf.knnMatch(
-            da,
-            db,
-            k=2,
-        )
+    empty_result = {
+        "raw_knn_matches": 0,
+        "ratio_candidates": 0,
+        "ratio_matches": [],
+        "reciprocal_matches": [],
+        "inlier_indices": [],
+        "reprojection_errors": [],
+        "homography": None,
+        "matches": [],
+    }
 
-        ratio_matches = [
-            pair[0]
-            for pair in raw_knn
-            if (
-                len(pair) == 2
-                and pair[0].distance
-                < LOWE_RATIO * pair[1].distance
-            )
-        ]
+    if da is None or db is None:
+        return empty_result
 
-    reciprocal_matches = []
-    reverse_best = {}
+    if len(da) < 2 or len(db) < 2:
+        return empty_result
 
-    if (
-        da is not None
-        and db is not None
-        and len(da) >= 2
-        and len(db) >= 2
-    ):
-        reverse_knn = bf.knnMatch(
-            db,
-            da,
-            k=2,
-        )
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
-        for pair in reverse_knn:
-            if (
-                len(pair) == 2
-                and pair[0].distance
-                < LOWE_RATIO * pair[1].distance
-            ):
-                reverse_best[
-                    pair[0].queryIdx
-                ] = pair[0].trainIdx
+    try:
+        forward_knn = bf.knnMatch(da, db, k=2)
+        reverse_knn = bf.knnMatch(db, da, k=2)
+    except cv2.error:
+        return empty_result
 
-        reciprocal_matches = [
-            m
-            for m in ratio_matches
-            if reverse_best.get(
-                m.trainIdx
-            ) == m.queryIdx
-        ]
+    raw_knn_matches = len(forward_knn)
 
-    H = None
-    mask = None
-    reprojection_errors = []
+    # ---------------------------------------------------------
+    # Adaptive Lowe-ratio candidate generation
+    # ---------------------------------------------------------
 
-    if len(reciprocal_matches) >= 4:
-        src = np.float32(
-            [
-                ka[m.queryIdx].pt
-                for m in reciprocal_matches
-            ]
-        ).reshape(-1, 1, 2)
+    # Keypoint coordinates are used only to avoid making image-size
+    # assumptions inside this function. The primary baseline remains
+    # LOWE_RATIO = 0.80; for difficult/small imagery we expand the
+    # candidate pool progressively rather than changing the global
+    # configuration permanently.
+    ratio_thresholds = [LOWE_RATIO, 0.85, 0.90]
 
-        dst = np.float32(
-            [
-                kb[m.trainIdx].pt
-                for m in reciprocal_matches
-            ]
-        ).reshape(-1, 1, 2)
+    def ratio_filter(knn_matches, ratio):
+        good = []
 
+        for pair in knn_matches:
+            if len(pair) != 2:
+                continue
+
+            m, n = pair
+
+            if n.distance <= 0:
+                continue
+
+            if m.distance < ratio * n.distance:
+                good.append(m)
+
+        return good
+
+    forward_candidates = []
+    for ratio in ratio_thresholds:
+        candidates = ratio_filter(forward_knn, ratio)
+
+        if len(candidates) > len(forward_candidates):
+            forward_candidates = candidates
+
+        if len(candidates) >= 8:
+            forward_candidates = candidates
+            break
+
+    reverse_candidates = []
+    for ratio in ratio_thresholds:
+        candidates = ratio_filter(reverse_knn, ratio)
+
+        if len(candidates) > len(reverse_candidates):
+            reverse_candidates = candidates
+
+        if len(candidates) >= 8:
+            reverse_candidates = candidates
+            break
+
+    # ---------------------------------------------------------
+    # Reciprocal matching
+    # ---------------------------------------------------------
+
+    reverse_pairs = {
+        (m.queryIdx, m.trainIdx)
+        for m in reverse_candidates
+    }
+
+    reciprocal_matches = [
+        m
+        for m in forward_candidates
+        if (m.trainIdx, m.queryIdx) in reverse_pairs
+    ]
+
+    # ---------------------------------------------------------
+    # Candidate pool for geometric verification
+    # ---------------------------------------------------------
+
+    reciprocal_keys = {
+        (m.queryIdx, m.trainIdx)
+        for m in reciprocal_matches
+    }
+
+    ordered_candidates = []
+
+    # Put reciprocal matches first because they are stronger evidence.
+    ordered_candidates.extend(reciprocal_matches)
+
+    # Then add all other Lowe-ratio candidates.
+    for m in forward_candidates:
+        key = (m.queryIdx, m.trainIdx)
+        if key not in reciprocal_keys:
+            ordered_candidates.append(m)
+
+    # Remove duplicate query/reference pairs while preserving order.
+    unique_candidates = []
+    seen = set()
+
+    for m in ordered_candidates:
+        key = (m.queryIdx, m.trainIdx)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_candidates.append(m)
+
+    result = {
+        "raw_knn_matches": raw_knn_matches,
+        "ratio_candidates": len(forward_candidates),
+        "ratio_matches": forward_candidates,
+        "reciprocal_matches": reciprocal_matches,
+        "inlier_indices": [],
+        "reprojection_errors": [],
+        "homography": None,
+        "matches": unique_candidates,
+    }
+
+    # ---------------------------------------------------------
+    # Geometric verification
+    # ---------------------------------------------------------
+
+    if len(unique_candidates) < 4:
+        return result
+
+    src = np.float32([
+        ka[m.queryIdx].pt
+        for m in unique_candidates
+    ]).reshape(-1, 1, 2)
+
+    dst = np.float32([
+        kb[m.trainIdx].pt
+        for m in unique_candidates
+    ]).reshape(-1, 1, 2)
+
+    try:
         H, mask = cv2.findHomography(
             src,
             dst,
             cv2.RANSAC,
             RANSAC_THRESHOLD,
+            maxIters=3000,
+            confidence=0.995,
         )
+    except cv2.error:
+        H, mask = None, None
 
-        if H is not None and mask is not None:
-            projected = cv2.perspectiveTransform(
-                src,
-                H,
-            )
+    if H is None or mask is None:
+        return result
 
-            errors = np.linalg.norm(
-                projected - dst,
-                axis=2,
-            ).reshape(-1)
+    inlier_indices = [
+        i
+        for i, flag in enumerate(mask.ravel())
+        if int(flag) == 1
+    ]
 
-            reprojection_errors = (
-                errors.tolist()
-            )
+    try:
+        projected = cv2.perspectiveTransform(src, H)
+        errors = np.linalg.norm(
+            projected - dst,
+            axis=2,
+        ).reshape(-1)
+        reprojection_errors = errors.tolist()
+    except cv2.error:
+        reprojection_errors = []
 
-    inlier_indices = []
-
-    if mask is not None:
-        inlier_indices = [
-            i
-            for i, flag in enumerate(
-                mask.ravel()
-            )
-            if int(flag) == 1
-        ]
-
-    return {
-        "raw_knn_matches": len(raw_knn),
-        "ratio_candidates": len(ratio_matches),
-        "reciprocal_matches": len(
-            reciprocal_matches
-        ),
+    result.update({
         "inlier_indices": inlier_indices,
         "reprojection_errors": reprojection_errors,
         "homography": H,
-        "matches": reciprocal_matches,
-    }
+    })
+
+    return result
 
 
 # =========================================================
@@ -861,6 +935,7 @@ def transformation_quality(H):
 
 def draw_correspondence(
     a_gray,
+    b_gray,
     ka,
     kb,
     matches,
@@ -901,7 +976,7 @@ def draw_correspondence(
     canvas = cv2.drawMatches(
         a_gray,
         ka,
-        a_gray,
+        b_gray,
         kb,
         draw_matches,
         None,
@@ -922,7 +997,7 @@ def draw_correspondence(
     cv2.putText(
         canvas,
         (
-            f"RECIPROCAL MATCHES: {len(matches)} "
+            f"CANDIDATE MATCHES: {len(matches)} "
             f"| VERIFIED INLIERS: {len(inlier_indices)} "
             f"| OUTLIERS: "
             f"{len(matches) - len(inlier_indices)}"
@@ -1035,19 +1110,14 @@ def analyze(a_path, b_path):
 
     t = time.perf_counter()
 
-    reciprocal = match_result["matches"]
+    candidate_matches = match_result["matches"]
+    reciprocal_matches = match_result["reciprocal_matches"]
 
-    inlier_indices = (
-        match_result["inlier_indices"]
-    )
+    inlier_indices = match_result["inlier_indices"]
 
-    verified = len(
-        inlier_indices
-    )
+    verified = len(inlier_indices)
 
-    candidates = len(
-        reciprocal
-    )
+    candidates = len(candidate_matches)
 
     outliers = max(
         0,
@@ -1063,7 +1133,7 @@ def analyze(a_path, b_path):
     )
 
     spatial = spatial_distribution(
-        reciprocal,
+        candidate_matches,
         ka,
         aa.shape[1],
         aa.shape[0],
@@ -1111,7 +1181,7 @@ def analyze(a_path, b_path):
         src_pts = np.float32(
             [
                 ka[
-                    reciprocal[i].queryIdx
+                    candidate_matches[i].queryIdx
                 ].pt
                 for i in inlier_indices
             ]
@@ -1120,7 +1190,7 @@ def analyze(a_path, b_path):
         dst_pts = np.float32(
             [
                 kb[
-                    reciprocal[i].trainIdx
+                    candidate_matches[i].trainIdx
                 ].pt
                 for i in inlier_indices
             ]
@@ -1173,7 +1243,7 @@ def analyze(a_path, b_path):
     feature_coverage = (
         len(
             {
-                reciprocal[i].queryIdx
+                candidate_matches[i].queryIdx
                 for i in inlier_indices
             }
         )
@@ -1266,13 +1336,13 @@ def analyze(a_path, b_path):
     )
 
     # Draw on the two actual processed images.
-    if len(reciprocal) > 0:
+    if len(candidate_matches) > 0:
         canvas = cv2.drawMatches(
             aa,
             ka,
             bb,
             kb,
-            reciprocal,
+            candidate_matches,
             None,
             flags=(
                 cv2.DrawMatchesFlags
@@ -1295,7 +1365,7 @@ def analyze(a_path, b_path):
             canvas,
             (
                 "CORRESPONDENCE MAP | "
-                f"RECIPROCAL {len(reciprocal)} | "
+                f"CANDIDATES {len(candidate_matches)} | "
                 f"INLIERS {verified} | "
                 f"OUTLIERS {outliers}"
             ),
@@ -1356,7 +1426,7 @@ def analyze(a_path, b_path):
             canvas,
             (
                 "CORRESPONDENCE MAP | "
-                "NO VALID RECIPROCAL MATCHES"
+                "NO VALID MATCH CANDIDATES"
             ),
             (12, 26),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -1504,7 +1574,7 @@ def analyze(a_path, b_path):
 
     if verification_status == "VERIFIED":
         interpretation_points.append(
-            f"{verified} reciprocal correspondences "
+            f"{verified} candidate correspondences "
             "survived geometric verification."
         )
 
@@ -1537,15 +1607,15 @@ def analyze(a_path, b_path):
 
         if candidates == 0:
             interpretation_points.append(
-                "No reciprocal Lowe-ratio matches "
-                "were available for verification."
+                "No Lowe-ratio match candidates were "
+                "available for geometric verification."
             )
 
         elif verified == 0:
             interpretation_points.append(
-                f"{candidates} reciprocal candidates "
+                f"{candidates} Lowe-ratio candidates "
                 "were found, but none survived "
-                "RANSAC verification."
+                "RANSAC geometric verification."
             )
 
         if degenerate:
@@ -1657,22 +1727,22 @@ def analyze(a_path, b_path):
 
     duplicate_query_indices = max(
         0,
-        len(reciprocal)
+        len(candidate_matches)
         - len(
             {
                 m.queryIdx
-                for m in reciprocal
+                for m in candidate_matches
             }
         ),
     )
 
     duplicate_reference_indices = max(
         0,
-        len(reciprocal)
+        len(candidate_matches)
         - len(
             {
                 m.trainIdx
-                for m in reciprocal
+                for m in candidate_matches
             }
         ),
     )
@@ -1819,8 +1889,8 @@ def analyze(a_path, b_path):
             "matcher": "BFMatcher / L2",
             "lowe_ratio": LOWE_RATIO,
             "cross_check": (
-                "reciprocal Lowe-ratio "
-                "verification"
+                "reciprocal Lowe-ratio evidence; "
+                "not a hard geometric gate"
             ),
             "geometric_model": (
                 "Homography + RANSAC"
@@ -1894,11 +1964,11 @@ def analyze(a_path, b_path):
             ),
             "ransac": (
                 "EXECUTED"
-                if len(reciprocal) >= 4
+                if len(candidate_matches) >= 4
                 else (
                     "NOT EXECUTED — "
                     "fewer than 4 "
-                    "reciprocal matches"
+                    "Lowe-ratio candidates"
                 )
             ),
             "inliers": verified,
@@ -3310,8 +3380,8 @@ def health():
         service="LUNARMATCH V2",
         engine=(
             "Python OpenCV SIFT + "
-            "BFMatcher + reciprocal "
-            "matching + RANSAC"
+            "BFMatcher + adaptive Lowe-ratio "
+            "matching + reciprocal evidence + RANSAC"
         ),
         validation=(
             "metadata-aware; "
