@@ -22,6 +22,8 @@ from PIL import Image, ExifTags
 import cv2
 import numpy as np
 
+from lunar_engine import run as run_lunarmatch_engine, draw_correspondence as draw_custom_correspondence
+
 
 # =========================================================
 # PATHS / APP CONFIGURATION
@@ -1055,1115 +1057,336 @@ def analyze(a_path, b_path):
     started = time.perf_counter()
     stage_times = {}
 
-    # -----------------------------------------------------
     # 01 ACQUIRE
-    # -----------------------------------------------------
-
     t = time.perf_counter()
-
     a_info = image_info(a_path)
     b_info = image_info(b_path)
-
     a_meta = read_metadata(a_path)
     b_meta = read_metadata(b_path)
+    stage_times["acquire_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    stage_times["acquire_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
     # 02 PREPROCESS
-    # -----------------------------------------------------
-
     t = time.perf_counter()
+    aa, scale_a = resize_once(a_info["gray"])
+    bb, scale_b = resize_once(b_info["gray"])
+    stage_times["preprocess_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    aa, scale_a = resize_once(
-        a_info["gray"]
-    )
-
-    bb, scale_b = resize_once(
-        b_info["gray"]
-    )
-
-    stage_times["preprocess_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
-    # 03 EXTRACT
-    # -----------------------------------------------------
-
+    # 03 EXTRACT + PRIMARY MATCHING
     t = time.perf_counter()
+    primary = run_lunarmatch_engine(aa, bb)
+    stage_times["extract_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    sift = cv2.SIFT_create(
-        nfeatures=MAX_FEATURES,
-        contrastThreshold=0.02,
-    )
-
-    ka, da = sift.detectAndCompute(
-        aa,
-        None,
-    )
-
-    kb, db_desc = sift.detectAndCompute(
-        bb,
-        None,
-    )
-
-    stage_times["extract_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
-    # 04 MATCH
-    # -----------------------------------------------------
-
+    # 04 MATCH — independent SIFT cross-check
     t = time.perf_counter()
+    sift = cv2.SIFT_create(nfeatures=MAX_FEATURES, contrastThreshold=0.02)
+    sift_ka, sift_da = sift.detectAndCompute(aa, None)
+    sift_kb, sift_db = sift.detectAndCompute(bb, None)
+    sift_result = match_and_verify(sift_ka, sift_da, sift_kb, sift_db)
+    stage_times["match_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    match_result = match_and_verify(
-        ka,
-        da,
-        kb,
-        db_desc,
-    )
-
-    stage_times["match_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
-    # 05 VERIFY
-    # -----------------------------------------------------
-
+    # 05 VERIFY — primary LunarMatch evidence
     t = time.perf_counter()
+    features_a = primary["features_a"]
+    features_b = primary["features_b"]
+    raw_matches = primary["raw_matches"]
+    reciprocal_matches = primary["reciprocal_matches"]
+    inlier_indices = primary["geometry"]["inlier_indices"]
+    inlier_matches = primary["inlier_matches"]
 
-    candidate_matches = match_result["matches"]
-    reciprocal_matches = match_result["reciprocal_matches"]
+    verified = len(inlier_matches)
+    candidates = len(reciprocal_matches)
+    outliers = max(0, candidates - verified)
+    inlier_ratio = verified / max(1, candidates) * 100.0
+    spatial_coverage = primary["coverage"]
+    spatial = {
+        "status": "GOOD" if spatial_coverage >= 40 else "LIMITED" if spatial_coverage > 0 else "INSUFFICIENT",
+        "occupied_grid_cells": round(spatial_coverage / 4.0),
+        "grid_cells_total": 25,
+        "coverage_percent": round(spatial_coverage, 2),
+        "grid": "5×5 source coverage",
+    }
+    errors = primary["geometry"]["reprojection_errors"]
+    inlier_errors = [errors[i] for i in inlier_indices if i < len(errors)]
+    reproj_mean = float(np.mean(inlier_errors)) if inlier_errors else None
+    reproj_median = float(np.median(inlier_errors)) if inlier_errors else None
+    reproj_max = float(np.max(inlier_errors)) if inlier_errors else None
+    H = primary["homography"]
 
-    inlier_indices = match_result["inlier_indices"]
-
-    verified = len(inlier_indices)
-
-    candidates = len(candidate_matches)
-
-    outliers = max(
-        0,
-        candidates - verified,
-    )
-
-    inlier_ratio = (
-        verified
-        / candidates
-        * 100
-        if candidates
-        else 0.0
-    )
-
-    spatial = spatial_distribution(
-        candidate_matches,
-        ka,
-        aa.shape[1],
-        aa.shape[0],
-    )
-
-    reproj = (
-        match_result[
-            "reprojection_errors"
-        ]
-    )
-
-    inlier_errors = [
-        reproj[i]
-        for i in inlier_indices
-        if i < len(reproj)
-    ]
-
-    reproj_mean = (
-        float(
-            np.mean(inlier_errors)
-        )
-        if inlier_errors
-        else None
-    )
-
-    reproj_median = (
-        float(
-            np.median(inlier_errors)
-        )
-        if inlier_errors
-        else None
-    )
-
-    reproj_max = (
-        float(
-            np.max(inlier_errors)
-        )
-        if inlier_errors
-        else None
-    )
-
+    # Degeneracy check mirrors the original engine's intent.
     degenerate = False
-
-    if verified >= 4:
-        src_pts = np.float32(
-            [
-                ka[
-                    candidate_matches[i].queryIdx
-                ].pt
-                for i in inlier_indices
-            ]
+    if len(inlier_matches) >= 3:
+        src_pts = np.asarray([[features_a[m["a"]]["x"], features_a[m["a"]]["y"]] for m in inlier_matches], dtype=np.float64)
+        dst_pts = np.asarray([[features_b[m["b"]]["x"], features_b[m["b"]]["y"]] for m in inlier_matches], dtype=np.float64)
+        degenerate = (
+            np.linalg.matrix_rank(src_pts - src_pts.mean(axis=0)) < 2
+            or np.linalg.matrix_rank(dst_pts - dst_pts.mean(axis=0)) < 2
         )
 
-        dst_pts = np.float32(
-            [
-                kb[
-                    candidate_matches[i].trainIdx
-                ].pt
-                for i in inlier_indices
-            ]
-        )
-
-        if len(src_pts) >= 4:
-            degenerate = (
-                np.linalg.matrix_rank(
-                    src_pts
-                    - src_pts.mean(
-                        axis=0
-                    )
-                ) < 2
-                or
-                np.linalg.matrix_rank(
-                    dst_pts
-                    - dst_pts.mean(
-                        axis=0
-                    )
-                ) < 2
-            )
-
-    geom = transformation_quality(
-        match_result["homography"]
+    transform_quality = (
+        transformation_quality(H)
+        if H is not None else
+        {"status": "NOT ESTABLISHED", "determinant": None, "condition_number": None}
     )
 
     verification_status = (
         "VERIFIED"
-        if (
-            verified >= 4
-            and not degenerate
-            and match_result[
-                "homography"
-            ] is not None
-        )
-        else "INSUFFICIENT"
+        if H is not None and verified >= 5 and not degenerate
+        else "LIMITED"
     )
+    stage_times["verify_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    stage_times["verify_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
-    # 06 SCORE
-    # -----------------------------------------------------
-
+    # 06 SCORE — EXACT ORIGINAL LUNARMATCH SCORE FORMULA
     t = time.perf_counter()
-
     feature_coverage = (
-        len(
-            {
-                candidate_matches[i].queryIdx
-                for i in inlier_indices
-            }
-        )
-        / max(
-            1,
-            len(ka),
-        )
-        * 100
+        len({m["a"] for m in inlier_matches})
+        / max(1, len(features_a))
+        * 100.0
     )
+    correspondence_strength = primary["geometry"]["consistency"]
+    score = float(primary["score"])
+    confidence_value = float(primary["confidence_value"])
+    reliability = primary["confidence_label"]
+    stage_times["score_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    correspondence_strength = min(
-        100.0,
-        inlier_ratio * 0.65
-        + min(
-            100.0,
-            feature_coverage,
-        ) * 0.2
-        + spatial[
-            "coverage_percent"
-        ] * 0.15,
-    )
-
-    if (
-        verified >= 8
-        and inlier_ratio >= 50
-        and spatial[
-            "coverage_percent"
-        ] >= 40
-    ):
-        reliability = "HIGH"
-
-    elif (
-        verified >= 5
-        and inlier_ratio >= 30
-    ):
-        reliability = "MODERATE"
-
-    elif verified >= 1:
-        reliability = "LOW"
-
-    else:
-        reliability = "INSUFFICIENT"
-
-    score = min(
-        100.0,
-        (
-            verified
-            / max(
-                1,
-                min(
-                    len(ka),
-                    len(kb),
-                ),
-            )
-            * 100
-            * 0.35
-        )
-        + inlier_ratio * 0.35
-        + spatial[
-            "coverage_percent"
-        ] * 0.15
-        + min(
-            100.0,
-            correspondence_strength,
-        ) * 0.15,
-    )
-
-    if verification_status != "VERIFIED":
-        score = min(
-            score,
-            39.99,
-        )
-
-    stage_times["score_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
     # 07 REPORT / VISUALIZATION
-    # -----------------------------------------------------
-
     t = time.perf_counter()
-
     analysis_id = uuid.uuid4().hex
-
-    result_path = (
-        RESULTS
-        / f"correspondence_{analysis_id}.jpg"
+    result_path = RESULTS / f"correspondence_{analysis_id}.jpg"
+    draw_custom_correspondence(
+        aa, bb, features_a, features_b,
+        reciprocal_matches, inlier_indices,
+        result_path,
     )
+    stage_times["report_ms"] = round((time.perf_counter() - t) * 1000, 1)
+    total_ms = round((time.perf_counter() - started) * 1000, 1)
 
-    # Draw on the two actual processed images.
-    if len(candidate_matches) > 0:
-        canvas = cv2.drawMatches(
-            aa,
-            ka,
-            bb,
-            kb,
-            candidate_matches,
-            None,
-            flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
-        )
+    instrument_a = identify_instrument(a_path, a_meta)
+    instrument_b = identify_instrument(b_path, b_meta)
 
-        cv2.rectangle(
-            canvas,
-            (0, 0),
-            (
-                canvas.shape[1],
-                38,
-            ),
-            (10, 14, 22),
-            -1,
-        )
-
-        cv2.putText(
-            canvas,
-            (
-                "CORRESPONDENCE MAP | "
-                f"CANDIDATES {len(candidate_matches)} | "
-                f"INLIERS {verified} | "
-                f"OUTLIERS {outliers}"
-            ),
-            (12, 26),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
-            (235, 240, 248),
-            1,
-            cv2.LINE_AA,
-        )
-
-        cv2.imwrite(
-            str(result_path),
-            canvas,
-        )
-
-    else:
-        h = max(
-            aa.shape[0],
-            bb.shape[0],
-        )
-
-        w = (
-            aa.shape[1]
-            + bb.shape[1]
-        )
-
-        canvas = np.zeros(
-            (
-                h,
-                w,
-            ),
-            dtype=np.uint8,
-        )
-
-        canvas[
-            :aa.shape[0],
-            :aa.shape[1]
-        ] = aa
-
-        canvas[
-            :bb.shape[0],
-            aa.shape[1]:
-        ] = bb
-
-        cv2.rectangle(
-            canvas,
-            (0, 0),
-            (
-                w,
-                38,
-            ),
-            (10, 14, 22),
-            -1,
-        )
-
-        cv2.putText(
-            canvas,
-            (
-                "CORRESPONDENCE MAP | "
-                "NO VALID MATCH CANDIDATES"
-            ),
-            (12, 26),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
-            (235, 240, 248),
-            1,
-            cv2.LINE_AA,
-        )
-
-        cv2.imwrite(
-            str(result_path),
-            canvas,
-        )
-
-    stage_times["report_ms"] = round(
-        (time.perf_counter() - t) * 1000,
-        1,
-    )
-
-    total_ms = round(
-        (time.perf_counter() - started)
-        * 1000,
-        1,
-    )
-
-    # -----------------------------------------------------
-    # INSTRUMENT IDENTIFICATION
-    # -----------------------------------------------------
-
-    instrument_a = identify_instrument(
-        a_path,
-        a_meta,
-    )
-
-    instrument_b = identify_instrument(
-        b_path,
-        b_meta,
-    )
-
-    # -----------------------------------------------------
-    # IMAGE RESULT HELPER
-    # -----------------------------------------------------
-
-    def image_result(
-        info,
-        path,
-        metadata,
-        scale,
-        keypoints,
-    ):
+    def image_result(info, path, metadata, scale, feature_count, quality, instrument):
         return {
             "filename": path.name,
             "file_size_bytes": path.stat().st_size,
-            "file_size_mb": round(
-                path.stat().st_size
-                / (1024 * 1024),
-                3,
-            ),
-            "format": (
-                path.suffix
-                .lower()
-                .replace(".", "")
-                .upper()
-            ),
+            "file_size_mb": round(path.stat().st_size / (1024 * 1024), 3),
+            "format": path.suffix.lower().replace(".", "").upper(),
             "width": info["width"],
             "height": info["height"],
-            "resolution": (
-                f"{info['width']} × "
-                f"{info['height']}"
-            ),
+            "resolution": f"{info['width']} × {info['height']}",
             "channels": info["channels"],
-            "color_mode": info[
-                "color_mode"
-            ],
+            "color_mode": info["color_mode"],
             "valid": True,
-            "processing_resolution": (
-                f"{keypoints['processing_width']} "
-                f"× "
-                f"{keypoints['processing_height']}"
-            ),
-            "processing_scale_percent": round(
-                scale * 100,
-                2,
-            ),
-            "keypoints": keypoints[
-                "count"
-            ],
+            "processing_resolution": f"{info['gray'].shape[1]} × {info['gray'].shape[0]}",
+            "processing_scale_percent": round(scale * 100, 2),
+            "keypoints": feature_count,
             "feature_density_per_mp": round(
-                keypoints["count"]
-                / max(
-                    0.000001,
-                    info["width"]
-                    * info["height"]
-                    / 1_000_000,
-                ),
+                feature_count / max(0.000001, info["width"] * info["height"] / 1_000_000),
                 2,
             ),
-            "quality": quality_metrics(
-                info["gray"]
-            ),
+            "quality": {
+                "contrast": quality["contrast"],
+                "sharpness_laplacian_variance": quality["sharpness"],
+                "mean_intensity": round(float(np.mean(info["gray"])), 3),
+                "dark_pixel_fraction": round(float(np.mean(info["gray"] < 20) * 100), 2),
+                "bright_pixel_fraction": round(float(np.mean(info["gray"] > 235) * 100), 2),
+                "quality_score": quality["quality"],
+                "quality_basis": "contrast + gradient-edge sharpness",
+            },
             "metadata": metadata,
-            "instrument": identify_instrument(
-                path,
-                metadata,
-            ),
+            "instrument": instrument,
         }
 
-    # -----------------------------------------------------
-    # IMAGE A
-    # -----------------------------------------------------
-
     image_a = image_result(
-        a_info,
-        a_path,
-        a_meta,
-        scale_a,
-        {
-            "count": len(ka),
-            "processing_width": aa.shape[1],
-            "processing_height": aa.shape[0],
-        },
+        a_info, a_path, a_meta, scale_a,
+        len(features_a), primary["quality_a"], instrument_a,
     )
-
-    # -----------------------------------------------------
-    # IMAGE B
-    # -----------------------------------------------------
-
     image_b = image_result(
-        b_info,
-        b_path,
-        b_meta,
-        scale_b,
-        {
-            "count": len(kb),
-            "processing_width": bb.shape[1],
-            "processing_height": bb.shape[0],
-        },
+        b_info, b_path, b_meta, scale_b,
+        len(features_b), primary["quality_b"], instrument_b,
     )
 
-    # -----------------------------------------------------
-    # INTERPRETATION
-    # -----------------------------------------------------
+    # Secondary SIFT diagnostics are reported, but do not replace the primary score.
+    sift_verified = len(sift_result["inlier_indices"])
+    sift_candidates = sift_result["ratio_candidates"]
+    sift_reciprocal = len(sift_result["reciprocal_matches"])
+    sift_inlier_ratio = sift_verified / max(1, len(sift_result["matches"])) * 100.0
+    sift_homography = sift_result["homography"] is not None
 
     interpretation_points = []
-
-    if verification_status == "VERIFIED":
-        interpretation_points.append(
-            f"{verified} candidate correspondences "
-            "survived geometric verification."
-        )
-
-        if reproj_mean is not None:
-            interpretation_points.append(
-                f"Inlier ratio is "
-                f"{inlier_ratio:.2f}% with mean "
-                f"inlier reprojection error "
-                f"{reproj_mean:.2f}px."
-            )
-        else:
-            interpretation_points.append(
-                "A geometric model was established, "
-                "but reprojection error could not "
-                "be summarized."
-            )
-
-        interpretation_points.append(
-            f"Spatial feature coverage is "
-            f"{spatial['coverage_percent']:.2f}% "
-            "of the 4×4 source grid."
-        )
-
-    else:
-        interpretation_points.append(
-            "The available evidence was insufficient "
-            "to establish a reliable geometric "
-            "correspondence."
-        )
-
-        if candidates == 0:
-            interpretation_points.append(
-                "No Lowe-ratio match candidates were "
-                "available for geometric verification."
-            )
-
-        elif verified == 0:
-            interpretation_points.append(
-                f"{candidates} Lowe-ratio candidates "
-                "were found, but none survived "
-                "RANSAC geometric verification."
-            )
-
-        if degenerate:
-            interpretation_points.append(
-                "The candidate geometry was detected "
-                "as degenerate."
-            )
-
     interpretation_points.append(
-        "This result measures image correspondence "
-        "evidence; it does not by itself establish "
-        "geographic identity or ground-truth lunar "
-        "coordinates."
+        f"{verified} custom feature correspondences were geometrically consistent."
     )
-
-    # -----------------------------------------------------
-    # METADATA VALIDATION
-    # -----------------------------------------------------
+    interpretation_points.append(
+        f"{candidates} mutual patch-descriptor candidates were evaluated by affine RANSAC."
+    )
+    if reproj_mean is not None:
+        interpretation_points.append(
+            f"Mean inlier reprojection error was {reproj_mean:.2f}px."
+        )
+    interpretation_points.append(
+        f"Primary 5×5 spatial coverage was {spatial_coverage:.2f}%."
+    )
+    interpretation_points.append(
+        f"Secondary SIFT cross-check produced {sift_candidates} Lowe-ratio candidates, "
+        f"{sift_reciprocal} reciprocal matches and {sift_verified} geometric inliers."
+    )
+    interpretation_points.append(
+        "This result measures image-correspondence evidence; it does not by itself establish "
+        "geographic identity or ground-truth lunar coordinates."
+    )
 
     metadata_validation = {
         "image_a": {
-            "latitude": status_item(
-                a_meta.get("latitude")
-            ),
-            "longitude": status_item(
-                a_meta.get("longitude")
-            ),
-            "altitude": status_item(
-                a_meta.get("altitude")
-            ),
-            "acquisition_time": status_item(
-                a_meta.get("acquisition_time")
-            ),
-            "mission": status_item(
-                a_meta.get("mission")
-            ),
-            "instrument": status_item(
-                a_meta.get("instrument")
-                or instrument_a.get(
-                    "instrument"
-                )
-            ),
-            "crs": status_item(
-                a_meta.get("crs")
-            ),
-            "projection": status_item(
-                a_meta.get("projection")
-            ),
-            "datum": status_item(
-                a_meta.get("datum")
-            ),
-            "image_id": status_item(
-                a_meta.get("image_id")
-            ),
-            "product_id": status_item(
-                a_meta.get("product_id")
-            ),
-            "provenance": status_item(
-                a_meta.get("provenance")
-            ),
+            "latitude": status_item(a_meta.get("latitude")),
+            "longitude": status_item(a_meta.get("longitude")),
+            "altitude": status_item(a_meta.get("altitude")),
+            "acquisition_time": status_item(a_meta.get("acquisition_time")),
+            "mission": status_item(a_meta.get("mission")),
+            "instrument": status_item(a_meta.get("instrument") or instrument_a.get("instrument")),
+            "crs": status_item(a_meta.get("crs")),
+            "projection": status_item(a_meta.get("projection")),
+            "datum": status_item(a_meta.get("datum")),
+            "image_id": status_item(a_meta.get("image_id")),
+            "product_id": status_item(a_meta.get("product_id")),
+            "provenance": status_item(a_meta.get("provenance")),
         },
-
         "image_b": {
-            "latitude": status_item(
-                b_meta.get("latitude")
-            ),
-            "longitude": status_item(
-                b_meta.get("longitude")
-            ),
-            "altitude": status_item(
-                b_meta.get("altitude")
-            ),
-            "acquisition_time": status_item(
-                b_meta.get("acquisition_time")
-            ),
-            "mission": status_item(
-                b_meta.get("mission")
-            ),
-            "instrument": status_item(
-                b_meta.get("instrument")
-                or instrument_b.get(
-                    "instrument"
-                )
-            ),
-            "crs": status_item(
-                b_meta.get("crs")
-            ),
-            "projection": status_item(
-                b_meta.get("projection")
-            ),
-            "datum": status_item(
-                b_meta.get("datum")
-            ),
-            "image_id": status_item(
-                b_meta.get("image_id")
-            ),
-            "product_id": status_item(
-                b_meta.get("product_id")
-            ),
-            "provenance": status_item(
-                b_meta.get("provenance")
-            ),
+            "latitude": status_item(b_meta.get("latitude")),
+            "longitude": status_item(b_meta.get("longitude")),
+            "altitude": status_item(b_meta.get("altitude")),
+            "acquisition_time": status_item(b_meta.get("acquisition_time")),
+            "mission": status_item(b_meta.get("mission")),
+            "instrument": status_item(b_meta.get("instrument") or instrument_b.get("instrument")),
+            "crs": status_item(b_meta.get("crs")),
+            "projection": status_item(b_meta.get("projection")),
+            "datum": status_item(b_meta.get("datum")),
+            "image_id": status_item(b_meta.get("image_id")),
+            "product_id": status_item(b_meta.get("product_id")),
+            "provenance": status_item(b_meta.get("provenance")),
         },
     }
-
-    # -----------------------------------------------------
-    # DUPLICATE MATCH CHECK
-    # -----------------------------------------------------
 
     duplicate_query_indices = max(
         0,
-        len(candidate_matches)
-        - len(
-            {
-                m.queryIdx
-                for m in candidate_matches
-            }
-        ),
+        candidates - len({m["a"] for m in reciprocal_matches}),
     )
-
     duplicate_reference_indices = max(
         0,
-        len(candidate_matches)
-        - len(
-            {
-                m.trainIdx
-                for m in candidate_matches
-            }
-        ),
+        candidates - len({m["b"] for m in reciprocal_matches}),
     )
-
     duplicate_match_detection = {
         "status": "CHECKED",
-        "duplicate_query_indices": (
-            duplicate_query_indices
-        ),
-        "duplicate_reference_indices": (
-            duplicate_reference_indices
-        ),
+        "duplicate_query_indices": duplicate_query_indices,
+        "duplicate_reference_indices": duplicate_reference_indices,
     }
 
-    # -----------------------------------------------------
-    # FINAL RESULT
-    # -----------------------------------------------------
-
-    result = {
+    return {
         "analysis_id": analysis_id,
-        "created_at": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "COMPLETE",
-
-        # Frontend-compatible summary fields
-        "raw_matches": (
-            match_result[
-                "raw_knn_matches"
-            ]
-        ),
-
-        "candidate_matches": (
-            match_result[
-                "ratio_candidates"
-            ]
-        ),
-
-        "reciprocal_matches": (
-            match_result[
-                "reciprocal_matches"
-            ]
-        ),
-
+        "raw_matches": len(raw_matches),
+        "candidate_matches": candidates,
+        "reciprocal_matches": candidates,
         "verified_matches": verified,
-
         "outliers": outliers,
-
-        "feature_coverage": round(
-            feature_coverage,
-            2,
-        ),
-
-        "correspondence_strength": round(
-            correspondence_strength,
-            2,
-        ),
-
-        "inlier_ratio": round(
-            inlier_ratio,
-            2,
-        ),
-
-        "geometric_consistency": round(
-            (
-                max(
-                    0.0,
-                    100.0
-                    - (
-                        reproj_mean or 0.0
-                    ) * 10.0,
-                )
-                if reproj_mean is not None
-                else 0.0
-            ),
-            2,
-        ),
-
-        "homography_status": (
-            "ESTABLISHED"
-            if match_result[
-                "homography"
-            ] is not None
-            else "NOT ESTABLISHED"
-        ),
-
-        "verification_status": (
-            verification_status
-        ),
-
-        "transformation_quality": (
-            geom["status"]
-        ),
-
-        "duplicate_match_detection": (
-            duplicate_match_detection
-        ),
-
-        "headline": (
-            "ANALYSIS COMPLETE — "
-            "CORRESPONDENCE RESULT READY"
-        ),
-
-        "overall_match": round(
-            score,
-            2,
-        ),
-
-        "score": round(
-            score,
-            2,
-        ),
-
+        "feature_coverage": round(feature_coverage, 2),
+        "correspondence_strength": round(correspondence_strength, 2),
+        "inlier_ratio": round(inlier_ratio, 2),
+        "geometric_consistency": round(primary["geometry"]["consistency"], 2),
+        "homography_status": "ESTABLISHED" if H is not None else "NOT ESTABLISHED",
+        "verification_status": verification_status,
+        "transformation_quality": transform_quality["status"],
+        "duplicate_match_detection": duplicate_match_detection,
+        "headline": "ANALYSIS COMPLETE — CORRESPONDENCE RESULT READY",
+        "overall_match": round(score, 2),
+        "score": round(score, 2),
         "reliability": reliability,
-
         "confidence": reliability,
-
-        "image_quality": round(
-            (
-                image_a[
-                    "quality"
-                ][
-                    "quality_score"
-                ]
-                + image_b[
-                    "quality"
-                ][
-                    "quality_score"
-                ]
-            )
-            / 2,
-            2,
-        ),
-
+        "confidence_detail": {"label": reliability, "value": round(confidence_value, 2)},
+        "image_quality": round((primary["quality_a"]["quality"] + primary["quality_b"]["quality"]) / 2.0, 2),
         "processing_time_ms": total_ms,
-
-        # -------------------------------------------------
-        # ALGORITHM
-        # -------------------------------------------------
-
         "algorithm": {
-            "feature_detector": "SIFT",
-            "max_features": MAX_FEATURES,
-            "matcher": "BFMatcher / L2",
-            "lowe_ratio": LOWE_RATIO,
-            "cross_check": (
-                "reciprocal Lowe-ratio evidence; "
-                "not a hard geometric gate"
-            ),
-            "geometric_model": (
-                "Homography + RANSAC"
-            ),
-            "ransac_threshold_px": (
-                RANSAC_THRESHOLD
-            ),
-            "processing_max_dimension": (
-                MAX_DIMENSION
-            ),
+            "feature_detector": "LUNARMATCH custom gradient/corner detector + normalized 11×11 patch descriptor",
+            "max_features": 500,
+            "matcher": "Brute-force normalized patch distance",
+            "lowe_ratio": 0.78,
+            "cross_check": "Mutual nearest-neighbor patch matching",
+            "geometric_model": "Affine transform + deterministic RANSAC",
+            "ransac_threshold_px": 10.0,
+            "processing_max_dimension": MAX_DIMENSION,
+            "secondary_cross_check": "SIFT + BFMatcher + reciprocal Lowe-ratio + homography RANSAC",
         },
-
-        # -------------------------------------------------
-        # IMAGE RESULTS
-        # -------------------------------------------------
-
+        "engine_summary": {
+            "primary": "Original LunarMatch custom patch-correspondence engine",
+            "secondary": "Independent SIFT/BFMatcher cross-check",
+            "primary_score_drives_result": True,
+            "fusion_mode": "Primary score preserved; secondary engine is diagnostic cross-check only.",
+        },
         "image_a": image_a,
         "image_b": image_b,
-
-        # -------------------------------------------------
-        # CORRESPONDENCE
-        # -------------------------------------------------
-
         "correspondence": {
-            "raw_knn_matches": (
-                match_result[
-                    "raw_knn_matches"
-                ]
-            ),
-            "lowe_ratio_candidates": (
-                match_result[
-                    "ratio_candidates"
-                ]
-            ),
-            "reciprocal_matches": (
-                match_result[
-                    "reciprocal_matches"
-                ]
-            ),
+            "raw_knn_matches": len(raw_matches),
+            "lowe_ratio_candidates": candidates,
+            "reciprocal_matches": candidates,
             "verified_matches": verified,
             "outliers": outliers,
-            "feature_coverage_percent": round(
-                feature_coverage,
-                2,
-            ),
-            "correspondence_strength": round(
-                correspondence_strength,
-                2,
-            ),
+            "feature_coverage_percent": round(feature_coverage, 2),
+            "correspondence_strength": round(correspondence_strength, 2),
             "spatial_distribution": spatial,
-            "duplicate_match_detection": (
-                duplicate_match_detection
-            ),
+            "duplicate_match_detection": duplicate_match_detection,
         },
-
-        # -------------------------------------------------
-        # GEOMETRIC VERIFICATION
-        # -------------------------------------------------
-
         "geometric_verification": {
-            "verification_status": (
-                verification_status
-            ),
-            "model": "HOMOGRAPHY",
-            "homography_status": (
-                "ESTABLISHED"
-                if match_result[
-                    "homography"
-                ] is not None
-                else "NOT ESTABLISHED"
-            ),
-            "ransac": (
-                "EXECUTED"
-                if len(candidate_matches) >= 4
-                else (
-                    "NOT EXECUTED — "
-                    "fewer than 4 "
-                    "Lowe-ratio candidates"
-                )
-            ),
+            "verification_status": verification_status,
+            "model": "AFFINE",
+            "homography_status": "ESTABLISHED" if H is not None else "NOT ESTABLISHED",
+            "ransac": "EXECUTED" if candidates >= 3 else "NOT EXECUTED — fewer than 3 mutual patch candidates",
             "inliers": verified,
             "outliers": outliers,
-            "inlier_ratio_percent": round(
-                inlier_ratio,
-                2,
-            ),
-            "reprojection_error_mean_px": (
-                round(
-                    reproj_mean,
-                    3,
-                )
-                if reproj_mean is not None
-                else None
-            ),
-            "reprojection_error_median_px": (
-                round(
-                    reproj_median,
-                    3,
-                )
-                if reproj_median is not None
-                else None
-            ),
-            "reprojection_error_max_px": (
-                round(
-                    reproj_max,
-                    3,
-                )
-                if reproj_max is not None
-                else None
-            ),
-            "transformation_quality": geom,
+            "inlier_ratio_percent": round(inlier_ratio, 2),
+            "reprojection_error_mean_px": round(reproj_mean, 3) if reproj_mean is not None else None,
+            "reprojection_error_median_px": round(reproj_median, 3) if reproj_median is not None else None,
+            "reprojection_error_max_px": round(reproj_max, 3) if reproj_max is not None else None,
+            "transformation_quality": transform_quality,
             "degenerate_geometry": degenerate,
             "spatial_coverage": spatial,
         },
-
-        # -------------------------------------------------
-        # PIPELINE
-        # -------------------------------------------------
-
+        "sift_cross_check": {
+            "raw_knn_matches": sift_result["raw_knn_matches"],
+            "lowe_ratio_candidates": sift_candidates,
+            "reciprocal_matches": sift_reciprocal,
+            "verified_matches": sift_verified,
+            "inlier_ratio_percent": round(sift_inlier_ratio, 2),
+            "homography_status": "ESTABLISHED" if sift_homography else "NOT ESTABLISHED",
+            "ransac_threshold_px": RANSAC_THRESHOLD,
+        },
         "pipeline": {
-            "01_ACQUIRE": (
-                stage_times[
-                    "acquire_ms"
-                ]
-            ),
-            "02_PREPROCESS": (
-                stage_times[
-                    "preprocess_ms"
-                ]
-            ),
-            "03_EXTRACT": (
-                stage_times[
-                    "extract_ms"
-                ]
-            ),
-            "04_MATCH": (
-                stage_times[
-                    "match_ms"
-                ]
-            ),
-            "05_VERIFY": (
-                stage_times[
-                    "verify_ms"
-                ]
-            ),
-            "06_SCORE": (
-                stage_times[
-                    "score_ms"
-                ]
-            ),
-            "07_REPORT": (
-                stage_times[
-                    "report_ms"
-                ]
-            ),
+            "01_ACQUIRE": stage_times["acquire_ms"],
+            "02_PREPROCESS": stage_times["preprocess_ms"],
+            "03_EXTRACT": stage_times["extract_ms"],
+            "04_MATCH": stage_times["match_ms"],
+            "05_VERIFY": stage_times["verify_ms"],
+            "06_SCORE": stage_times["score_ms"],
+            "07_REPORT": stage_times["report_ms"],
             "total_ms": total_ms,
         },
-
-        # -------------------------------------------------
-        # INSTRUMENT AWARENESS
-        # -------------------------------------------------
-
         "instrument_awareness": {
             "image_a": instrument_a,
             "image_b": instrument_b,
-
             "supported_payloads": [
-                {
-                    "instrument": "OHRC",
-                    "mission": "Chandrayaan-2",
-                    "role": (
-                        "High-resolution optical "
-                        "image correspondence "
-                        "evidence"
-                    ),
-                },
-                {
-                    "instrument": "TMC-2",
-                    "mission": "Chandrayaan-2",
-                    "role": (
-                        "Topographic/stereo "
-                        "evidence when "
-                        "appropriate source "
-                        "products are supplied"
-                    ),
-                },
-                {
-                    "instrument": "IIRS",
-                    "mission": "Chandrayaan-2",
-                    "role": (
-                        "Spectral/material "
-                        "evidence when actual "
-                        "hyperspectral data and "
-                        "metadata are supplied"
-                    ),
-                },
+                {"instrument": "OHRC", "mission": "Chandrayaan-2", "role": "High-resolution optical image correspondence evidence"},
+                {"instrument": "TMC-2", "mission": "Chandrayaan-2", "role": "Topographic/stereo evidence when appropriate source products are supplied"},
+                {"instrument": "IIRS", "mission": "Chandrayaan-2", "role": "Spectral/material evidence when actual hyperspectral data and metadata are supplied"},
             ],
-
-            "important_limit": (
-                "Instrument support does not mean "
-                "an instrument was used unless its "
-                "identity is established from supplied "
-                "data/metadata."
-            ),
+            "important_limit": "Instrument support does not mean an instrument was used unless its identity is established from supplied data/metadata.",
         },
-
-        # -------------------------------------------------
-        # METADATA VALIDATION
-        # -------------------------------------------------
-
-        "metadata_validation": (
-            metadata_validation
-        ),
-
-        # -------------------------------------------------
-        # INTERPRETATION
-        # -------------------------------------------------
-
+        "metadata_validation": metadata_validation,
         "interpretation": {
             "type": "evidence_based",
             "points": interpretation_points,
-            "ground_truth_warning": (
-                "Image correspondence is not "
-                "geographic ground truth."
-            ),
+            "ground_truth_warning": "Image correspondence is not geographic ground truth.",
         },
-
-        # -------------------------------------------------
-        # RESULT IMAGE
-        # -------------------------------------------------
-
-        "result_image": (
-            f"/results/{result_path.name}"
-        ),
-
-        "validation_note": (
-            "Scores describe "
-            "correspondence/reliability "
-            "evidence, not ground-truth "
-            "geographic accuracy."
-        ),
+        "result_image": f"/results/{result_path.name}",
+        "validation_note": "Scores describe primary image correspondence/reliability evidence, not ground-truth geographic accuracy.",
     }
-
-    return result
-
 
 # =========================================================
 # PDF REPORT
@@ -2646,9 +1869,9 @@ def build_pdf(result):
                 g["model"],
             ],
             [
-                "Homography",
+                "Primary geometry",
                 g[
-                    "homography_status"
+                    "model"
                 ],
             ],
             [
@@ -3436,9 +2659,8 @@ def health():
         status="online",
         service="LUNARMATCH V2",
         engine=(
-            "Python OpenCV SIFT + "
-            "BFMatcher + adaptive Lowe-ratio "
-            "matching + reciprocal evidence + RANSAC"
+            "Original LunarMatch custom patch "
+            "correspondence + SIFT cross-check"
         ),
         validation=(
             "metadata-aware; "
