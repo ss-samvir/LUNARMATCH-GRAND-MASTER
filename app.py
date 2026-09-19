@@ -725,10 +725,45 @@ def analyze(a_path, b_path):
         },
     }
 
-    result = {
-        "analysis_id": analysis_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "status": "COMPLETE",
+result = {
+    "analysis_id": analysis_id,
+    "created_at": datetime.now(timezone.utc).isoformat(),
+    "status": "COMPLETE",
+
+    # Frontend-compatible summary fields
+    "raw_matches": match_result["raw_knn_matches"],
+    "candidate_matches": match_result["ratio_candidates"],
+    "reciprocal_matches": match_result["reciprocal_matches"],
+    "verified_matches": verified,
+    "outliers": outliers,
+    "feature_coverage": round(feature_coverage, 2),
+    "correspondence_strength": round(correspondence_strength, 2),
+    "inlier_ratio": round(inlier_ratio, 2),
+    "geometric_consistency": round(
+        max(0.0, 100.0 - (reproj_mean or 0.0) * 10.0)
+        if reproj_mean is not None else 0.0,
+        2
+    ),
+    "homography_status": (
+        "ESTABLISHED"
+        if match_result["homography"] is not None
+        else "NOT ESTABLISHED"
+    ),
+    "verification_status": verification_status,
+    "transformation_quality": geom["status"],
+    "duplicate_match_detection": {
+        "status": "CHECKED",
+        "duplicate_query_indices": max(
+            0,
+            len(reciprocal) - len({m.queryIdx for m in reciprocal})
+        ),
+        "duplicate_reference_indices": max(
+            0,
+            len(reciprocal) - len({m.trainIdx for m in reciprocal})
+        ),
+    },
+
+    "headline": "ANALYSIS COMPLETE — CORRESPONDENCE RESULT READY",
         "headline": "ANALYSIS COMPLETE — CORRESPONDENCE RESULT READY",
         "overall_match": round(score, 2),
         "score": round(score, 2),
