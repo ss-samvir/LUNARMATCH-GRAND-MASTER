@@ -114,108 +114,192 @@ function wireAnalyze() {
      UPDATE UPLOAD CARD
      ------------------------------------------------------- */
 
-  function updateFileState(input) {
+ function updateFileState(input) {
 
-    const file =
-      input.files &&
-      input.files[0];
+  const file =
+    input.files &&
+    input.files[0];
 
-    const card =
-      input.closest(
-        ".lm-upload-card"
-      );
+  const card =
+    input.closest(".lm-upload-card");
 
-    if (!card) return;
+  if (!card) return;
 
 
-    const copy =
-      card.querySelector(
-        ".lm-upload-copy strong"
-      );
+  const copy =
+    card.querySelector(
+      ".lm-upload-copy strong"
+    );
 
-    const sub =
-      card.querySelector(
-        ".lm-upload-copy span"
-      );
+  const sub =
+    card.querySelector(
+      ".lm-upload-copy span"
+    );
 
-    const browse =
-      card.querySelector(
-        ".lm-file-browse"
-      );
+  const browse =
+    card.querySelector(
+      ".lm-file-browse"
+    );
 
-
-    /*
-     * No file selected
-     */
-
-    if (!file) {
-
-      card.classList.remove(
-        "has-file"
-      );
-
-      if (copy) {
-
-        copy.textContent =
-          input.name === "image_a"
-            ? "DROP IMAGE A"
-            : "DROP IMAGE B";
-      }
-
-      if (sub) {
-
-        sub.textContent =
-          input.name === "image_a"
-            ? "or select a lunar observation"
-            : "or select a comparison observation";
-      }
-
-      if (browse) {
-
-        browse.innerHTML =
-          'SELECT FILE <span>↗</span>';
-      }
-
-      return;
-    }
-
-
-    /*
-     * File selected
-     */
-
-    card.classList.add(
-      "has-file"
+  const visual =
+    card.querySelector(
+      ".lm-upload-visual"
     );
 
 
-    const sizeMB =
-      file.size /
-      (1024 * 1024);
+  /*
+   * Remove any previous preview.
+   */
 
+  const oldPreview =
+    card.querySelector(
+      ".lm-live-preview"
+    );
+
+  if (oldPreview) {
+
+    if (oldPreview.dataset.objectUrl) {
+
+      URL.revokeObjectURL(
+        oldPreview.dataset.objectUrl
+      );
+    }
+
+    oldPreview.remove();
+  }
+
+
+  /*
+   * No file selected.
+   */
+
+  if (!file) {
+
+    card.classList.remove(
+      "has-file"
+    );
 
     if (copy) {
 
       copy.textContent =
-        file.name;
+        input.name === "image_a"
+          ? "DROP IMAGE A"
+          : "DROP IMAGE B";
     }
-
 
     if (sub) {
 
       sub.textContent =
-        `${sizeMB.toFixed(2)} MB · ${file.type || "image"}`;
+        input.name === "image_a"
+          ? "or select a lunar observation"
+          : "or select a comparison observation";
     }
-
 
     if (browse) {
 
       browse.innerHTML =
-        'FILE READY <span>✓</span>';
+        'SELECT FILE <span>↗</span>';
     }
+
+    if (visual) {
+
+      visual.style.display =
+        "";
+    }
+
+    return;
   }
 
 
+  /*
+   * File selected.
+   */
+
+  card.classList.add(
+    "has-file"
+  );
+
+
+  const sizeMB =
+    file.size /
+    (1024 * 1024);
+
+
+  if (copy) {
+
+    copy.textContent =
+      file.name;
+  }
+
+
+  if (sub) {
+
+    sub.textContent =
+      `${sizeMB.toFixed(2)} MB · ${file.type || "image"}`;
+  }
+
+
+  if (browse) {
+
+    browse.innerHTML =
+      'FILE READY <span>✓</span>';
+  }
+
+
+  /*
+   * Create the actual image preview.
+   */
+
+  if (
+    file.type &&
+    file.type.startsWith("image/")
+  ) {
+
+    const preview =
+      document.createElement("img");
+
+    preview.className =
+      "lm-live-preview";
+
+    preview.alt =
+      input.name === "image_a"
+        ? "Selected Image A preview"
+        : "Selected Image B preview";
+
+    const objectUrl =
+      URL.createObjectURL(file);
+
+    preview.src =
+      objectUrl;
+
+    preview.dataset.objectUrl =
+      objectUrl;
+
+
+    /*
+     * Put the preview inside
+     * the upload card.
+     */
+
+    if (visual) {
+
+      visual.style.display =
+        "none";
+
+      visual.insertAdjacentElement(
+        "beforebegin",
+        preview
+      );
+
+    } else {
+
+      card.insertBefore(
+        preview,
+        card.firstChild
+      );
+    }
+  }
+}
   /* -------------------------------------------------------
      FILE INPUT EVENTS
      ------------------------------------------------------- */
