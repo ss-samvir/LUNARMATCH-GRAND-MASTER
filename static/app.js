@@ -1,217 +1,1341 @@
-async function postJSON(url,data){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
-function wireAuth(){const form=document.querySelector('[data-auth]');if(!form)return;form.addEventListener('submit',async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(form));try{await postJSON(form.dataset.auth,d);location.href='/analyze'}catch(x){const m=document.querySelector('#msg');if(m)m.textContent=x.message}})}
-function wireAnalyze(){const form=document.querySelector('#analyzeForm');if(!form)return;form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button');const fd=new FormData(form);btn.disabled=true;btn.textContent='ANALYZING…';try{const r=await fetch('/api/analyze',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw Error(j.error);sessionStorage.setItem('lm_result',JSON.stringify(j));location.href='/results'}catch(x){const m=document.querySelector('#analysisMsg');if(m)m.textContent=x.message;btn.disabled=false;btn.textContent='RUN CORRESPONDENCE ANALYSIS'}})}
-function renderResult(){const box=document.querySelector('#result');if(!box)return;const raw=sessionStorage.getItem('lm_result');const r=raw?JSON.parse(raw):null;if(!r){box.innerHTML='<div class="card"><h3>No recent analysis</h3><p class="muted">Run an analysis first.</p></div>';return}const meta=x=>`<table class="table"><tr><th>Latitude</th><td>${x.latitude??'Not available'}</td></tr><tr><th>Longitude</th><td>${x.longitude??'Not available'}</td></tr><tr><th>Altitude</th><td>${x.altitude??'Not available'}</td></tr><tr><th>Acquisition</th><td>${x.acquisition_time??'Not available'}</td></tr><tr><th>CRS / Projection</th><td>${x.crs??'Not available'} / ${x.projection??'Not available'}</td></tr><tr><th>Mission / Instrument</th><td>${x.mission??'Not available'} / ${x.camera??'Not available'}</td></tr></table>`;box.innerHTML=`<div class="metrics"><div class="card metric"><span class="muted">RELIABILITY</span><strong>${r.reliability}</strong></div><div class="card metric"><span class="muted">SCORE</span><strong>${r.score}%</strong></div><div class="card metric"><span class="muted">VERIFIED</span><strong>${r.verified_matches}</strong></div><div class="card metric"><span class="muted">INLIER RATIO</span><strong>${r.inlier_ratio}%</strong></div></div><br><div class="card"><h2>Correspondence Map</h2><img class="imgresult" src="${r.result_image}"><p class="muted">${r.validation_note}</p></div><br><div class="grid"><div class="card"><h2>Image A Metadata</h2>${meta(r.image_a.metadata)}</div><div class="card"><h2>Image B Metadata</h2>${meta(r.image_b.metadata)}</div><div class="card"><h2>Verification</h2><table class="table"><tr><th>Raw matches</th><td>${r.raw_matches}</td></tr><tr><th>Candidate matches</th><td>${r.candidate_matches}</td></tr><tr><th>Geometric consistency</th><td>${r.geometric_consistency}%</td></tr><tr><th>Feature coverage</th><td>${r.feature_coverage}%</td></tr><tr><th>Homography</th><td>${r.homography_status}</td></tr><tr><th>Processing</th><td>${r.processing_time_ms} ms</td></tr></table></div></div>`}
-function parallax(){const back=document.querySelector('.star-layer-a'),mid=document.querySelector('.star-layer-b'),front=document.querySelector('.star-layer-c');if(!back)return;let tx=0,ty=0,cx=0,cy=0;window.addEventListener('pointermove',e=>{tx=(e.clientX/window.innerWidth-.5)*2;ty=(e.clientY/window.innerHeight-.5)*2});function frame(){cx+=(tx-cx)*.035;cy+=(ty-cy)*.035;back.style.transform=`translate3d(${cx*5}px,${cy*5}px,0)`;mid.style.transform=`translate3d(${cx*11}px,${cy*11}px,0)`;front.style.transform=`translate3d(${cx*18}px,${cy*18}px,0)`;requestAnimationFrame(frame)}frame()}
-function cursor(){const g=document.querySelector('#cursor-glow');if(!g)return;let x=innerWidth/2,y=innerHeight/2,cx=x,cy=y;addEventListener('pointermove',e=>{x=e.clientX;y=e.clientY});function f(){cx+=(x-cx)*.07;cy+=(y-cy)*.07;g.style.left=cx+'px';g.style.top=cy+'px';requestAnimationFrame(f)}f()}
-document.addEventListener('DOMContentLoaded',()=>{wireAuth();wireAnalyze();renderResult();parallax();cursor()});
-function lmSmoothNavigation(){
+/* =========================================================
+   LUNARMATCH V2 — CORE JAVASCRIPT
+   ========================================================= */
 
-  async function loadPage(url, push=true){
 
-    try{
+/* =========================================================
+   GENERIC JSON POST
+   ========================================================= */
 
-      const response = await fetch(url, {
-        headers: {
-          "X-Requested-With": "XMLHttpRequest"
+async function postJSON(url, data) {
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Request failed");
+  }
+
+  return result;
+}
+
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+
+function wireAuth() {
+
+  const form = document.querySelector("[data-auth]");
+
+  if (!form) return;
+
+  if (form.dataset.authReady === "true") return;
+
+  form.dataset.authReady = "true";
+
+  form.addEventListener("submit", async event => {
+
+    event.preventDefault();
+
+    const data =
+      Object.fromEntries(new FormData(form));
+
+    try {
+
+      await postJSON(
+        form.dataset.auth,
+        data
+      );
+
+      window.location.href = "/analyze";
+
+    } catch (error) {
+
+      const message =
+        document.querySelector("#msg");
+
+      if (message) {
+        message.textContent =
+          error.message;
+      }
+    }
+  });
+}
+
+
+/* =========================================================
+   ANALYZE — IMAGE UPLOAD + ANALYSIS REQUEST
+   ========================================================= */
+
+function wireAnalyze() {
+
+  const form =
+    document.querySelector("#analyzeForm");
+
+  if (!form) return;
+
+  /*
+   * Prevent duplicate listeners when the
+   * smooth-navigation system replaces a page.
+   */
+
+  if (form.dataset.analyzeReady === "true") {
+    return;
+  }
+
+  form.dataset.analyzeReady = "true";
+
+
+  const inputs =
+    form.querySelectorAll(
+      'input[type="file"]'
+    );
+
+  const button =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  const message =
+    form.querySelector(
+      "#analysisMsg"
+    );
+
+
+  /* -------------------------------------------------------
+     UPDATE UPLOAD CARD
+     ------------------------------------------------------- */
+
+  function updateFileState(input) {
+
+    const file =
+      input.files &&
+      input.files[0];
+
+    const card =
+      input.closest(
+        ".lm-upload-card"
+      );
+
+    if (!card) return;
+
+
+    const copy =
+      card.querySelector(
+        ".lm-upload-copy strong"
+      );
+
+    const sub =
+      card.querySelector(
+        ".lm-upload-copy span"
+      );
+
+    const browse =
+      card.querySelector(
+        ".lm-file-browse"
+      );
+
+
+    /*
+     * No file selected
+     */
+
+    if (!file) {
+
+      card.classList.remove(
+        "has-file"
+      );
+
+      if (copy) {
+
+        copy.textContent =
+          input.name === "image_a"
+            ? "DROP IMAGE A"
+            : "DROP IMAGE B";
+      }
+
+      if (sub) {
+
+        sub.textContent =
+          input.name === "image_a"
+            ? "or select a lunar observation"
+            : "or select a comparison observation";
+      }
+
+      if (browse) {
+
+        browse.innerHTML =
+          'SELECT FILE <span>↗</span>';
+      }
+
+      return;
+    }
+
+
+    /*
+     * File selected
+     */
+
+    card.classList.add(
+      "has-file"
+    );
+
+
+    const sizeMB =
+      file.size /
+      (1024 * 1024);
+
+
+    if (copy) {
+
+      copy.textContent =
+        file.name;
+    }
+
+
+    if (sub) {
+
+      sub.textContent =
+        `${sizeMB.toFixed(2)} MB · ${file.type || "image"}`;
+    }
+
+
+    if (browse) {
+
+      browse.innerHTML =
+        'FILE READY <span>✓</span>';
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     FILE INPUT EVENTS
+     ------------------------------------------------------- */
+
+  inputs.forEach(input => {
+
+    input.addEventListener(
+      "change",
+      () => {
+
+        updateFileState(input);
+
+        if (message) {
+          message.textContent = "";
         }
-      });
+      }
+    );
+  });
 
-      if(!response.ok){
-        window.location.href = url;
+
+  /* -------------------------------------------------------
+     FORM SUBMISSION
+     ------------------------------------------------------- */
+
+  form.addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+
+      const imageA =
+        form.querySelector(
+          'input[name="image_a"]'
+        );
+
+      const imageB =
+        form.querySelector(
+          'input[name="image_b"]'
+        );
+
+
+      /*
+       * Both images required
+       */
+
+      if (
+        !imageA?.files?.length ||
+        !imageB?.files?.length
+      ) {
+
+        if (message) {
+
+          message.textContent =
+            "Please select both Image A and Image B.";
+        }
+
         return;
       }
 
-      const html = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
 
-      const newContent = doc.querySelector("#page-content");
-      const currentContent = document.querySelector("#page-content");
+      const fileA =
+        imageA.files[0];
 
-      if(!newContent || !currentContent){
-        window.location.href = url;
+      const fileB =
+        imageB.files[0];
+
+
+      /*
+       * Maximum upload size
+       *
+       * Flask is also configured for
+       * 25 MB, so the browser checks it
+       * before making the request.
+       */
+
+      const maxSize =
+        25 * 1024 * 1024;
+
+
+      if (
+        fileA.size > maxSize ||
+        fileB.size > maxSize
+      ) {
+
+        if (message) {
+
+          message.textContent =
+            "Each image must be 25 MB or smaller.";
+        }
+
         return;
       }
 
-      currentContent.innerHTML = newContent.innerHTML;
 
-      document.title = doc.title;
+      /*
+       * Basic browser-side image validation
+       */
 
-      if(push){
-        history.pushState({}, "", url);
+      if (
+        !fileA.type.startsWith("image/") ||
+        !fileB.type.startsWith("image/")
+      ) {
+
+        if (message) {
+
+          message.textContent =
+            "Please select valid image files.";
+        }
+
+        return;
       }
 
-      window.scrollTo(0, 0);
+
+      /*
+       * Processing state
+       */
+
+      const originalHTML =
+        button
+          ? button.innerHTML
+          : "";
+
+
+      if (button) {
+
+        button.disabled = true;
+
+        button.classList.add(
+          "is-processing"
+        );
+
+        button.innerHTML =
+          '<span class="lm-run-icon">◌</span>' +
+          '<span>ANALYZING OBSERVATIONS…</span>';
+      }
+
+
+      if (message) {
+
+        message.textContent =
+          "Uploading observations and starting correspondence analysis…";
+      }
+
+
+      try {
+
+        /*
+         * FormData automatically includes:
+         *
+         * image_a
+         * image_b
+         */
+
+        const formData =
+          new FormData(form);
+
+
+        const response =
+          await fetch(
+            "/api/analyze",
+            {
+              method: "POST",
+              body: formData
+            }
+          );
+
+
+        /*
+         * Try to read JSON safely.
+         */
+
+        let data;
+
+        try {
+
+          data =
+            await response.json();
+
+        } catch {
+
+          throw new Error(
+            "The analysis server returned an invalid response."
+          );
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            "Analysis request failed."
+          );
+        }
+
+
+        /*
+         * Preserve complete result
+         * for the Results page.
+         */
+
+        sessionStorage.setItem(
+          "lm_result",
+          JSON.stringify(data)
+        );
+
+
+        if (message) {
+
+          message.textContent =
+            "Analysis complete. Opening evidence report…";
+        }
+
+
+        window.location.href =
+          "/results";
+
+
+      } catch (error) {
+
+        console.error(
+          "LUNARMATCH analysis error:",
+          error
+        );
+
+
+        if (message) {
+
+          message.textContent =
+            error.message ||
+            "Unable to complete the analysis.";
+        }
+
+
+        if (button) {
+
+          button.disabled = false;
+
+          button.classList.remove(
+            "is-processing"
+          );
+
+          button.innerHTML =
+            originalHTML;
+        }
+      }
+    }
+  );
+}
+
+
+/* =========================================================
+   RESULTS PAGE
+   ========================================================= */
+
+function renderResult() {
+
+  const box =
+    document.querySelector("#result");
+
+  if (!box) return;
+
+
+  const raw =
+    sessionStorage.getItem(
+      "lm_result"
+    );
+
+
+  const result =
+    raw
+      ? JSON.parse(raw)
+      : null;
+
+
+  /*
+   * No result available
+   */
+
+  if (!result) {
+
+    box.innerHTML = `
+      <div class="card">
+        <h3>No recent analysis</h3>
+        <p class="muted">
+          Run an analysis first.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+
+  /*
+   * Metadata table
+   */
+
+  const metadataTable =
+    metadata => {
+
+      const data =
+        metadata || {};
+
+
+      return `
+        <table class="table">
+
+          <tr>
+            <th>Latitude</th>
+            <td>
+              ${data.latitude ?? "Not available"}
+            </td>
+          </tr>
+
+          <tr>
+            <th>Longitude</th>
+            <td>
+              ${data.longitude ?? "Not available"}
+            </td>
+          </tr>
+
+          <tr>
+            <th>Altitude</th>
+            <td>
+              ${data.altitude ?? "Not available"}
+            </td>
+          </tr>
+
+          <tr>
+            <th>Acquisition</th>
+            <td>
+              ${data.acquisition_time ?? "Not available"}
+            </td>
+          </tr>
+
+          <tr>
+            <th>CRS / Projection</th>
+            <td>
+              ${data.crs ?? "Not available"}
+              /
+              ${data.projection ?? "Not available"}
+            </td>
+          </tr>
+
+          <tr>
+            <th>Mission / Instrument</th>
+            <td>
+              ${data.mission ?? "Not available"}
+              /
+              ${data.camera ?? "Not available"}
+            </td>
+          </tr>
+
+        </table>
+      `;
+    };
+
+
+  box.innerHTML = `
+
+    <div class="metrics">
+
+      <div class="card metric">
+        <span class="muted">
+          RELIABILITY
+        </span>
+
+        <strong>
+          ${result.reliability}
+        </strong>
+      </div>
+
+
+      <div class="card metric">
+        <span class="muted">
+          SCORE
+        </span>
+
+        <strong>
+          ${result.score}%
+        </strong>
+      </div>
+
+
+      <div class="card metric">
+        <span class="muted">
+          VERIFIED
+        </span>
+
+        <strong>
+          ${result.verified_matches}
+        </strong>
+      </div>
+
+
+      <div class="card metric">
+        <span class="muted">
+          INLIER RATIO
+        </span>
+
+        <strong>
+          ${result.inlier_ratio}%
+        </strong>
+      </div>
+
+    </div>
+
+
+    <br>
+
+
+    <div class="card">
+
+      <h2>
+        Correspondence Map
+      </h2>
+
+      <img
+        class="imgresult"
+        src="${result.result_image}"
+        alt="Lunar correspondence visualization"
+      >
+
+      <p class="muted">
+        ${result.validation_note}
+      </p>
+
+    </div>
+
+
+    <br>
+
+
+    <div class="grid">
+
+
+      <div class="card">
+
+        <h2>
+          Image A Metadata
+        </h2>
+
+        ${metadataTable(
+          result.image_a?.metadata
+        )}
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          Image B Metadata
+        </h2>
+
+        ${metadataTable(
+          result.image_b?.metadata
+        )}
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          Verification
+        </h2>
+
+
+        <table class="table">
+
+          <tr>
+            <th>Raw matches</th>
+            <td>
+              ${result.raw_matches}
+            </td>
+          </tr>
+
+
+          <tr>
+            <th>Candidate matches</th>
+            <td>
+              ${result.candidate_matches}
+            </td>
+          </tr>
+
+
+          <tr>
+            <th>Geometric consistency</th>
+            <td>
+              ${result.geometric_consistency}%
+            </td>
+          </tr>
+
+
+          <tr>
+            <th>Feature coverage</th>
+            <td>
+              ${result.feature_coverage}%
+            </td>
+          </tr>
+
+
+          <tr>
+            <th>Homography</th>
+            <td>
+              ${result.homography_status}
+            </td>
+          </tr>
+
+
+          <tr>
+            <th>Processing</th>
+            <td>
+              ${result.processing_time_ms} ms
+            </td>
+          </tr>
+
+        </table>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   STAR-FIELD PARALLAX
+   ========================================================= */
+
+function parallax() {
+
+  const back =
+    document.querySelector(
+      ".star-layer-a"
+    );
+
+  const mid =
+    document.querySelector(
+      ".star-layer-b"
+    );
+
+  const front =
+    document.querySelector(
+      ".star-layer-c"
+    );
+
+
+  if (!back) return;
+
+
+  let targetX = 0;
+  let targetY = 0;
+
+  let currentX = 0;
+  let currentY = 0;
+
+
+  window.addEventListener(
+    "pointermove",
+    event => {
+
+      targetX =
+        (event.clientX /
+          window.innerWidth -
+          0.5) * 2;
+
+      targetY =
+        (event.clientY /
+          window.innerHeight -
+          0.5) * 2;
+    },
+    { passive: true }
+  );
+
+
+  function frame() {
+
+    currentX +=
+      (targetX - currentX) *
+      0.035;
+
+    currentY +=
+      (targetY - currentY) *
+      0.035;
+
+
+    back.style.transform =
+      `translate3d(
+        ${currentX * 5}px,
+        ${currentY * 5}px,
+        0
+      )`;
+
+
+    if (mid) {
+
+      mid.style.transform =
+        `translate3d(
+          ${currentX * 11}px,
+          ${currentY * 11}px,
+          0
+        )`;
+    }
+
+
+    if (front) {
+
+      front.style.transform =
+        `translate3d(
+          ${currentX * 18}px,
+          ${currentY * 18}px,
+          0
+        )`;
+    }
+
+
+    requestAnimationFrame(
+      frame
+    );
+  }
+
+
+  frame();
+}
+
+
+/* =========================================================
+   CURSOR GLOW
+   ========================================================= */
+
+function cursor() {
+
+  const glow =
+    document.querySelector(
+      "#cursor-glow"
+    );
+
+  if (!glow) return;
+
+
+  let targetX =
+    window.innerWidth / 2;
+
+  let targetY =
+    window.innerHeight / 2;
+
+  let currentX =
+    targetX;
+
+  let currentY =
+    targetY;
+
+
+  window.addEventListener(
+    "pointermove",
+    event => {
+
+      targetX =
+        event.clientX;
+
+      targetY =
+        event.clientY;
+    },
+    { passive: true }
+  );
+
+
+  function animate() {
+
+    currentX +=
+      (targetX - currentX) *
+      0.07;
+
+    currentY +=
+      (targetY - currentY) *
+      0.07;
+
+
+    glow.style.left =
+      currentX + "px";
+
+    glow.style.top =
+      currentY + "px";
+
+
+    requestAnimationFrame(
+      animate
+    );
+  }
+
+
+  animate();
+}
+
+
+/* =========================================================
+   SMOOTH SAME-ORIGIN NAVIGATION
+   ========================================================= */
+
+function lmSmoothNavigation() {
+
+
+  async function loadPage(
+    url,
+    push = true
+  ) {
+
+    try {
+
+      const response =
+        await fetch(
+          url,
+          {
+            headers: {
+              "X-Requested-With":
+                "XMLHttpRequest"
+            }
+          }
+        );
+
+
+      if (!response.ok) {
+
+        window.location.href =
+          url;
+
+        return;
+      }
+
+
+      const html =
+        await response.text();
+
+
+      const parser =
+        new DOMParser();
+
+
+      const documentPage =
+        parser.parseFromString(
+          html,
+          "text/html"
+        );
+
+
+      const newContent =
+        documentPage.querySelector(
+          "#page-content"
+        );
+
+
+      const currentContent =
+        document.querySelector(
+          "#page-content"
+        );
+
+
+      if (
+        !newContent ||
+        !currentContent
+      ) {
+
+        window.location.href =
+          url;
+
+        return;
+      }
+
+
+      currentContent.innerHTML =
+        newContent.innerHTML;
+
+
+      document.title =
+        documentPage.title;
+
+
+      if (push) {
+
+        history.pushState(
+          {},
+          "",
+          url
+        );
+      }
+
+
+      window.scrollTo(
+        0,
+        0
+      );
+
+
+      /*
+       * Reinitialize page-specific
+       * functionality after replacing
+       * page content.
+       */
 
       wireAuth();
       wireAnalyze();
       renderResult();
+      initProceduralMoon();
 
-      document.querySelectorAll(".reveal").forEach((el, index)=>{
-        el.style.animationDelay = `${index * 70}ms`;
-        el.classList.add("is-visible");
-      });
 
-    }catch(error){
+      document
+        .querySelectorAll(".reveal")
+        .forEach(
+          (element, index) => {
 
-      window.location.href = url;
+            element.style.animationDelay =
+              `${index * 70}ms`;
 
+            element.classList.add(
+              "is-visible"
+            );
+          }
+        );
+
+
+    } catch (error) {
+
+      console.error(
+        "LUNARMATCH navigation error:",
+        error
+      );
+
+      window.location.href =
+        url;
     }
-
   }
 
 
-  document.addEventListener("click", e=>{
+  /*
+   * Intercept internal navigation.
+   */
 
-    const link = e.target.closest("a[href]");
+  document.addEventListener(
+    "click",
+    event => {
 
-    if(!link) return;
+      const link =
+        event.target.closest(
+          "a[href]"
+        );
 
-    const href = link.getAttribute("href");
 
-    if(
-      !href ||
-      href.startsWith("#") ||
-      href.startsWith("http") ||
-      href.startsWith("mailto:") ||
-      href.startsWith("tel:") ||
-      link.target === "_blank" ||
-      link.hasAttribute("download")
-    ){
-      return;
+      if (!link) return;
+
+
+      const href =
+        link.getAttribute(
+          "href"
+        );
+
+
+      if (
+        !href ||
+        href.startsWith("#") ||
+        href.startsWith("http") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        link.target === "_blank" ||
+        link.hasAttribute("download")
+      ) {
+
+        return;
+      }
+
+
+      const url =
+        new URL(
+          href,
+          window.location.origin
+        );
+
+
+      if (
+        url.origin !==
+        window.location.origin
+      ) {
+
+        return;
+      }
+
+
+      event.preventDefault();
+
+      loadPage(
+        url.href
+      );
     }
+  );
 
-    const url = new URL(href, window.location.origin);
 
-    if(url.origin !== window.location.origin){
-      return;
+  /*
+   * Browser back / forward.
+   */
+
+  window.addEventListener(
+    "popstate",
+    () => {
+
+      loadPage(
+        window.location.href,
+        false
+      );
     }
-
-    e.preventDefault();
-
-    loadPage(url.href);
-
-  });
-
-
-  window.addEventListener("popstate", ()=>{
-
-    loadPage(window.location.href, false);
-
-  });
-
+  );
 }
 
 
-document.addEventListener("DOMContentLoaded", lmSmoothNavigation);
-requestAnimationFrame(()=>{
-  document.body.classList.add("lm-ready");
-});
 /* =========================================================
-   LUNARMATCH — MOBILE NAVIGATION
-   ========================================================= */
-
-/* =========================================================
-   LUNARMATCH — MOBILE NAVIGATION
+   MOBILE NAVIGATION
    ========================================================= */
 
 function lmMobileNavigation() {
 
-  const toggle = document.querySelector(".mobile-menu-toggle");
-  const menu = document.querySelector("#mobile-navigation");
+  const toggle =
+    document.querySelector(
+      ".mobile-menu-toggle"
+    );
 
-  if (!toggle || !menu) return;
+  const menu =
+    document.querySelector(
+      "#mobile-navigation"
+    );
 
-  /* Prevent duplicate event listeners */
-  if (toggle.dataset.mobileReady === "true") return;
 
-  toggle.dataset.mobileReady = "true";
+  if (
+    !toggle ||
+    !menu
+  ) {
+
+    return;
+  }
+
+
+  if (
+    toggle.dataset.mobileReady ===
+    "true"
+  ) {
+
+    return;
+  }
+
+
+  toggle.dataset.mobileReady =
+    "true";
+
 
   function openMenu() {
-    toggle.classList.add("is-open");
-    menu.classList.add("is-open");
 
-    toggle.setAttribute("aria-expanded", "true");
-    toggle.setAttribute("aria-label", "Close navigation");
+    toggle.classList.add(
+      "is-open"
+    );
 
-    menu.setAttribute("aria-hidden", "false");
+    menu.classList.add(
+      "is-open"
+    );
 
-    document.body.classList.add("mobile-nav-open");
+
+    toggle.setAttribute(
+      "aria-expanded",
+      "true"
+    );
+
+
+    toggle.setAttribute(
+      "aria-label",
+      "Close navigation"
+    );
+
+
+    menu.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+
+    document.body.classList.add(
+      "mobile-nav-open"
+    );
   }
+
 
   function closeMenu() {
-    toggle.classList.remove("is-open");
-    menu.classList.remove("is-open");
 
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open navigation");
+    toggle.classList.remove(
+      "is-open"
+    );
 
-    menu.setAttribute("aria-hidden", "true");
+    menu.classList.remove(
+      "is-open"
+    );
 
-    document.body.classList.remove("mobile-nav-open");
+
+    toggle.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+
+    toggle.setAttribute(
+      "aria-label",
+      "Open navigation"
+    );
+
+
+    menu.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+
+    document.body.classList.remove(
+      "mobile-nav-open"
+    );
   }
 
-  toggle.addEventListener("click", function(event) {
 
-    event.preventDefault();
-    event.stopPropagation();
+  toggle.addEventListener(
+    "click",
+    event => {
 
-    if (menu.classList.contains("is-open")) {
-      closeMenu();
-    } else {
-      openMenu();
+      event.preventDefault();
+      event.stopPropagation();
+
+
+      if (
+        menu.classList.contains(
+          "is-open"
+        )
+      ) {
+
+        closeMenu();
+
+      } else {
+
+        openMenu();
+      }
     }
+  );
 
-  });
 
-  menu.querySelectorAll("a").forEach(link => {
+  menu
+    .querySelectorAll("a")
+    .forEach(link => {
 
-    link.addEventListener("click", () => {
-      closeMenu();
+      link.addEventListener(
+        "click",
+        () => {
+
+          closeMenu();
+        }
+      );
     });
 
-  });
 
-  document.addEventListener("keydown", event => {
+  document.addEventListener(
+    "keydown",
+    event => {
 
-    if (
-      event.key === "Escape" &&
-      menu.classList.contains("is-open")
-    ) {
-      closeMenu();
+      if (
+        event.key === "Escape" &&
+        menu.classList.contains(
+          "is-open"
+        )
+      ) {
+
+        closeMenu();
+      }
     }
-
-  });
-
+  );
 }
 
 
-/* INITIAL LOAD */
-
-document.addEventListener("DOMContentLoaded", () => {
-  lmMobileNavigation();
-});
 /* =========================================================
-   LUNARMATCH — PROCEDURAL LUNAR SPHERE
+   PROCEDURAL LUNAR SPHERE
    ========================================================= */
 
 function initProceduralMoon() {
 
   const canvas =
-    document.getElementById("lunar-surface-canvas");
+    document.getElementById(
+      "lunar-surface-canvas"
+    );
+
 
   if (!canvas) return;
 
-  if (canvas.dataset.ready === "true") return;
 
-  canvas.dataset.ready = "true";
+  if (
+    canvas.dataset.ready ===
+    "true"
+  ) {
 
-  const ctx =
+    return;
+  }
+
+
+  canvas.dataset.ready =
+    "true";
+
+
+  const context =
     canvas.getContext("2d");
+
 
   const container =
     canvas.parentElement;
+
+
+  if (!context || !container) {
+    return;
+  }
+
 
   let width = 0;
   let height = 0;
@@ -219,23 +1343,40 @@ function initProceduralMoon() {
 
   let rotation = 0;
 
+
   const craters = [];
 
+
   /*
-   * Generate stable lunar terrain.
+   * Stable lunar terrain.
    */
-  for (let i = 0; i < 95; i++) {
+
+  for (
+    let i = 0;
+    i < 95;
+    i++
+  ) {
 
     craters.push({
-      longitude: Math.random() * Math.PI * 2,
+
+      longitude:
+        Math.random() *
+        Math.PI *
+        2,
+
       latitude:
-        (Math.random() - .5) * Math.PI,
+        (Math.random() - 0.5) *
+        Math.PI,
 
       radius:
-        .012 + Math.random() * .045,
+        0.012 +
+        Math.random() *
+        0.045,
 
       depth:
-        .25 + Math.random() * .65
+        0.25 +
+        Math.random() *
+        0.65
     });
   }
 
@@ -245,26 +1386,42 @@ function initProceduralMoon() {
     const rect =
       container.getBoundingClientRect();
 
+
     const size =
       Math.max(
         120,
-        Math.min(rect.width, rect.height)
+        Math.min(
+          rect.width,
+          rect.height
+        )
       );
+
 
     dpr =
       Math.min(
-        window.devicePixelRatio || 1,
+        window.devicePixelRatio ||
+          1,
         2
       );
 
-    width = size;
-    height = size;
+
+    width =
+      size;
+
+    height =
+      size;
+
 
     canvas.width =
-      Math.floor(size * dpr);
+      Math.floor(
+        size * dpr
+      );
 
     canvas.height =
-      Math.floor(size * dpr);
+      Math.floor(
+        size * dpr
+      );
+
 
     canvas.style.width =
       size + "px";
@@ -272,7 +1429,8 @@ function initProceduralMoon() {
     canvas.style.height =
       size + "px";
 
-    ctx.setTransform(
+
+    context.setTransform(
       dpr,
       0,
       0,
@@ -283,22 +1441,27 @@ function initProceduralMoon() {
   }
 
 
-  function draw(now) {
+  function draw() {
 
     const size =
-      Math.min(width, height);
+      Math.min(
+        width,
+        height
+      );
 
-    const cx =
+
+    const centerX =
       size / 2;
 
-    const cy =
+    const centerY =
       size / 2;
+
 
     const radius =
-      size * .495;
+      size * 0.495;
 
 
-    ctx.clearRect(
+    context.clearRect(
       0,
       0,
       width,
@@ -309,16 +1472,24 @@ function initProceduralMoon() {
     /*
      * Base spherical shading.
      */
-    const sphere =
-      ctx.createRadialGradient(
-        cx - radius * .30,
-        cy - radius * .32,
-        radius * .04,
 
-        cx,
-        cy,
+    const sphere =
+      context.createRadialGradient(
+
+        centerX -
+          radius * 0.30,
+
+        centerY -
+          radius * 0.32,
+
+        radius * 0.04,
+
+        centerX,
+        centerY,
+
         radius * 1.05
       );
+
 
     sphere.addColorStop(
       0,
@@ -326,17 +1497,17 @@ function initProceduralMoon() {
     );
 
     sphere.addColorStop(
-      .34,
+      0.34,
       "#a1a7ae"
     );
 
     sphere.addColorStop(
-      .68,
+      0.68,
       "#666e78"
     );
 
     sphere.addColorStop(
-      .88,
+      0.88,
       "#343c47"
     );
 
@@ -346,77 +1517,99 @@ function initProceduralMoon() {
     );
 
 
-    ctx.beginPath();
+    context.beginPath();
 
-    ctx.arc(
-      cx,
-      cy,
+    context.arc(
+      centerX,
+      centerY,
       radius,
       0,
       Math.PI * 2
     );
 
-    ctx.fillStyle =
+    context.fillStyle =
       sphere;
 
-    ctx.fill();
+    context.fill();
 
 
     /*
      * Rotating lunar terrain.
      */
-    ctx.save();
 
-    ctx.beginPath();
+    context.save();
 
-    ctx.arc(
-      cx,
-      cy,
-      radius * .995,
+
+    context.beginPath();
+
+    context.arc(
+      centerX,
+      centerY,
+      radius * 0.995,
       0,
       Math.PI * 2
     );
 
-    ctx.clip();
+    context.clip();
 
 
-    for (const crater of craters) {
+    for (
+      const crater of craters
+    ) {
 
       const longitude =
         crater.longitude +
         rotation;
 
-      /*
-       * Project longitude onto
-       * visible spherical hemisphere.
-       */
+
       const x =
         Math.sin(longitude) *
-        Math.cos(crater.latitude);
+        Math.cos(
+          crater.latitude
+        );
+
 
       const z =
         Math.cos(longitude) *
-        Math.cos(crater.latitude);
+        Math.cos(
+          crater.latitude
+        );
+
 
       /*
-       * Don't draw the far side.
+       * Hide far side.
        */
-      if (z < -0.05) continue;
+
+      if (z < -0.05) {
+        continue;
+      }
 
 
       const y =
-        Math.sin(crater.latitude);
+        Math.sin(
+          crater.latitude
+        );
 
 
       const px =
-        cx + x * radius * .94;
+        centerX +
+        x *
+        radius *
+        0.94;
+
 
       const py =
-        cy - y * radius * .94;
+        centerY -
+        y *
+        radius *
+        0.94;
 
 
       const perspective =
-        .72 + z * .28;
+        0.72 +
+        z *
+        0.28;
+
 
       const craterRadius =
         radius *
@@ -425,30 +1618,39 @@ function initProceduralMoon() {
 
 
       const gradient =
-        ctx.createRadialGradient(
-          px - craterRadius * .25,
-          py - craterRadius * .25,
-          craterRadius * .05,
+        context.createRadialGradient(
+
+          px -
+            craterRadius *
+            0.25,
+
+          py -
+            craterRadius *
+            0.25,
+
+          craterRadius *
+            0.05,
 
           px,
           py,
+
           craterRadius
         );
 
 
       gradient.addColorStop(
         0,
-        `rgba(225,229,234,${.08 * crater.depth})`
+        `rgba(225,229,234,${0.08 * crater.depth})`
       );
 
       gradient.addColorStop(
-        .45,
-        `rgba(55,61,68,${.22 * crater.depth})`
+        0.45,
+        `rgba(55,61,68,${0.22 * crater.depth})`
       );
 
       gradient.addColorStop(
-        .78,
-        `rgba(20,25,31,${.34 * crater.depth})`
+        0.78,
+        `rgba(20,25,31,${0.34 * crater.depth})`
       );
 
       gradient.addColorStop(
@@ -457,12 +1659,13 @@ function initProceduralMoon() {
       );
 
 
-      ctx.fillStyle =
+      context.fillStyle =
         gradient;
 
-      ctx.beginPath();
 
-      ctx.arc(
+      context.beginPath();
+
+      context.arc(
         px,
         py,
         craterRadius,
@@ -470,49 +1673,71 @@ function initProceduralMoon() {
         Math.PI * 2
       );
 
-      ctx.fill();
+      context.fill();
 
 
       /*
-       * Small crater rim.
+       * Crater rim.
        */
-      ctx.strokeStyle =
-        `rgba(220,225,230,${.08 * crater.depth})`;
 
-      ctx.lineWidth =
+      context.strokeStyle =
+        `rgba(220,225,230,${0.08 * crater.depth})`;
+
+
+      context.lineWidth =
         Math.max(
-          .5,
-          craterRadius * .055
+          0.5,
+          craterRadius *
+            0.055
         );
 
-      ctx.beginPath();
 
-      ctx.arc(
-        px - craterRadius * .10,
-        py - craterRadius * .10,
-        craterRadius * .68,
+      context.beginPath();
+
+      context.arc(
+        px -
+          craterRadius *
+          0.10,
+
+        py -
+          craterRadius *
+          0.10,
+
+        craterRadius *
+          0.68,
+
         0,
         Math.PI * 2
       );
 
-      ctx.stroke();
+      context.stroke();
     }
 
-    ctx.restore();
+
+    context.restore();
 
 
     /*
      * Fine spherical grain.
      */
+
     const grain =
-      ctx.createRadialGradient(
-        cx - radius * .18,
-        cy - radius * .20,
-        radius * .05,
-        cx,
-        cy,
+      context.createRadialGradient(
+
+        centerX -
+          radius * 0.18,
+
+        centerY -
+          radius * 0.20,
+
+        radius * 0.05,
+
+        centerX,
+        centerY,
+
         radius
       );
+
 
     grain.addColorStop(
       0,
@@ -520,7 +1745,7 @@ function initProceduralMoon() {
     );
 
     grain.addColorStop(
-      .55,
+      0.55,
       "rgba(255,255,255,.01)"
     );
 
@@ -529,50 +1754,96 @@ function initProceduralMoon() {
       "rgba(0,0,0,.08)"
     );
 
-    ctx.beginPath();
 
-    ctx.arc(
-      cx,
-      cy,
+    context.beginPath();
+
+    context.arc(
+      centerX,
+      centerY,
       radius,
       0,
       Math.PI * 2
     );
 
-    ctx.fillStyle =
+    context.fillStyle =
       grain;
 
-    ctx.fill();
+    context.fill();
 
 
     /*
      * Very slow rotation.
      */
-    rotation += .00075;
+
+    rotation +=
+      0.00075;
 
 
-    requestAnimationFrame(draw);
+    requestAnimationFrame(
+      draw
+    );
   }
 
 
   resize();
 
+
   window.addEventListener(
     "resize",
     resize,
-    { passive: true }
+    {
+      passive: true
+    }
   );
 
-  requestAnimationFrame(draw);
+
+  requestAnimationFrame(
+    draw
+  );
 }
 
 
-/*
- * Start on initial page load.
- */
+/* =========================================================
+   PAGE INITIALIZATION
+   ========================================================= */
+
+function initializeLunarMatch() {
+
+  wireAuth();
+
+  wireAnalyze();
+
+  renderResult();
+
+  lmMobileNavigation();
+
+  initProceduralMoon();
+}
+
+
+/* =========================================================
+   INITIAL PAGE LOAD
+   ========================================================= */
+
 document.addEventListener(
   "DOMContentLoaded",
   () => {
-    initProceduralMoon();
+
+    initializeLunarMatch();
+
+    parallax();
+
+    cursor();
+
+    lmSmoothNavigation();
+
+    requestAnimationFrame(
+      () => {
+
+        document.body.classList.add(
+          "lm-ready"
+        );
+      }
+    );
   }
 );
