@@ -1080,11 +1080,11 @@ def analyze(a_path, b_path):
     # The primary LunarMatch engine is authoritative. The SIFT branch is
     # intentionally deferred until after primary verification so a strong
     # result does not pay the SIFT cost on the critical request path.
-    t = time.perf_counter()
+    match_started = time.perf_counter()
     sift_result = None
 
     # 05 VERIFY — primary LunarMatch evidence
-    t = time.perf_counter()
+    verify_started = time.perf_counter()
     features_a = primary["features_a"]
     features_b = primary["features_b"]
     raw_matches = primary["raw_matches"]
@@ -1165,7 +1165,8 @@ def analyze(a_path, b_path):
         sift_result["skipped"] = False
         sift_skipped_reason = None
 
-    stage_times["match_ms"] = round((time.perf_counter() - t) * 1000, 1)
+    stage_times["verify_ms"] = round((time.perf_counter() - verify_started) * 1000, 1)
+    stage_times["match_ms"] = round((time.perf_counter() - match_started) * 1000, 1)
 
     # 06 SCORE — EXACT ORIGINAL LUNARMATCH SCORE FORMULA
     t = time.perf_counter()
