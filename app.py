@@ -1076,13 +1076,12 @@ def analyze(a_path, b_path):
     primary = run_lunarmatch_engine(aa, bb)
     stage_times["extract_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
-    # 04 MATCH — independent SIFT cross-check
+    # 04 MATCH / CROSS-CHECK
+    # The primary LunarMatch engine is authoritative. The SIFT branch is
+    # intentionally deferred until after primary verification so a strong
+    # result does not pay the SIFT cost on the critical request path.
     t = time.perf_counter()
-    sift = cv2.SIFT_create(nfeatures=MAX_FEATURES, contrastThreshold=0.02)
-    sift_ka, sift_da = sift.detectAndCompute(aa, None)
-    sift_kb, sift_db = sift.detectAndCompute(bb, None)
-    sift_result = match_and_verify(sift_ka, sift_da, sift_kb, sift_db)
-    stage_times["match_ms"] = round((time.perf_counter() - t) * 1000, 1)
+    sift_result = None
 
     # 05 VERIFY — primary LunarMatch evidence
     t = time.perf_counter()
@@ -1133,7 +1132,40 @@ def analyze(a_path, b_path):
         if H is not None and verified >= 5 and not degenerate
         else "LIMITED"
     )
-    stage_times["verify_ms"] = round((time.perf_counter() - t) * 1000, 1)
+
+    # Fast-path rule: when the primary LunarMatch evidence is already
+    # geometrically coherent, return immediately without running the
+    # independent SIFT diagnostic. This preserves the primary evidence while
+    # removing unnecessary latency from the submission-critical path.
+    primary_strong_enough = (
+        H is not None
+        and verified >= 3
+        and not degenerate
+        and inlier_ratio >= 100.0
+    )
+
+    if primary_strong_enough:
+        sift_result = {
+            "raw_knn_matches": 0,
+            "ratio_candidates": 0,
+            "reciprocal_matches": [],
+            "inlier_indices": [],
+            "matches": [],
+            "homography": None,
+            "skipped": True,
+        }
+        sift_skipped_reason = (
+            "Fast path: primary LunarMatch evidence was already geometrically coherent."
+        )
+    else:
+        sift = cv2.SIFT_create(nfeatures=500, contrastThreshold=0.02)
+        sift_ka, sift_da = sift.detectAndCompute(aa, None)
+        sift_kb, sift_db = sift.detectAndCompute(bb, None)
+        sift_result = match_and_verify(sift_ka, sift_da, sift_kb, sift_db)
+        sift_result["skipped"] = False
+        sift_skipped_reason = None
+
+    stage_times["match_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     # 06 SCORE — EXACT ORIGINAL LUNARMATCH SCORE FORMULA
     t = time.perf_counter()
@@ -1208,7 +1240,7 @@ def analyze(a_path, b_path):
     sift_verified = len(sift_result["inlier_indices"])
     sift_candidates = sift_result["ratio_candidates"]
     sift_reciprocal = len(sift_result["reciprocal_matches"])
-    sift_inlier_ratio = sift_verified / max(1, len(sift_result["matches"])) * 100.0
+    sift_inlier_ratio = sift_verified / max(1, len(sift_result.get("matches", []))) * 100.0
     sift_homography = sift_result["homography"] is not None
 
     interpretation_points = []
@@ -1225,10 +1257,16 @@ def analyze(a_path, b_path):
     interpretation_points.append(
         f"Primary 5×5 spatial coverage was {spatial_coverage:.2f}%."
     )
-    interpretation_points.append(
-        f"Secondary SIFT cross-check produced {sift_candidates} Lowe-ratio candidates, "
-        f"{sift_reciprocal} reciprocal matches and {sift_verified} geometric inliers."
-    )
+    if sift_result.get("skipped"):
+        interpretation_points.append(
+            "Secondary SIFT cross-check was skipped by the fast path because the primary "
+            "LunarMatch evidence was already geometrically coherent."
+        )
+    else:
+        interpretation_points.append(
+            f"Secondary SIFT cross-check produced {sift_candidates} Lowe-ratio candidates, "
+            f"{sift_reciprocal} reciprocal matches and {sift_verified} geometric inliers."
+        )
     interpretation_points.append(
         "This result measures image-correspondence evidence; it does not by itself establish "
         "geographic identity or ground-truth lunar coordinates."
@@ -1350,6 +1388,8 @@ def analyze(a_path, b_path):
             "spatial_coverage": spatial,
         },
         "sift_cross_check": {
+            "status": "SKIPPED_FAST_PATH" if sift_result.get("skipped") else "EXECUTED",
+            "reason": sift_skipped_reason,
             "raw_knn_matches": sift_result["raw_knn_matches"],
             "lowe_ratio_candidates": sift_candidates,
             "reciprocal_matches": sift_reciprocal,
