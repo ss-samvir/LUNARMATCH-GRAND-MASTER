@@ -3,6 +3,7 @@ import json
 import sqlite3
 import uuid
 import math
+import numbers
 import time
 from pathlib import Path
 from datetime import datetime, timezone
@@ -119,6 +120,39 @@ def safe_float(value):
         return float(value)
     except Exception:
         return None
+
+
+def json_safe(value):
+    """Recursively convert NumPy/OpenCV/Pillow values into strict JSON types."""
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+
+    if isinstance(value, numbers.Integral):
+        return int(value)
+
+    if isinstance(value, numbers.Real):
+        value = float(value)
+        return value if math.isfinite(value) else None
+
+    if isinstance(value, np.ndarray):
+        return json_safe(value.tolist())
+
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+
+    if isinstance(value, dict):
+        return {str(key): json_safe(item) for key, item in value.items()}
+
+    if isinstance(value, Path):
+        return str(value)
+
+    try:
+        return json_safe(value.item())
+    except Exception:
+        return str(value)
 
 
 def gps_decimal(value):
@@ -3232,32 +3266,61 @@ def api_analyze():
             error=str(exc)
         ), 422
 
-    c = db()
+    # Normalize every response value before SQLite/Flask serialization.
+    # This prevents NumPy/OpenCV/Pillow scalar objects from turning the
+    # successful analysis into an HTML 500 response that the browser cannot parse.
+    try:
+        result = json_safe(result)
+    except Exception as exc:
+        app.logger.exception("Analysis JSON normalization failed")
+        return jsonify(
+            error=(
+                "Analysis completed, but its result could not be serialized: "
+                f"{exc}"
+            )
+        ), 500
 
-    c.execute(
-        """
-        INSERT INTO analyses(
-            id,
-            user_id,
-            created_at,
-            result_json
+    try:
+        c = db()
+
+        c.execute(
+            """
+            INSERT INTO analyses(
+                id,
+                user_id,
+                created_at,
+                result_json
+            )
+            VALUES(?,?,?,?)
+            """,
+            (
+                result["analysis_id"],
+                session.get(
+                    "user_id"
+                ),
+                result["created_at"],
+                json.dumps(
+                    result,
+                    allow_nan=False,
+                ),
+            ),
         )
-        VALUES(?,?,?,?)
-        """,
-        (
-            result["analysis_id"],
-            session.get(
-                "user_id"
-            ),
-            result["created_at"],
-            json.dumps(
-                result
-            ),
-        ),
-    )
 
-    c.commit()
-    c.close()
+        c.commit()
+        c.close()
+
+    except Exception as exc:
+        try:
+            c.close()
+        except Exception:
+            pass
+        app.logger.exception("Analysis result persistence failed")
+        return jsonify(
+            error=(
+                "Analysis completed but the result could not be saved: "
+                f"{exc}"
+            )
+        ), 500
 
     return jsonify(
         result
@@ -3405,6 +3468,18 @@ def result_file(name):
 # =========================================================
 # ERROR HANDLING
 # =========================================================
+
+@app.errorhandler(Exception)
+def internal_server_error(error):
+    # Keep API failures machine-readable so the Analyze page can display
+    # the actual server error instead of reporting only "invalid response".
+    app.logger.exception("Unhandled LUNARMATCH server error")
+    return jsonify(
+        error=(
+            "Internal analysis server error: "
+            f"{error}"
+        )
+    ), 500
 
 @app.errorhandler(413)
 def too_large(e):
