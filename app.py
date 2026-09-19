@@ -23,7 +23,7 @@ app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 
 MAX_DIMENSION = 1600
 MAX_FEATURES = 5000
-LOWE_RATIO = 0.72
+LOWE_RATIO = 0.80
 RANSAC_THRESHOLD = 5.0
 MIN_IMAGE_SIDE = 32
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
