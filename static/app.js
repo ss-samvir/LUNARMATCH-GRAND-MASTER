@@ -557,37 +557,44 @@ function wireAnalyze() {
 
 function renderResult() {
 
-  const box =
-    document.querySelector("#result");
+  const box = document.querySelector("#result");
 
   if (!box) return;
 
 
-  const raw =
-    sessionStorage.getItem(
-      "lm_result"
-    );
+  const raw = sessionStorage.getItem("lm_result");
 
+  let result = null;
 
-  const result =
-    raw
-      ? JSON.parse(raw)
-      : null;
+  try {
+    result = raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error("LUNARMATCH result parsing error:", error);
+    result = null;
+  }
 
-
-  /*
-   * No result available
-   */
 
   if (!result) {
 
     box.innerHTML = `
-      <div class="card">
-        <h3>No recent analysis</h3>
+      <section class="lm-result-card">
+
+        <div class="lm-card-head">
+          <div>
+            <div class="lm-card-kicker">ANALYSIS STATE</div>
+            <h2 class="lm-card-title">No recent analysis</h2>
+          </div>
+
+          <span class="lm-status-pill neutral">
+            WAITING FOR INPUT
+          </span>
+        </div>
+
         <p class="muted">
-          Run an analysis first.
+          Run a correspondence analysis from the Analysis Lab first.
         </p>
-      </div>
+
+      </section>
     `;
 
     return;
@@ -595,238 +602,1142 @@ function renderResult() {
 
 
   /*
-   * Metadata table
+   * Safe display helpers.
    */
 
-  const metadataTable =
-    metadata => {
+  const safe = value => {
 
-      const data =
-        metadata || {};
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return "NOT AVAILABLE";
+    }
+
+    return String(value);
+  };
 
 
-      return `
-        <table class="table">
+  const number = value => {
 
-          <tr>
-            <th>Latitude</th>
-            <td>
-              ${data.latitude ?? "Not available"}
-            </td>
-          </tr>
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return "NOT AVAILABLE";
+    }
 
-          <tr>
-            <th>Longitude</th>
-            <td>
-              ${data.longitude ?? "Not available"}
-            </td>
-          </tr>
+    return value;
+  };
 
-          <tr>
-            <th>Altitude</th>
-            <td>
-              ${data.altitude ?? "Not available"}
-            </td>
-          </tr>
 
-          <tr>
-            <th>Acquisition</th>
-            <td>
-              ${data.acquisition_time ?? "Not available"}
-            </td>
-          </tr>
+  const percent = value => {
 
-          <tr>
-            <th>CRS / Projection</th>
-            <td>
-              ${data.crs ?? "Not available"}
-              /
-              ${data.projection ?? "Not available"}
-            </td>
-          </tr>
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return "NOT AVAILABLE";
+    }
 
-          <tr>
-            <th>Mission / Instrument</th>
-            <td>
-              ${data.mission ?? "Not available"}
-              /
-              ${data.camera ?? "Not available"}
-            </td>
-          </tr>
+    return `${value}%`;
+  };
 
-        </table>
+
+  const image = result.image_a || {};
+  const reference = result.image_b || {};
+
+  const metaA = image.metadata || {};
+  const metaB = reference.metadata || {};
+
+
+  const qualityA =
+    image.quality_score ??
+    image.quality ??
+    null;
+
+  const qualityB =
+    reference.quality_score ??
+    reference.quality ??
+    null;
+
+
+  const confidence =
+    result.confidence ??
+    result.reliability ??
+    "NOT AVAILABLE";
+
+
+  const reliability =
+    result.reliability ??
+    "NOT AVAILABLE";
+
+
+  const score =
+    result.score ??
+    null;
+
+
+  const verified =
+    result.verified_matches ??
+    null;
+
+
+  const processing =
+    result.processing_time_ms ??
+    null;
+
+
+  const rawMatches =
+    result.raw_matches ??
+    null;
+
+
+  const candidateMatches =
+    result.candidate_matches ??
+    null;
+
+
+  const reciprocalMatches =
+    result.reciprocal_matches ??
+    result.mutual_matches ??
+    null;
+
+
+  const inliers =
+    result.verified_matches ??
+    result.inliers ??
+    null;
+
+
+  const outliers =
+    result.outliers ??
+    (
+      inliers !== null &&
+      inliers !== undefined &&
+      candidateMatches !== null &&
+      candidateMatches !== undefined
+        ? Math.max(
+            0,
+            Number(candidateMatches) -
+            Number(inliers)
+          )
+        : null
+    );
+
+
+  const correspondenceStrength =
+    result.correspondence_strength ??
+    result.match_strength ??
+    null;
+
+
+  const featureCoverage =
+    result.feature_coverage ??
+    null;
+
+
+  const spatialCoverage =
+    result.spatial_coverage ??
+    null;
+
+
+  const inlierRatio =
+    result.inlier_ratio ??
+    null;
+
+
+  const geometricConsistency =
+    result.geometric_consistency ??
+    null;
+
+
+  const reprojectionError =
+    result.reprojection_error ??
+    result.reprojection_error_mean ??
+    result.reprojection_error_median ??
+    null;
+
+
+  const homographyStatus =
+    result.homography_status ??
+    "NOT AVAILABLE";
+
+
+  const verificationStatus =
+    result.verification_status ??
+    "NOT AVAILABLE";
+
+
+  const transformationQuality =
+    result.transformation_quality ??
+    "NOT AVAILABLE";
+
+
+  const duplicateDetection =
+    result.duplicate_match_detection ??
+    "NOT AVAILABLE";
+
+
+  const degeneracy =
+    result.degenerate_geometry ??
+    result.degeneracy_status ??
+    "NOT AVAILABLE";
+
+
+  /*
+   * Metadata row helper.
+   */
+
+  const row = (label, value) => `
+    <div class="lm-data-row">
+      <span class="lm-data-label">${label}</span>
+      <span class="lm-data-value">${safe(value)}</span>
+    </div>
+  `;
+
+
+  /*
+   * Image information.
+   */
+
+  const imagePanel = (
+    title,
+    tag,
+    data
+  ) => {
+
+    const metadata =
+      data.metadata || {};
+
+    return `
+      <div class="lm-image-panel">
+
+        <div class="lm-image-panel-head">
+
+          <strong>${title}</strong>
+
+          <span class="lm-image-tag">
+            ${tag}
+          </span>
+
+        </div>
+
+        <div class="lm-data-list">
+
+          ${row(
+            "Resolution",
+            data.resolution ??
+            (
+              data.width &&
+              data.height
+                ? `${data.width} × ${data.height}`
+                : null
+            )
+          )}
+
+          ${row(
+            "Format",
+            data.format ??
+            data.file_format
+          )}
+
+          ${row(
+            "File size",
+            data.file_size ??
+            data.size_bytes
+          )}
+
+          ${row(
+            "Channels",
+            data.channels ??
+            data.channel_count
+          )}
+
+          ${row(
+            "Color / grayscale",
+            data.color_mode ??
+            data.mode
+          )}
+
+          ${row(
+            "Keypoints",
+            data.keypoints
+          )}
+
+          ${row(
+            "Feature density",
+            data.feature_density
+          )}
+
+          ${row(
+            "Contrast",
+            data.contrast
+          )}
+
+          ${row(
+            "Sharpness",
+            data.sharpness
+          )}
+
+          ${row(
+            "Quality score",
+            data.quality_score ??
+            data.quality
+          )}
+
+          ${row(
+            "Processing resolution",
+            data.processing_resolution
+          )}
+
+          ${row(
+            "EXIF / metadata",
+            metadata &&
+            Object.keys(metadata).length
+              ? "AVAILABLE"
+              : "NOT AVAILABLE"
+          )}
+
+        </div>
+
+      </div>
+    `;
+  };
+
+
+  /*
+   * Metadata panel.
+   */
+
+  const metadataPanel = (
+    title,
+    data
+  ) => {
+
+    data = data || {};
+
+    return `
+      <div class="lm-result-card">
+
+        <div class="lm-card-head">
+
+          <div>
+            <div class="lm-card-kicker">
+              OBSERVATION RECORD
+            </div>
+
+            <h2 class="lm-card-title">
+              ${title}
+            </h2>
+          </div>
+
+          <span class="lm-status-pill neutral">
+            METADATA
+          </span>
+
+        </div>
+
+        <div class="lm-data-list">
+
+          ${row(
+            "Latitude",
+            data.latitude
+          )}
+
+          ${row(
+            "Longitude",
+            data.longitude
+          )}
+
+          ${row(
+            "Altitude",
+            data.altitude
+          )}
+
+          ${row(
+            "Acquisition time",
+            data.acquisition_time
+          )}
+
+          ${row(
+            "Mission",
+            data.mission
+          )}
+
+          ${row(
+            "Instrument",
+            data.instrument ??
+            data.camera
+          )}
+
+          ${row(
+            "CRS",
+            data.crs
+          )}
+
+          ${row(
+            "Projection",
+            data.projection
+          )}
+
+          ${row(
+            "Datum",
+            data.datum
+          )}
+
+          ${row(
+            "Image / Product ID",
+            data.image_id ??
+            data.product_id
+          )}
+
+          ${row(
+            "Provenance",
+            data.provenance
+          )}
+
+        </div>
+
+      </div>
+    `;
+  };
+
+
+  /*
+   * Interpretation.
+   *
+   * This is deliberately based only on measured fields.
+   */
+
+  let interpretation =
+    result.interpretation ??
+    result.validation_note ??
+    null;
+
+
+  if (!interpretation) {
+
+    if (
+      verified !== null &&
+      verified !== undefined &&
+      Number(verified) > 0
+    ) {
+
+      interpretation =
+        `The analysis identified ${verified} geometrically verified correspondence feature${Number(verified) === 1 ? "" : "s"}. ` +
+        `Geometric verification status: ${safe(verificationStatus)}. ` +
+        `This result represents image correspondence evidence and does not by itself establish geographic ground truth.`;
+
+    } else {
+
+      interpretation =
+        `No geometrically verified correspondence was established in this analysis run. ` +
+        `The reported result should be interpreted together with the matching and verification metrics.`;
+    }
+  }
+
+
+  /*
+   * Pipeline status.
+   */
+
+  const pipeline = [
+
+    [
+      "01",
+      "ACQUIRE",
+      result.acquire_time_ms
+    ],
+
+    [
+      "02",
+      "PREPROCESS",
+      result.preprocess_time_ms
+    ],
+
+    [
+      "03",
+      "EXTRACT",
+      result.extract_time_ms ??
+      result.feature_extraction_time_ms
+    ],
+
+    [
+      "04",
+      "MATCH",
+      result.match_time_ms
+    ],
+
+    [
+      "05",
+      "VERIFY",
+      result.verify_time_ms
+    ],
+
+    [
+      "06",
+      "SCORE",
+      result.score_time_ms
+    ],
+
+    [
+      "07",
+      "REPORT",
+      result.report_time_ms
+    ]
+
+  ];
+
+
+  const pipelineHTML =
+    pipeline.map(stage => `
+
+      <div class="lm-pipeline-step">
+
+        <div class="lm-pipeline-num">
+          ${stage[0]}
+        </div>
+
+        <div class="lm-pipeline-name">
+          ${stage[1]}
+        </div>
+
+        <div class="lm-pipeline-time">
+          ${
+            stage[2] !== undefined &&
+            stage[2] !== null
+              ? `${stage[2]} ms`
+              : "NOT AVAILABLE"
+          }
+        </div>
+
+      </div>
+
+    `).join("");
+
+
+  /*
+   * Result visualization.
+   */
+
+  const visualHTML =
+    result.result_image
+
+      ? `
+        <div class="lm-correspondence-visual">
+
+          <img
+            src="${safe(result.result_image)}"
+            alt="LunarMatch correspondence visualization"
+          >
+
+        </div>
+      `
+
+      : `
+
+        <div class="lm-correspondence-visual">
+
+          <div class="lm-visual-empty">
+
+            <strong>
+              CORRESPONDENCE VISUALIZATION UNAVAILABLE
+            </strong>
+
+            No generated visualization was supplied by
+            this analysis run.
+
+          </div>
+
+        </div>
+
       `;
-    };
 
+
+  /*
+   * Report link.
+   */
+
+  const analysisId =
+    result.analysis_id ??
+    result.id ??
+    null;
+
+
+  const reportHTML =
+    analysisId
+
+      ? `
+        <a
+          class="lm-report-button"
+          href="/api/report/${encodeURIComponent(analysisId)}"
+          target="_blank"
+          rel="noopener"
+        >
+          ↓ DOWNLOAD FULL PDF REPORT
+        </a>
+      `
+
+      : `
+
+        <span class="lm-report-button"
+          style="opacity:.45;cursor:not-allowed;">
+          PDF REPORT NOT AVAILABLE
+        </span>
+
+      `;
+
+
+  /*
+   * FINAL RESULT UI
+   */
 
   box.innerHTML = `
 
-    <div class="metrics">
+    <!-- OVERALL RESULT -->
 
-      <div class="card metric">
-        <span class="muted">
-          RELIABILITY
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            ANALYSIS COMPLETE
+          </div>
+
+          <h2 class="lm-card-title">
+            Correspondence result ready
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill ${
+          String(confidence).toLowerCase().includes("insufficient")
+            ? "warning"
+            : ""
+        }">
+
+          ${safe(confidence)}
+
         </span>
 
-        <strong>
-          ${result.reliability}
-        </strong>
       </div>
 
 
-      <div class="card metric">
-        <span class="muted">
-          SCORE
+      <div class="lm-result-hero-grid">
+
+        <div class="lm-result-main-metric">
+
+          <span class="lm-metric-label">
+            OVERALL MATCH
+          </span>
+
+          <strong class="lm-main-number">
+            ${score !== null ? `${score}%` : "NOT AVAILABLE"}
+          </strong>
+
+          <div class="lm-main-caption">
+            Evidence score reported by the current analysis engine.
+          </div>
+
+        </div>
+
+
+        <div class="lm-result-small-metric">
+
+          <span class="lm-metric-label">
+            VERIFIED
+          </span>
+
+          <strong class="lm-small-number">
+            ${number(verified)}
+          </strong>
+
+          <div class="lm-small-caption">
+            Geometric inliers
+          </div>
+
+        </div>
+
+
+        <div class="lm-result-small-metric">
+
+          <span class="lm-metric-label">
+            CONFIDENCE
+          </span>
+
+          <strong class="lm-small-number">
+            ${safe(confidence)}
+          </strong>
+
+          <div class="lm-small-caption">
+            Reported reliability
+          </div>
+
+        </div>
+
+
+        <div class="lm-result-small-metric">
+
+          <span class="lm-metric-label">
+            IMAGE QUALITY
+          </span>
+
+          <strong class="lm-small-number">
+            ${
+              qualityA !== null &&
+              qualityB !== null
+                ? `${(
+                    (
+                      Number(qualityA) +
+                      Number(qualityB)
+                    ) / 2
+                  ).toFixed(1)}`
+                : "NOT AVAILABLE"
+            }
+          </strong>
+
+          <div class="lm-small-caption">
+            Combined A/B quality
+          </div>
+
+        </div>
+
+
+        <div class="lm-result-small-metric">
+
+          <span class="lm-metric-label">
+            PROCESS TIME
+          </span>
+
+          <strong class="lm-small-number">
+            ${
+              processing !== null
+                ? `${processing} ms`
+                : "NOT AVAILABLE"
+            }
+          </strong>
+
+          <div class="lm-small-caption">
+            Total measured processing
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- IMAGE ANALYSIS -->
+
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            INPUT CHARACTERIZATION
+          </div>
+
+          <h2 class="lm-card-title">
+            Image analysis
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill neutral">
+          A / B
         </span>
 
-        <strong>
-          ${result.score}%
-        </strong>
       </div>
 
 
-      <div class="card metric">
-        <span class="muted">
-          VERIFIED
-        </span>
+      <div class="lm-image-grid">
 
-        <strong>
-          ${result.verified_matches}
-        </strong>
-      </div>
+        ${imagePanel(
+          "Source Image A",
+          "SOURCE",
+          image
+        )}
 
-
-      <div class="card metric">
-        <span class="muted">
-          INLIER RATIO
-        </span>
-
-        <strong>
-          ${result.inlier_ratio}%
-        </strong>
-      </div>
-
-    </div>
-
-
-    <br>
-
-
-    <div class="card">
-
-      <h2>
-        Correspondence Map
-      </h2>
-
-      <img
-        class="imgresult"
-        src="${result.result_image}"
-        alt="Lunar correspondence visualization"
-      >
-
-      <p class="muted">
-        ${result.validation_note}
-      </p>
-
-    </div>
-
-
-    <br>
-
-
-    <div class="grid">
-
-
-      <div class="card">
-
-        <h2>
-          Image A Metadata
-        </h2>
-
-        ${metadataTable(
-          result.image_a?.metadata
+        ${imagePanel(
+          "Reference Image B",
+          "REFERENCE",
+          reference
         )}
 
       </div>
 
+    </section>
 
-      <div class="card">
 
-        <h2>
-          Image B Metadata
-        </h2>
+    <!-- CORRESPONDENCE -->
 
-        ${metadataTable(
-          result.image_b?.metadata
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            FEATURE CORRESPONDENCE
+          </div>
+
+          <h2 class="lm-card-title">
+            Matching evidence
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill neutral">
+          CORRESPONDENCE
+        </span>
+
+      </div>
+
+
+      <div class="lm-stat-grid">
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Raw KNN</span>
+          <strong class="lm-stat-value">
+            ${number(rawMatches)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Lowe candidates</span>
+          <strong class="lm-stat-value">
+            ${number(candidateMatches)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Reciprocal</span>
+          <strong class="lm-stat-value">
+            ${number(reciprocalMatches)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Verified</span>
+          <strong class="lm-stat-value">
+            ${number(inliers)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Outliers</span>
+          <strong class="lm-stat-value">
+            ${number(outliers)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Feature coverage</span>
+          <strong class="lm-stat-value">
+            ${percent(featureCoverage)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Spatial coverage</span>
+          <strong class="lm-stat-value">
+            ${percent(spatialCoverage)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Correspondence strength</span>
+          <strong class="lm-stat-value">
+            ${safe(correspondenceStrength)}
+          </strong>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- GEOMETRY -->
+
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            GEOMETRIC VERIFICATION
+          </div>
+
+          <h2 class="lm-card-title">
+            Does the geometry agree?
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill ${
+          String(verificationStatus)
+            .toLowerCase()
+            .includes("not")
+            ? "warning"
+            : ""
+        }">
+          ${safe(verificationStatus)}
+        </span>
+
+      </div>
+
+
+      <div class="lm-stat-grid">
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Inlier ratio</span>
+          <strong class="lm-stat-value">
+            ${percent(inlierRatio)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Geometric consistency</span>
+          <strong class="lm-stat-value">
+            ${percent(geometricConsistency)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">RANSAC</span>
+          <strong class="lm-stat-value">
+            ${safe(result.ransac_status)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Homography</span>
+          <strong class="lm-stat-value">
+            ${safe(homographyStatus)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Reprojection error</span>
+          <strong class="lm-stat-value">
+            ${safe(reprojectionError)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Transformation</span>
+          <strong class="lm-stat-value">
+            ${safe(transformationQuality)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Spatial coverage</span>
+          <strong class="lm-stat-value">
+            ${percent(spatialCoverage)}
+          </strong>
+        </div>
+
+        <div class="lm-stat">
+          <span class="lm-stat-label">Degeneracy</span>
+          <strong class="lm-stat-value">
+            ${safe(degeneracy)}
+          </strong>
+        </div>
+
+      </div>
+
+
+      <div style="margin-top:18px">
+
+        ${row(
+          "Duplicate / degenerate match detection",
+          duplicateDetection
         )}
 
       </div>
 
-
-      <div class="card">
-
-        <h2>
-          Verification
-        </h2>
+    </section>
 
 
-        <table class="table">
+    <!-- PIPELINE -->
 
-          <tr>
-            <th>Raw matches</th>
-            <td>
-              ${result.raw_matches}
-            </td>
-          </tr>
+    <section class="lm-result-card reveal">
 
+      <div class="lm-card-head">
 
-          <tr>
-            <th>Candidate matches</th>
-            <td>
-              ${result.candidate_matches}
-            </td>
-          </tr>
+        <div>
 
+          <div class="lm-card-kicker">
+            PROCESS TRACE
+          </div>
 
-          <tr>
-            <th>Geometric consistency</th>
-            <td>
-              ${result.geometric_consistency}%
-            </td>
-          </tr>
+          <h2 class="lm-card-title">
+            Analysis pipeline
+          </h2>
 
+        </div>
 
-          <tr>
-            <th>Feature coverage</th>
-            <td>
-              ${result.feature_coverage}%
-            </td>
-          </tr>
-
-
-          <tr>
-            <th>Homography</th>
-            <td>
-              ${result.homography_status}
-            </td>
-          </tr>
-
-
-          <tr>
-            <th>Processing</th>
-            <td>
-              ${result.processing_time_ms} ms
-            </td>
-          </tr>
-
-        </table>
+        <span class="lm-status-pill neutral">
+          07 STAGES
+        </span>
 
       </div>
 
+
+      <div class="lm-pipeline">
+        ${pipelineHTML}
+      </div>
+
+    </section>
+
+
+    <!-- CORRESPONDENCE MAP -->
+
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            VISUAL EVIDENCE
+          </div>
+
+          <h2 class="lm-card-title">
+            Feature correspondence map
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill neutral">
+          GENERATED OUTPUT
+        </span>
+
+      </div>
+
+
+      ${visualHTML}
+
+    </section>
+
+
+    <!-- METADATA -->
+
+    <div class="lm-two-column">
+
+      ${metadataPanel(
+        "Source observation",
+        metaA
+      )}
+
+      ${metadataPanel(
+        "Reference observation",
+        metaB
+      )}
+
     </div>
+
+
+    <!-- INTERPRETATION -->
+
+    <section class="lm-result-card reveal">
+
+      <div class="lm-card-head">
+
+        <div>
+
+          <div class="lm-card-kicker">
+            AUTOMATED ANALYSIS
+          </div>
+
+          <h2 class="lm-card-title">
+            Evidence interpretation
+          </h2>
+
+        </div>
+
+        <span class="lm-status-pill neutral">
+          MEASURED DATA
+        </span>
+
+      </div>
+
+
+      <div class="lm-interpretation">
+
+        <p>
+          ${safe(interpretation)}
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- REPORT -->
+
+    <section class="lm-result-card reveal">
+
+      <div class="lm-report-actions">
+
+        <div>
+
+          <h3>
+            Complete analysis report
+          </h3>
+
+          <p>
+            Full machine-readable analysis record and generated report,
+            when a report identifier is available.
+          </p>
+
+        </div>
+
+        ${reportHTML}
+
+      </div>
+
+    </section>
+
   `;
-}
 
+
+  /*
+   * Re-trigger reveal animation for dynamically
+   * inserted result elements.
+   */
+
+  requestAnimationFrame(() => {
+
+    box
+      .querySelectorAll(".reveal")
+      .forEach(
+        (element, index) => {
+
+          element.style.animationDelay =
+            `${index * 55}ms`;
+
+          element.classList.add(
+            "is-visible"
+          );
+
+        }
+      );
+
+  });
+
+}
 
 /* =========================================================
    STAR-FIELD PARALLAX
