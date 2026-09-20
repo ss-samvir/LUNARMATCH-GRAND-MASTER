@@ -2814,6 +2814,7 @@ function initializeLunarMatch() {
   wireAuth();
 
   wireAnalyze();
+   wireHistory();
 
   renderResult();
 
