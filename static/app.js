@@ -2601,6 +2601,214 @@ function initProceduralMoon() {
    PAGE INITIALIZATION
    ========================================================= */
 
+/* =========================================================
+   HISTORY / SAVED ANALYSIS WORKSPACE
+   ========================================================= */
+
+function wireHistory() {
+
+  const list =
+    document.querySelector("#history-list");
+
+  const status =
+    document.querySelector("#history-status");
+
+  if (!list || !status) {
+    return;
+  }
+
+  if (list.dataset.historyReady === "true") {
+    return;
+  }
+
+  list.dataset.historyReady = "true";
+
+  status.textContent =
+    "Loading saved analyses...";
+
+  fetch("/api/history", {
+    credentials: "same-origin",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  })
+    .then(async response => {
+
+      let data;
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "Unable to read saved analyses."
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          "Unable to load history."
+        );
+      }
+
+      return data;
+    })
+    .then(data => {
+
+      if (!Array.isArray(data) || data.length === 0) {
+        status.textContent =
+          "No saved analyses yet.";
+        list.innerHTML = "";
+        return;
+      }
+
+      status.textContent =
+        `${data.length} saved analysis${data.length === 1 ? "" : "es"}`;
+
+      list.innerHTML = data.map(item => {
+
+        const score =
+          item.score !== null &&
+          item.score !== undefined
+            ? Number(item.score).toFixed(2) + "%"
+            : "NOT AVAILABLE";
+
+        const verified =
+          item.verified_matches ??
+          0;
+
+        return `
+          <article class="history-card">
+
+            <div class="history-card-top">
+
+              <div>
+                <span class="history-label">
+                  ANALYSIS
+                </span>
+
+                <h2>
+                  ${item.headline || "ANALYSIS COMPLETE"}
+                </h2>
+              </div>
+
+              <div class="history-confidence">
+                ${item.confidence || "UNKNOWN"}
+              </div>
+
+            </div>
+
+            <div class="history-meta">
+
+              <span>Score: ${score}</span>
+
+              <span>Verified: ${verified}</span>
+
+              <span>${item.created_at || ""}</span>
+
+            </div>
+
+            <button
+              type="button"
+              class="history-open"
+              data-analysis-id="${item.analysis_id}"
+            >
+              OPEN SAVED ANALYSIS
+            </button>
+
+          </article>
+        `;
+
+      }).join("");
+
+      list
+        .querySelectorAll(".history-open")
+        .forEach(button => {
+
+          button.addEventListener(
+            "click",
+            async () => {
+
+              const analysisId =
+                button.dataset.analysisId;
+
+              if (!analysisId) {
+                return;
+              }
+
+              button.disabled = true;
+              const original =
+                button.textContent;
+
+              button.textContent =
+                "OPENING…";
+
+              try {
+
+                const response =
+                  await fetch(
+                    `/api/history/${encodeURIComponent(analysisId)}`,
+                    {
+                      credentials: "same-origin",
+                      headers: {
+                        "X-Requested-With":
+                          "XMLHttpRequest"
+                      }
+                    }
+                  );
+
+                const result =
+                  await response.json();
+
+                if (!response.ok) {
+                  throw new Error(
+                    result.error ||
+                    "Unable to open saved analysis."
+                  );
+                }
+
+                sessionStorage.setItem(
+                  "lm_result",
+                  JSON.stringify(result)
+                );
+
+                window.location.href =
+                  "/results";
+
+              } catch (error) {
+
+                console.error(
+                  "LUNARMATCH history error:",
+                  error
+                );
+
+                button.disabled = false;
+                button.textContent =
+                  original;
+
+                status.textContent =
+                  error.message ||
+                  "Unable to open saved analysis.";
+              }
+            }
+          );
+        });
+
+    })
+    .catch(error => {
+
+      console.error(
+        "LUNARMATCH history load error:",
+        error
+      );
+
+      status.textContent =
+        error.message ||
+        "Unable to load history.";
+
+      list.innerHTML = "";
+    });
+}
 function initializeLunarMatch() {
 
   wireAuth();
