@@ -1885,6 +1885,7 @@ function lmSmoothNavigation() {
 
       wireAuth();
       wireAnalyze();
+       wireHistory();
       renderResult();
       initProceduralMoon();
 
