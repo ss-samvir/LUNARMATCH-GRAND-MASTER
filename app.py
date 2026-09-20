@@ -61,6 +61,7 @@ MAX_FEATURES = 5000
 LOWE_RATIO = 0.80
 RANSAC_THRESHOLD = 5.0
 MIN_IMAGE_SIDE = 32
+FREE_GUEST_ANALYSIS_LIMIT = 10
 
 ALLOWED_EXTENSIONS = {
     ".jpg",
@@ -106,6 +107,11 @@ def init_db():
         """
     )
 
+    # Backward-compatible schema migration for guest analysis history.
+    columns = {row[1] for row in c.execute("PRAGMA table_info(analyses)").fetchall()}
+    if "guest_id" not in columns:
+        c.execute("ALTER TABLE analyses ADD COLUMN guest_id TEXT")
+
     c.commit()
     c.close()
 
@@ -122,6 +128,25 @@ def safe_float(value):
         return float(value)
     except Exception:
         return None
+
+
+def get_guest_id():
+    """Create/retrieve the anonymous browser-session identifier used for guest history."""
+    guest_id = session.get("guest_id")
+    if not guest_id:
+        guest_id = uuid.uuid4().hex
+        session["guest_id"] = guest_id
+    return guest_id
+
+
+def guest_analysis_count(guest_id):
+    c = db()
+    row = c.execute(
+        "SELECT COUNT(*) AS count FROM analyses WHERE guest_id=? AND user_id IS NULL",
+        (guest_id,),
+    ).fetchone()
+    c.close()
+    return int(row["count"] or 0)
 
 
 def json_safe(value):
@@ -2365,19 +2390,35 @@ def signup():
             ),
         )
 
-        c.commit()
-
         uid = c.execute(
             "SELECT last_insert_rowid()"
         ).fetchone()[0]
 
+        guest_id = session.get("guest_id")
+        migrated_history = 0
+
+        if guest_id:
+            cur = c.execute(
+                """
+                UPDATE analyses
+                SET user_id=?
+                WHERE guest_id=?
+                  AND user_id IS NULL
+                """,
+                (uid, guest_id),
+            )
+            migrated_history = cur.rowcount
+
+        c.commit()
         c.close()
 
         session["user_id"] = uid
         session["user_name"] = name
 
         return jsonify(
-            ok=True
+            ok=True,
+            history_migrated=migrated_history,
+            message="Account created successfully."
         )
 
     except sqlite3.IntegrityError:
@@ -2407,6 +2448,8 @@ def signin():
         ),
     ).fetchone()
 
+    guest_id = session.get("guest_id")
+
     c.close()
 
     if (
@@ -2423,11 +2466,30 @@ def signin():
             error="Invalid email or password."
         ), 401
 
+    migrated_history = 0
+
+    if guest_id:
+        c = db()
+        cur = c.execute(
+            """
+            UPDATE analyses
+            SET user_id=?
+            WHERE guest_id=?
+              AND user_id IS NULL
+            """,
+            (u["id"], guest_id),
+        )
+        migrated_history = cur.rowcount
+        c.commit()
+        c.close()
+
     session["user_id"] = u["id"]
     session["user_name"] = u["name"]
 
     return jsonify(
-        ok=True
+        ok=True,
+        history_migrated=migrated_history,
+        message="Signed in successfully."
     )
 
 
@@ -2446,6 +2508,22 @@ def signout():
 
 @app.post("/api/analyze")
 def api_analyze():
+    is_guest = not session.get("user_id")
+    guest_id = get_guest_id() if is_guest else None
+
+    if is_guest:
+        used = guest_analysis_count(guest_id)
+        remaining = max(0, FREE_GUEST_ANALYSIS_LIMIT - used)
+        if remaining <= 0:
+            return jsonify(
+                error="Your free analysis allowance has been used.",
+                code="REGISTRATION_REQUIRED",
+                registration_required=True,
+                free_limit=FREE_GUEST_ANALYSIS_LIMIT,
+                used=used,
+                remaining=0,
+            ), 403
+
     if (
         "image_a" not in request.files
         or "image_b" not in request.files
@@ -2552,16 +2630,18 @@ def api_analyze():
             INSERT INTO analyses(
                 id,
                 user_id,
+                guest_id,
                 created_at,
                 result_json
             )
-            VALUES(?,?,?,?)
+            VALUES(?,?,?,?,?)
             """,
             (
                 result["analysis_id"],
                 session.get(
                     "user_id"
                 ),
+                guest_id,
                 result["created_at"],
                 json.dumps(
                     result,
@@ -2592,57 +2672,129 @@ def api_analyze():
 
 
 # =========================================================
-# RESULT HISTORY
+# RESULT HISTORY / USAGE
 # =========================================================
 
-@app.get("/api/results")
-def api_results():
+@app.get("/api/usage")
+def api_usage():
+    guest = not session.get("user_id")
+
+    if guest:
+        guest_id = get_guest_id()
+        used = guest_analysis_count(guest_id)
+        remaining = max(0, FREE_GUEST_ANALYSIS_LIMIT - used)
+        return jsonify(
+            authenticated=False,
+            free_limit=FREE_GUEST_ANALYSIS_LIMIT,
+            used=used,
+            remaining=remaining,
+            registration_required=remaining == 0,
+        )
+
     c = db()
-
-    if session.get("user_id"):
-        rows = c.execute(
-            """
-            SELECT
-                id,
-                created_at,
-                result_json
-            FROM analyses
-            WHERE user_id=?
-               OR user_id IS NULL
-            ORDER BY created_at DESC
-            LIMIT 30
-            """,
-            (
-                session.get(
-                    "user_id"
-                ),
-            ),
-        ).fetchall()
-
-    else:
-        rows = c.execute(
-            """
-            SELECT
-                id,
-                created_at,
-                result_json
-            FROM analyses
-            WHERE user_id IS NULL
-            ORDER BY created_at DESC
-            LIMIT 30
-            """
-        ).fetchall()
-
+    row = c.execute(
+        "SELECT COUNT(*) AS count FROM analyses WHERE user_id=?",
+        (session["user_id"],),
+    ).fetchone()
     c.close()
 
     return jsonify(
-        [
-            json.loads(
-                r["result_json"]
-            )
-            for r in rows
-        ]
+        authenticated=True,
+        unlimited_access=True,
+        total_analyses=int(row["count"] or 0),
+        registration_required=False,
     )
+
+
+def _history_rows():
+    user_id = session.get("user_id")
+
+    if user_id:
+        c = db()
+        rows = c.execute(
+            """
+            SELECT id, created_at, result_json
+            FROM analyses
+            WHERE user_id=?
+            ORDER BY created_at DESC
+            LIMIT 100
+            """,
+            (user_id,),
+        ).fetchall()
+        c.close()
+        return rows
+
+    guest_id = get_guest_id()
+    c = db()
+    rows = c.execute(
+        """
+        SELECT id, created_at, result_json
+        FROM analyses
+        WHERE guest_id=? AND user_id IS NULL
+        ORDER BY created_at DESC
+        LIMIT 100
+        """,
+        (guest_id,),
+    ).fetchall()
+    c.close()
+    return rows
+
+
+@app.get("/api/results")
+def api_results():
+    return jsonify(
+        [json.loads(row["result_json"]) for row in _history_rows()]
+    )
+
+
+@app.get("/api/history")
+def api_history():
+    items = []
+    for row in _history_rows():
+        result = json.loads(row["result_json"])
+        items.append({
+            "analysis_id": row["id"],
+            "created_at": row["created_at"],
+            "score": result.get("overall_match", result.get("score")),
+            "confidence": result.get("confidence"),
+            "verified_matches": result.get("verified_matches"),
+            "headline": result.get("headline", "Analysis complete"),
+            "image_a": result.get("image_a", {}).get("filename"),
+            "image_b": result.get("image_b", {}).get("filename"),
+        })
+    return jsonify(items)
+
+
+def _can_access_analysis(analysis_id):
+    c = db()
+    row = c.execute(
+        "SELECT * FROM analyses WHERE id=?",
+        (analysis_id,),
+    ).fetchone()
+    c.close()
+
+    if not row:
+        return None
+
+    if session.get("user_id"):
+        if row["user_id"] == session["user_id"]:
+            return row
+        return None
+
+    guest_id = session.get("guest_id")
+    if guest_id and row["guest_id"] == guest_id and row["user_id"] is None:
+        return row
+
+    return None
+
+
+@app.get("/api/history/<analysis_id>")
+def api_history_item(analysis_id):
+    row = _can_access_analysis(analysis_id)
+    if not row:
+        return jsonify(error="Analysis not found."), 404
+
+    return jsonify(json.loads(row["result_json"]))
 
 
 # =========================================================
