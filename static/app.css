@@ -8048,64 +8048,70 @@ body.lm-leaving #page-transition .transition-line {
 
 .history-page .section-kicker{
   position:relative;
+   
   display:flex;
   align-items:center;
   gap:12px;
 
   margin-bottom:18px;
 
-  color:#72d7ff;
-  font-family:"Space Grotesk",sans-serif;
+  color:#8fbfff;
+   
+  font-family:"Space Grotesk",Inter,sans-serif;
   font-size:10px;
-  font-weight:700;
-  letter-spacing:.18em;
+  font-weight:600;
+  letter-spacing:.20em;
   text-transform:uppercase;
+   
+  text-shadow:
+    0 0 18px rgba(109,141,255,.10);
+
 }
 
 .history-page .section-kicker::before{
   content:"";
-  width:30px;
+  width:34px;
   height:1px;
 
   background:
     linear-gradient(
       90deg,
-      rgba(91,210,255,0),
-      rgba(91,210,255,.95)
+       transparent,
+      rgba(125,220,255,.72),
+      rgba(180,140,255,.42)
     );
 
-  box-shadow:0 0 12px rgba(91,210,255,.35);
+  box-shadow:0 0 12px rgba(125,220,255,.25);
 }
 
 .history-page > h1{
   position:relative;
-  margin:0;
+   
+  margin:14px 0 22px;
 
   max-width:900px;
 
-  color:#edf7ff;
-
-  font-family:"Space Grotesk",sans-serif;
-  font-size:clamp(42px,6vw,72px);
-  line-height:.98;
+  font-family:"Space Grotesk",Inter,sans-serif;
+  font-size:clamp(52px,7vw,88px);
+  line-height:.90;
   letter-spacing:-.055em;
-  font-weight:600;
+  
+  background:
+    linear-gradient(
+      105deg,
+      #ffffff 5%,
+      #b9d6ff 30%,
+      #76a0ff 62%,
+      #7ddcff 100%
+    );
+
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
 
   text-shadow:
-    0 0 35px rgba(88,180,255,.08);
-}
-
-.history-page .section-intro{
-  position:relative;
-
-  max-width:690px;
-  margin:22px 0 42px;
-
-  color:#8da2bc;
-
-  font-family:"Inter",sans-serif;
-  font-size:15px;
-  line-height:1.8;
+    0 0 35px rgba(109,141,255,.08),
+    0 0 75px rgba(125,220,255,.035);
 }
 
 /* ---------------------------------------------------------
