@@ -2327,6 +2327,8 @@ def page(page):
             ),
             404,
         )
+        if page == "history" and not session.get("user_id"):
+        return redirect("/signin")
 
     return render_template(
         page + ".html"
