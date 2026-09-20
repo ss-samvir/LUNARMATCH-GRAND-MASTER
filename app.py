@@ -2317,6 +2317,7 @@ def page(page):
         "contact",
         "signin",
         "signup",
+        "history",
     }
 
     if page not in allowed:
