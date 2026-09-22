@@ -23,6 +23,7 @@ import cv2
 import numpy as np
 
 from lunar_engine import run as run_lunarmatch_engine, draw_correspondence as draw_custom_correspondence
+from backend.routes import backend_api
 
 
 # =========================================================
@@ -43,6 +44,8 @@ app = Flask(
     template_folder="templates",
     static_folder="static",
 )
+
+app.register_blueprint(backend_api)
 
 app.secret_key = os.environ.get(
     "SECRET_KEY",
